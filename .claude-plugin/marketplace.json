@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "agent-skills",
+  "name": "bjj-agent-skills",
   "description": "个人 agent skills 集合：开发流程编排与 Git 规范",
   "owner": {
     "name": "BaiJunjie",

@@ -9,8 +9,8 @@
 claude plugin marketplace add BaiJunjie/agent-skills
 
 # 2. 安装需要的 plugin
-claude plugin install dev@agent-skills
-claude plugin install git@agent-skills
+claude plugin install dev@bjj-agent-skills
+claude plugin install git@bjj-agent-skills
 
 # 3. 重启 Claude Code
 ```
@@ -25,8 +25,8 @@ claude plugin marketplace add ~/Documents/GitHub/agent-skills
 
 ```bash
 claude plugin marketplace update
-claude plugin update dev@agent-skills
-claude plugin update git@agent-skills
+claude plugin update dev@bjj-agent-skills
+claude plugin update git@bjj-agent-skills
 ```
 
 ## 可用 Skills

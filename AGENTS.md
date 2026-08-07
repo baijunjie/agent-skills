@@ -52,7 +52,7 @@ $ARGUMENTS
 
 ```bash
 claude plugin marketplace add ~/Documents/GitHub/agent-skills
-claude plugin install <plugin>@agent-skills
+claude plugin install <plugin>@bjj-agent-skills
 ```
 
 改动后重启 Claude Code 才会生效。
