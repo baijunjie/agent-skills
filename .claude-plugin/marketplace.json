@@ -1,0 +1,29 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "agent-skills",
+  "description": "个人 agent skills 集合：开发流程编排与 Git 规范",
+  "owner": {
+    "name": "BaiJunjie",
+    "email": "b.jj@elestyle.jp"
+  },
+  "plugins": [
+    {
+      "name": "dev",
+      "description": "开发流程 skills：讨论 → 文档 → 执行 → 优化，以及开发记忆的读写",
+      "author": {
+        "name": "BaiJunjie"
+      },
+      "source": "./plugins/dev",
+      "category": "productivity"
+    },
+    {
+      "name": "git",
+      "description": "Git 相关 skills：Conventional Commits 提交信息生成、仓库 Issue/PR 检索",
+      "author": {
+        "name": "BaiJunjie"
+      },
+      "source": "./plugins/git",
+      "category": "development"
+    }
+  ]
+}

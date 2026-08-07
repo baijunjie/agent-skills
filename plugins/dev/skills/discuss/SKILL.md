@@ -1,0 +1,15 @@
+---
+name: discuss
+description: 问题讨论。在动手编码前先补齐项目上下文、给出并对齐解决方案，用于方案探讨、技术选型、可行性分析等只讨论不落地的场景。
+disable-model-invocation: true
+---
+
+# 问题讨论
+
+讨论主题：
+
+<topic>
+$ARGUMENTS
+</topic>
+
+请不要直接编写代码，而是应该先了解足够的项目上下文，然后描述你的解决方案。

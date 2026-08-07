@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:agentskills.io)",
+      "WebFetch(domain:docs.anthropic.com)",
+
+      "Bash(ls:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote:*)",
+
+      "Skill(dev:coding)",
+      "Skill(dev:discuss)",
+      "Skill(dev:docs)",
+      "Skill(dev:exec)",
+      "Skill(dev:memory-read)",
+      "Skill(dev:memory-save)",
+      "Skill(dev:optimize)",
+
+      "Skill(git:commit)",
+      "Skill(git:find-issues)"
+    ],
+    "deny": []
+  }
+}
