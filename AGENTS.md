@@ -52,21 +52,28 @@ $ARGUMENTS
 
 marketplace 名为 `bjj-agent-skills` 而非仓库名 `agent-skills`——后者是 Anthropic 保留名，只允许 `anthropics` 组织的 GitHub 源使用。
 
+**必须用 GitHub 源安装**，不要用本地目录源：
+
 ```bash
-claude plugin marketplace add ~/Documents/GitHub/agent-skills
+claude plugin marketplace add baijunjie/agent-skills
 claude plugin install <plugin>@bjj-agent-skills
 ```
 
-安装时会按 **git commit SHA** 把 plugin 复制到 `plugins/cache/` 下，因此改完 skill 只保存文件不会生效，需要：
+GitHub 源会把仓库 clone 到 `plugins/marketplaces/bjj-agent-skills/`，运行时与本地工作副本无关。若改用 `claude plugin marketplace add <本地路径>`，marketplace 的 `installLocation` 会直接指向该路径，工作副本一旦移动或删除，所有 skill 都会报 `failed to load: cache-miss`——即使 plugin 内容已复制进 `plugins/cache/` 也救不回来。
+
+### 发布改动
+
+plugin 按 **git commit SHA** 缓存，改完 skill 只保存文件不生效，必须推到远端：
 
 ```bash
-git commit -am "..."                      # 1. 先提交
-claude plugin marketplace update           # 2. 刷新 marketplace
-claude plugin update <plugin>@bjj-agent-skills   # 3. 更新 plugin
-# 4. 重启 Claude Code
+git commit -am "..."                             # 1. 提交
+git push                                         # 2. 推送（GitHub 源只认远端）
+claude plugin marketplace update                 # 3. 刷新 marketplace
+claude plugin update <plugin>@bjj-agent-skills   # 4. 更新 plugin
+# 5. 重启 Claude Code
 ```
 
-若配置了多个 `CLAUDE_CONFIG_DIR`（如 `~/.claude` 与 `~/.claude-work`），每个都是独立的安装环境，需要分别执行上述命令。
+若配置了多个 `CLAUDE_CONFIG_DIR`（如 `~/.claude` 与 `~/.claude-work`），每个都是独立的安装环境，第 3、4 步需要分别执行。
 
 ## 排查
 

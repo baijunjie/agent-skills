@@ -15,11 +15,7 @@ claude plugin install git@bjj-agent-skills
 # 3. 重启 Claude Code
 ```
 
-本地开发时可直接指向工作副本：
-
-```bash
-claude plugin marketplace add ~/Documents/GitHub/agent-skills
-```
+> 不要用 `claude plugin marketplace add <本地路径>` 指向工作副本——那样 skill 会强依赖该目录，一旦移动或删除全部失效。详见 [AGENTS.md](AGENTS.md)。
 
 ### 更新
 
@@ -28,6 +24,8 @@ claude plugin marketplace update
 claude plugin update dev@bjj-agent-skills
 claude plugin update git@bjj-agent-skills
 ```
+
+改动本仓库后需先 `git push`，更新才拉得到。
 
 ## 可用 Skills
 
