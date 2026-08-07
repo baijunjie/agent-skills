@@ -6,7 +6,7 @@
 
 ```bash
 # 1. 添加 marketplace（一次性）
-claude plugin marketplace add BaiJunjie/agent-skills
+claude plugin marketplace add baijunjie/agent-skills
 
 # 2. 安装需要的 plugin
 claude plugin install dev@bjj-agent-skills
