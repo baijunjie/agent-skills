@@ -48,11 +48,29 @@ $ARGUMENTS
 
 不要用 `---` 分隔线包裹参数——它与 frontmatter 语法冲突。
 
-## 本地验证
+## 安装与迭代
+
+marketplace 名为 `bjj-agent-skills` 而非仓库名 `agent-skills`——后者是 Anthropic 保留名，只允许 `anthropics` 组织的 GitHub 源使用。
 
 ```bash
 claude plugin marketplace add ~/Documents/GitHub/agent-skills
 claude plugin install <plugin>@bjj-agent-skills
 ```
 
-改动后重启 Claude Code 才会生效。
+安装时会按 **git commit SHA** 把 plugin 复制到 `plugins/cache/` 下，因此改完 skill 只保存文件不会生效，需要：
+
+```bash
+git commit -am "..."                      # 1. 先提交
+claude plugin marketplace update           # 2. 刷新 marketplace
+claude plugin update <plugin>@bjj-agent-skills   # 3. 更新 plugin
+# 4. 重启 Claude Code
+```
+
+若配置了多个 `CLAUDE_CONFIG_DIR`（如 `~/.claude` 与 `~/.claude-work`），每个都是独立的安装环境，需要分别执行上述命令。
+
+## 排查
+
+```bash
+claude plugin details <plugin>    # 查看已加载的 skill 清单与 token 开销
+claude plugin marketplace list    # 确认 marketplace 已注册
+```
