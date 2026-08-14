@@ -1,6 +1,6 @@
 ---
 name: commit
-description: 按 Conventional Commits 规范生成 Git 提交。用于提交代码、撰写 commit message、选择 type/scope、拆分混合改动等场景。
+description: 按 Conventional Commits 规范生成 Git 提交。用于提交代码、撰写 commit message、选择 type/scope、归纳多点改动等场景。
 ---
 
 # Git Commit
@@ -12,6 +12,13 @@ description: 按 Conventional Commits 规范生成 Git 提交。用于提交代�
 <context>
 $ARGUMENTS
 </context>
+
+## 单次提交
+
+**一次调用只产生一个 commit，不拆分。** 即使改动跨了多个 type，也全部归入这一个提交：
+
+- type 取**主要改动**；为它服务的前置配置、依赖、文档与测试都是配套产物，不单独成 commit
+- 改动点多时靠 body 逐条说明，不靠拆 commit
 
 ## Type 选择
 
@@ -39,6 +46,7 @@ $ARGUMENTS
 - 改文档里的代码示例 → `docs`
 - 升级依赖导致的代码适配 → `build`
 - 配置项新增（影响运行行为）→ `feat`；仅工具配置 → `chore`
+- 说明本次改动的文档 → 跟随该改动的 type；独立的文档整理才是 `docs`
 
 ## Scope 选择
 
@@ -54,8 +62,8 @@ $ARGUMENTS
 [optional body]
 ```
 
-- subject：祈使句、首字母小写、≤ 72 字符、句末不加标点
-- 一次提交只对应**一个** type；混合改动应拆分多次提交
-- body 仅在 subject 不足以表达"为什么"时才写，每行 ≤ 72 字符
+- subject：祈使句、首字母小写、≤ 72 字符、句末不加标点；概括整体意图，细节留给 body
+- body 在 subject 说不清"为什么"、或改动点需分别交代时写，每行 ≤ 72 字符
+- 多个改动点用 `- ` 逐条列出，一条一件事，按重要性排序
 - 提交信息语言与仓库历史保持一致
 - 通过 HEREDOC 传递 message，保留换行
