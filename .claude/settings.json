@@ -23,8 +23,7 @@
       "Skill(dev:discuss)",
       "Skill(dev:docs)",
       "Skill(dev:exec)",
-      "Skill(dev:memory-read)",
-      "Skill(dev:memory-save)",
+      "Skill(dev:memory)",
       "Skill(dev:optimize)",
 
       "Skill(git:commit)",

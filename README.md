@@ -31,7 +31,7 @@ claude plugin update git@bjj-agent-skills
 
 ### `dev` — 开发流程
 
-典型链路：`/dev:discuss` → `/dev:docs` → `/dev:exec` → `/dev:optimize` → `/dev:memory-save`。
+典型链路：`/dev:discuss` → `/dev:docs` → `/dev:exec` → `/dev:optimize` → `/dev:memory`。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
@@ -40,8 +40,7 @@ claude plugin update git@bjj-agent-skills
 | `/dev:docs` | 文档输出：把讨论结论整理成开发文档（只写设计，不写实现） | 手动 |
 | `/dev:exec` | 按开发文档编号顺序执行开发，完成即打 `✅` 标记 | 手动 |
 | `/dev:optimize` | 优化代码：复查逻辑遗漏、冗余代码、可优化点 | 手动 |
-| `/dev:memory-read` | 查看 `docs/dev-memory/` 下的开发记忆 | 手动 / 自动 |
-| `/dev:memory-save` | 沉淀本次开发经验到 `docs/dev-memory/` | 手动 / 自动 |
+| `/dev:memory` | 开发记忆：开工前读 `docs/dev-memory/`，收尾时沉淀经验 | 手动 / 自动 |
 
 ### `git` — Git 规范
 
