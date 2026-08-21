@@ -1,0 +1,7 @@
+{
+  "name": "ai",
+  "description": "AI agent 相关规范：skill 编写（只写 agent 推不出来的规则，保持自包含，给判断标准而非操作脚本）",
+  "author": {
+    "name": "BaiJunjie"
+  }
+}

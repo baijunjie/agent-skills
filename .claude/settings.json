@@ -26,6 +26,8 @@
       "Skill(dev:memory)",
       "Skill(dev:optimize)",
 
+      "Skill(ai:authoring)",
+
       "Skill(git:commit)",
       "Skill(git:find-issues)"
     ],

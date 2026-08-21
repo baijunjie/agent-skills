@@ -11,6 +11,7 @@ claude plugin marketplace add baijunjie/agent-skills
 # 2. 安装需要的 plugin
 claude plugin install dev@bjj-agent-skills
 claude plugin install git@bjj-agent-skills
+claude plugin install ai@bjj-agent-skills
 
 # 3. 重启 Claude Code
 ```
@@ -41,6 +42,12 @@ claude plugin update git@bjj-agent-skills
 | `/dev:exec` | 按开发文档编号顺序执行开发，完成即打 `✅` 标记 | 手动 |
 | `/dev:optimize` | 优化代码：复查逻辑遗漏、冗余代码、可优化点 | 手动 |
 | `/dev:memory` | 开发记忆：开工前读 `docs/dev-memory/`，收尾时沉淀经验 | 手动 / 自动 |
+
+### `ai` — AI agent 规范
+
+| Skill | 说明 | 触发方式 |
+|-------|------|----------|
+| `/ai:authoring` | Skill 编写规范：只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本 | 手动 / 自动 |
 
 ### `git` — Git 规范
 
