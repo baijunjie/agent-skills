@@ -47,7 +47,7 @@ claude plugin update git@bjj-agent-skills
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `/ai:authoring` | Skill 编写规范：只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本 | 手动 / 自动 |
+| `/ai:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本 | 手动 / 自动 |
 
 ### `git` — Git 规范
 

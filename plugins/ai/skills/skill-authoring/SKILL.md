@@ -1,5 +1,5 @@
 ---
-name: authoring
+name: skill-authoring
 description: Skill 编写规范。创建或修改 SKILL.md 时使用。规定 skill 只写 agent 推不出来的规则、必须自包含不引用代码、给判断标准而非操作脚本。
 ---
 
