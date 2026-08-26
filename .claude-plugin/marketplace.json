@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "dev",
-      "description": "开发流程 skills：讨论 → 文档 → 执行 → 优化，以及开发记忆的读写",
+      "description": "开发流程 skills：讨论 → 文档 → 执行 → 优化",
       "author": {
         "name": "BaiJunjie"
       },
@@ -33,6 +33,15 @@
       },
       "source": "./plugins/git",
       "category": "development"
+    },
+    {
+      "name": "setup",
+      "description": "项目初始化 skills：把通用规范落地成随仓库提交的项目级配置",
+      "author": {
+        "name": "BaiJunjie"
+      },
+      "source": "./plugins/setup",
+      "category": "productivity"
     }
   ]
 }

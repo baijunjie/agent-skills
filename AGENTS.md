@@ -21,6 +21,13 @@ Plugin 名即调用前缀：`plugins/dev/skills/coding/SKILL.md` 对应 `/dev:co
 
 新增 plugin 时还需创建 `plugins/<plugin>/.claude-plugin/plugin.json`，并在 `.claude-plugin/marketplace.json` 的 `plugins` 数组中登记。
 
+## 附带资源
+
+skill 需要携带脚本、模板等文件时，放在自己的目录下，用 `$CLAUDE_PLUGIN_ROOT/skills/<skill>/<file>` 引用——
+plugin 安装后的实际路径不可预测，只有这个环境变量能定位。
+
+附带的模板文件不要命名为 `SKILL.md`，避免与 skill 本体混淆。
+
 ## Frontmatter
 
 YAML frontmatter 必须位于文件最开头，`---` 是第一行，前面不能有注释或空行。

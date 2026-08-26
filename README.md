@@ -12,6 +12,7 @@ claude plugin marketplace add baijunjie/agent-skills
 claude plugin install dev@bjj-agent-skills
 claude plugin install git@bjj-agent-skills
 claude plugin install ai@bjj-agent-skills
+claude plugin install setup@bjj-agent-skills
 
 # 3. 重启 Claude Code
 ```
@@ -24,6 +25,8 @@ claude plugin install ai@bjj-agent-skills
 claude plugin marketplace update
 claude plugin update dev@bjj-agent-skills
 claude plugin update git@bjj-agent-skills
+claude plugin update ai@bjj-agent-skills
+claude plugin update setup@bjj-agent-skills
 ```
 
 改动本仓库后需先 `git push`，更新才拉得到。
@@ -32,7 +35,7 @@ claude plugin update git@bjj-agent-skills
 
 ### `dev` — 开发流程
 
-典型链路：`/dev:discuss` → `/dev:docs` → `/dev:exec` → `/dev:optimize` → `/dev:memory`。
+典型链路：`/dev:discuss` → `/dev:docs` → `/dev:exec` → `/dev:optimize`。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
@@ -41,7 +44,6 @@ claude plugin update git@bjj-agent-skills
 | `/dev:docs` | 文档输出：把讨论结论整理成开发文档（只写设计，不写实现） | 手动 |
 | `/dev:exec` | 按开发文档编号顺序执行开发，完成即打 `✅` 标记 | 手动 |
 | `/dev:optimize` | 优化代码：复查逻辑遗漏、冗余代码、可优化点 | 手动 |
-| `/dev:memory` | 开发记忆：开工前读 `docs/dev-memory/`，收尾时沉淀经验 | 手动 / 自动 |
 
 ### `ai` — AI agent 规范
 
@@ -56,7 +58,15 @@ claude plugin update git@bjj-agent-skills
 | `/git:commit` | 按 Conventional Commits 规范生成提交 | 手动 / 自动 |
 | `/git:find-issues` | 在指定仓库中搜索相关 Issue 和 PR | 手动 / 自动 |
 
-> **触发方式**说明：标「手动」的 skill 设置了 `disable-model-invocation: true`，只能由你显式 `/xxx` 调用，不会被模型自动触发——这类 skill 是流程编排指令，自动触发会造成干扰。其余 skill 在语境相关时也会被自动调用。
+### `setup` — 项目初始化
+
+一次性执行，把通用规范落地成项目自己的、随仓库提交的配置。
+
+| Skill | 说明 | 触发方式 |
+|-------|------|----------|
+| `/setup:dev-memory` | 在当前项目装上项目级 `dev-memory` skill：开工前读 `docs/dev-memory/`，收尾时沉淀经验 | 手动 |
+
+> **触发方式**说明：标「手动」的 skill 设置了 `disable-model-invocation: true`，只能由你显式 `/xxx` 调用，不会被模型自动触发——这类 skill 是流程编排或一次性初始化指令，自动触发会造成干扰。其余 skill 在语境相关时也会被自动调用。
 
 ## 仓库结构
 

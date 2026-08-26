@@ -23,13 +23,14 @@
       "Skill(dev:discuss)",
       "Skill(dev:docs)",
       "Skill(dev:exec)",
-      "Skill(dev:memory)",
       "Skill(dev:optimize)",
 
       "Skill(ai:skill-authoring)",
 
       "Skill(git:commit)",
-      "Skill(git:find-issues)"
+      "Skill(git:find-issues)",
+
+      "Skill(setup:dev-memory)"
     ],
     "deny": []
   }
