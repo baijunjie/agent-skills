@@ -65,6 +65,7 @@ claude plugin update setup@bjj-agent-skills
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
 | `/setup:dev-memory` | 在当前项目装上项目级 `dev-memory` skill 并挂进 `CLAUDE.md`：开工前读 `docs/dev-memory/`，收尾时沉淀经验 | 手动 |
+| `/setup:docs` | 在当前项目装上项目级 `docs` skill 与提交前的文档同步检查：规范项目地图、产品文档、开发文档三类文档的维护 | 手动 |
 | `/setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」的流程写进项目的 `CLAUDE.md` / `AGENTS.md`，并让 `.gitignore` 忽略 worktree 目录 | 手动 |
 
 > **触发方式**说明：标「手动」的 skill 设置了 `disable-model-invocation: true`，只能由你显式 `/xxx` 调用，不会被模型自动触发——这类 skill 是流程编排或一次性初始化指令，自动触发会造成干扰。其余 skill 在语境相关时也会被自动调用。
