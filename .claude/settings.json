@@ -30,7 +30,8 @@
       "Skill(git:commit)",
       "Skill(git:find-issues)",
 
-      "Skill(setup:dev-memory)"
+      "Skill(setup:dev-memory)",
+      "Skill(setup:git-worktree)"
     ],
     "deny": []
   }
