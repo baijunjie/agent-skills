@@ -33,10 +33,11 @@ sig=$(printf '%s' "$src" | shasum | cut -d' ' -f1)
 [ -f "$ack" ] && [ "$(cat "$ack" 2>/dev/null)" = "$sig" ] && exit 0
 printf '%s' "$sig" >"$ack"
 
-jq -n --arg r '本次提交含源码改动，但暂存区里没有文档改动。按 `docs` skill 的「文档同步」一节确认四点：
+jq -n --arg r '本次提交含源码改动，但暂存区里没有文档改动。按 `docs` skill 的「文档同步」一节确认五点：
 1. 产品行为 / 契约 / 交互有变 → 同步 docs/product/（已实现功能的权威描述）；
 2. 本次落地的内容在 docs/development/ 有对应清单项 → 勾掉，里程碑完成则迁入 docs/product/ 并从开发文档删除；
-3. 目录结构 / 模块职责 / 对外接口有变 → 同步 docs/README.md 与相关模块 README；
-4. 纯内部实现细节、不让现有文档失真的改动 → 不必改文档。
+3. 目录结构 / 模块职责 / 对外接口有变 → 同步 docs/project-map.md 与相关模块 README；
+4. 新增或删除文档 → 同步 docs/README.md 的索引；
+5. 纯内部实现细节、不让现有文档失真的改动 → 不必改文档。
 确认完毕（补了文档、或判定不需要改）直接重跑同一条 git commit 即可，同一批暂存内容不会再拦第二次。' \
   '{hookSpecificOutput:{hookEventName:"PreToolUse",permissionDecision:"deny",permissionDecisionReason:$r}}'

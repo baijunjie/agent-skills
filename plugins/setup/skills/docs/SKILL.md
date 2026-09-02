@@ -10,7 +10,8 @@ disable-model-invocation: true
 随仓库提交，让没装本 plugin 的人和其它 agent 也能用同一套规则，并允许各项目按自己的情况改。
 
 规则本身放 skill——它只在写文档时才需要，篇幅也不适合每次会话都读；
-但「该写文档了」这个时机模型未必想得起来，所以另外挂两个触发点：指令文件里的一行提示，和提交前的检查 hook。
+但「该读文档 / 该写文档了」这个时机模型未必想得起来，所以另外挂两个触发点：
+指令文件（每次会话必读，其它工具也认）和提交前的检查 hook（只在 Claude Code 里跑 git commit 时兜底）。
 
 补充说明（可选）：
 
@@ -21,7 +22,7 @@ $ARGUMENTS
 ## 步骤
 
 1. **定文档目录**：项目已有对应目录的沿用，没有则用默认的
-   `docs/README.md`、`docs/product/`、`docs/development/`。
+   `docs/README.md`（索引）、`docs/project-map.md`、`docs/product/`、`docs/development/`。
 2. **写入 skill**：
 
    ```bash
@@ -31,7 +32,7 @@ $ARGUMENTS
 
    `$CLAUDE_PLUGIN_ROOT` 为空时（不在 plugin 环境里运行），用本 skill 目录下的 `template/docs.md`。
 3. **对齐路径**：目录与默认不同时，把新文件里的路径全部改成实际目录。
-4. **建骨架**：缺 `docs/README.md` 就建一个只有标题和空索引的骨架。产品文档与开发文档目录等有内容再建，
+4. **建骨架**：缺 `docs/README.md` 就建一个只有标题和空索引的骨架。项目地图、产品文档、开发文档等有内容再建，
    不要预建空目录或占位文档。项目已有散落的文档时，按三类归位是另一件事，先问用户要不要一起做。
 5. **装提交前检查**：
 
@@ -66,8 +67,10 @@ $ARGUMENTS
    ```
 
    已有 `hooks` 配置的合并进去，不要整段覆盖。
-6. **挂触发点**：在项目的 `CLAUDE.md` / `AGENTS.md` 里写明——写或改文档时调用 `docs` skill，
-   开发收尾时按它核对三类文档是否失真。只写触发时机，规则留在 skill 里，不要复制成第二份。
+6. **挂触发点**：在项目的 `CLAUDE.md` / `AGENTS.md` 里写明三件事——开工前读产品文档建立上下文，
+   写或改文档时调用 `docs` skill，hook 不生效的场合（其它工具、手工提交）收尾时自己核对文档同步。
+   前两件 hook 覆盖不到：它只管写不管读，也只在 Claude Code 里跑 git commit 时才出声。
+   三件都只写触发时机，规则与清单留在 skill 里，不要复制成第二份。
    已有指向文档目录的说法改成指向 skill，`@` 前缀一并去掉。
 7. **告知用户**：`.claude/skills/docs/`、`.claude/hooks/doc-sync-check.sh`、`.claude/settings.json`
    都要提交进版本库，团队和其它 agent 才共用同一套规则。hook 依赖 `jq`，缺了会静默放行。
