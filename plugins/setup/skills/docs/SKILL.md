@@ -20,7 +20,7 @@ $ARGUMENTS
 
 ## 步骤
 
-1. **定文档目录**：项目已有的沿用（如开发文档已在 `docs/plans/`），没有则用默认的
+1. **定文档目录**：项目已有对应目录的沿用，没有则用默认的
    `docs/README.md`、`docs/product/`、`docs/development/`。
 2. **写入 skill**：
 
