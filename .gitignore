@@ -1,6 +1,9 @@
 # Claude Code 本地设置（含机器/个人相关配置，不入库）
 .claude/settings.local.json
 
+# Claude Code worktree（开发分支的独立工作副本，不入库）
+.claude/worktrees/
+
 # OS
 .DS_Store
 Thumbs.db
