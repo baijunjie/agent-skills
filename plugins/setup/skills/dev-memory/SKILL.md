@@ -26,7 +26,8 @@ $ARGUMENTS
    ```
 
    `$CLAUDE_PLUGIN_ROOT` 为空时用本 skill 目录下的 `template/dev-memory.md`。
-3. **对齐路径**：记忆目录不是 `docs/dev-memory/` 时，把新文件里的路径全部改成实际目录。
+3. **对齐项目**：记忆目录不是 `docs/dev-memory/` 时把新文件里的路径全部改成实际目录；
+   项目另有与通用规则不同的约定，就地补写进去。
 4. **建索引**：记忆目录缺 `README.md` 就建一个只有标题和空索引的骨架，不要预填占位记忆。
 5. **装写记忆的子代理**（Claude Code 专属，其它工具跳过本步）：
 
