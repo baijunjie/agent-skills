@@ -40,9 +40,8 @@ $ARGUMENTS
    chmod +x .claude/hooks/wrapup-check.sh .claude/hooks/wrapup.d/*.sh
    ```
 
-   换掉旧版调度器时，把它已经调好的 `SRC_PATTERN` 抄进新的；**旧版体内的检查逻辑不要往新调度器里搬**，
-   那些现在由片段承担。新装的调度器把 `SRC_PATTERN` 改成项目实际的源码根目录。
-   片段里的 `MEMORY_DIR` 对齐第 1 步定下的记忆目录。
+   调度器开箱即用，`NON_SRC_PATTERN` 用排除法认源码（文档与配置之外都算），
+   本项目还有别的非源码目录再补进去。片段里的 `MEMORY_DIR` 对齐第 1 步定下的记忆目录。
    再把 `$CLAUDE_PLUGIN_ROOT/scripts/wrapup-hook-settings.json` 合并进随仓库提交的
    `.claude/settings.json`（不是 `settings.local.json`；已有 `hooks` 配置的并进去，不要整段覆盖）。
 6. **装写记忆的子代理**（Claude Code 专属，其它工具跳过本步）：

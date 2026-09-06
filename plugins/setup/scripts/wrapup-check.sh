@@ -6,8 +6,9 @@
 # 任何异常一律放行——这是提醒机制，不该成为提交的故障点。
 set -uo pipefail
 
-# 按项目实际情况调整：哪些路径算源码改动。
-SRC_PATTERN='^(src|lib|app)/'
+# 用排除法认源码：除了下面这些，暂存区里的其余改动都算。这样任何项目装上就能用，
+# 补漏只是优化；反过来枚举源码目录，一旦漏了或忘了改，闸门就永远不触发且毫无迹象。
+NON_SRC_PATTERN='^(docs/|\.claude/|\.github/|\.idea/)|^(README|LICENSE|CHANGELOG|AGENTS|CLAUDE)\.md$'
 
 FRAG_DIR='.claude/hooks/wrapup.d'
 
@@ -25,7 +26,7 @@ case "$cmd" in
   *" -a"* | *" --all"*) staged=$(printf '%s\n%s\n' "$staged" "$(git diff --name-only 2>/dev/null)") ;;
 esac
 
-src=$(printf '%s\n' "$staged" | grep -E "$SRC_PATTERN" | sort -u)
+src=$(printf '%s\n' "$staged" | grep -v '^$' | grep -vE "$NON_SRC_PATTERN" | sort -u)
 [ -n "$src" ] || exit 0
 
 # 片段契约：$1 是暂存文件清单的路径；要提醒就把话打到 stdout，不提醒就什么都不打。
