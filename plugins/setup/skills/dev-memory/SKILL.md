@@ -7,7 +7,7 @@ disable-model-invocation: true
 # 安装项目级 dev-memory skill
 
 把「记忆放在哪、开工前怎么读、收尾时派谁写」写进当前项目的 `.claude/skills/dev-memory/`，
-随仓库提交。另挂两个触发点：指令文件与提交前的收尾闸门。
+随仓库提交。触发点挂在项目的指令文件里——每次会话必读。
 
 补充说明（可选）：
 
@@ -28,23 +28,7 @@ $ARGUMENTS
    `$CLAUDE_PLUGIN_ROOT` 为空时用本 skill 目录下的 `template/dev-memory.md`。
 3. **对齐路径**：记忆目录不是 `docs/dev-memory/` 时，把新文件里的路径全部改成实际目录。
 4. **建索引**：记忆目录缺 `README.md` 就建一个只有标题和空索引的骨架，不要预填占位记忆。
-5. **装收尾闸门**：调度器一份、本 skill 的检查片段一份，分开装。
-
-   ```bash
-   mkdir -p .claude/hooks/wrapup.d
-   # 判据是「它认不认识 wrapup.d」，不是「文件在不在」：更早的单文件版本把检查逻辑写在
-   # 自己体内，留着它片段就没人读，装了等于没装。
-   grep -q 'wrapup\.d' .claude/hooks/wrapup-check.sh 2>/dev/null \
-     || cp "$CLAUDE_PLUGIN_ROOT/scripts/wrapup-check.sh" .claude/hooks/wrapup-check.sh
-   cp -n "$CLAUDE_PLUGIN_ROOT/skills/dev-memory/template/wrapup.d/"*.sh .claude/hooks/wrapup.d/
-   chmod +x .claude/hooks/wrapup-check.sh .claude/hooks/wrapup.d/*.sh
-   ```
-
-   调度器开箱即用，`NON_SRC_PATTERN` 用排除法认源码（文档与配置之外都算），
-   本项目还有别的非源码目录再补进去。片段里的 `MEMORY_DIR` 对齐第 1 步定下的记忆目录。
-   再把 `$CLAUDE_PLUGIN_ROOT/scripts/wrapup-hook-settings.json` 合并进随仓库提交的
-   `.claude/settings.json`（不是 `settings.local.json`；已有 `hooks` 配置的并进去，不要整段覆盖）。
-6. **装写记忆的子代理**（Claude Code 专属，其它工具跳过本步）：
+5. **装写记忆的子代理**（Claude Code 专属，其它工具跳过本步）：
 
    ```bash
    mkdir -p .claude/agents
@@ -52,14 +36,13 @@ $ARGUMENTS
    ```
 
    **装进项目的 `.claude/agents/`，不是 `~/.claude/agents/`**；已有同名文件不要覆盖。
-7. **挂触发点**：在项目的 `CLAUDE.md` / `AGENTS.md` 里写明开工前调用 `dev-memory` 读记忆、
+6. **挂触发点**：在项目的 `CLAUDE.md` / `AGENTS.md` 里写明开工前调用 `dev-memory` 读记忆、
    开发收尾时**派 `memory-writer` 子代理**沉淀。
    已有指向记忆目录的说法改成指向 skill，`@` 前缀一并去掉。
    只写触发时机——读法留在 skill 里，判断标准与写法留在 `memory-writer` 的定义里，
    不要复制成第二份。
-8. **告知用户**：`.claude/skills/dev-memory/`、`.claude/agents/memory-writer.md`、
-   `.claude/hooks/wrapup-check.sh` 与 `.claude/settings.json` 都要提交进版本库；
-   hook 依赖 `jq`，缺了会静默放行；
+7. **告知用户**：`.claude/skills/dev-memory/` 与 `.claude/agents/memory-writer.md`
+   都要提交进版本库；
    记忆目录是否提交、要不要进 `.gitignore` 由用户自己判断，不要替他决定，也不要主动改 `.gitignore`。
    装好后用 `/dev-memory` 调用，当前会话里没出现就重启一次 Claude Code。
 

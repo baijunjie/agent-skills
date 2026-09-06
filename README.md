@@ -68,8 +68,8 @@ claude plugin update global-setup@bjj-agent-skills
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `/setup:dev-memory` | 项目级 `dev-memory` skill + 收尾闸门 + `memory-writer` 子代理：开工前读 `docs/dev-memory/`，收尾时派它判断值不值得记 | 手动 |
-| `/setup:docs` | 项目级 `docs` skill + 收尾闸门 + `doc-writer` 子代理：规范项目地图、产品文档、开发文档三类文档的维护 | 手动 |
+| `/setup:dev-memory` | 项目级 `dev-memory` skill + `memory-writer` 子代理：开工前读 `docs/dev-memory/`，收尾时派它判断值不值得记 | 手动 |
+| `/setup:docs` | 项目级 `docs` skill + `doc-writer` 子代理：规范项目地图、产品文档、开发文档三类文档的维护 | 手动 |
 | `/setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」的流程写进项目的 `CLAUDE.md` / `AGENTS.md`，并让 `.gitignore` 忽略 worktree 目录 | 手动 |
 
 ### `global-setup` — 本机级初始化

@@ -1,6 +1,6 @@
 {
   "name": "setup",
-  "description": "项目级初始化 skills：把通用规范落地成随仓库提交的项目配置（skill / 子代理 / 提交前闸门）",
+  "description": "项目级初始化 skills：把通用规范落地成随仓库提交的项目配置（skill + 子代理）",
   "author": {
     "name": "BaiJunjie"
   }
