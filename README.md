@@ -43,8 +43,8 @@ claude plugin update global-setup@bjj-agent-skills
 |-------|------|----------|
 | `/dev:discuss` | 问题讨论：只补上下文、给方案，不写代码 | 手动 |
 | `/dev:coding` | 编写代码：先补上下文再动手，任务多时调度子代理 | 手动 |
-| `/dev:docs` | 文档输出：把讨论结论整理成开发文档（只写设计，不写实现） | 手动 |
-| `/dev:exec` | 按开发文档编号顺序执行开发，完成即打 `✅` 标记 | 手动 |
+| `/dev:docs` | 文档输出：把讨论结论整理成开发文档（按里程碑拆分，只写设计不写实现） | 手动 |
+| `/dev:exec` | 按开发文档编号顺序执行开发，边做边勾 checkbox；里程碑收尾把内容固化进产品文档后删除开发文档 | 手动 |
 | `/dev:optimize` | 优化代码：复查逻辑遗漏、冗余代码、可优化点 | 手动 |
 
 ### `ai` — AI agent 规范
@@ -69,7 +69,7 @@ claude plugin update global-setup@bjj-agent-skills
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
 | `/setup:dev-memory` | 项目级 `dev-memory` skill + `memory-writer` 子代理：开工前读 `docs/dev-memory/`，收尾时派它判断值不值得记 | 手动 |
-| `/setup:docs` | 项目级 `docs` skill + `doc-writer` 子代理：规范项目地图、产品文档、开发文档三类文档的维护 | 手动 |
+| `/setup:docs` | 项目级 `docs` skill + `doc-writer` 子代理：开工前读总索引、项目地图、产品文档三类正式文档建立上下文，收尾时派子代理维护 | 手动 |
 | `/setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」的流程写进项目的 `CLAUDE.md` / `AGENTS.md`，并让 `.gitignore` 忽略 worktree 目录 | 手动 |
 
 ### `global-setup` — 本机级初始化
