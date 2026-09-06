@@ -26,8 +26,9 @@
       "Skill(git:find-issues)",
       "Skill(setup:dev-memory)",
       "Skill(setup:docs)",
-      "Skill(global-setup:workflow)",
-      "Skill(setup:git-worktree)"
+      "Skill(setup:git-worktree)",
+      "Skill(global-setup:report-style)",
+      "Skill(global-setup:workflow)"
     ],
     "deny": []
   }
