@@ -1,0 +1,7 @@
+{
+  "name": "global-setup",
+  "description": "本机初始化 skills：把跨项目跨工具共用的规则落地成本机级配置",
+  "author": {
+    "name": "BaiJunjie"
+  }
+}

@@ -13,6 +13,7 @@ claude plugin install dev@bjj-agent-skills
 claude plugin install git@bjj-agent-skills
 claude plugin install ai@bjj-agent-skills
 claude plugin install setup@bjj-agent-skills
+claude plugin install global-setup@bjj-agent-skills
 
 # 3. 重启 Claude Code
 ```
@@ -27,6 +28,7 @@ claude plugin update dev@bjj-agent-skills
 claude plugin update git@bjj-agent-skills
 claude plugin update ai@bjj-agent-skills
 claude plugin update setup@bjj-agent-skills
+claude plugin update global-setup@bjj-agent-skills
 ```
 
 改动本仓库后需先 `git push`，更新才拉得到。
@@ -58,15 +60,26 @@ claude plugin update setup@bjj-agent-skills
 | `/git:commit` | 按 Conventional Commits 规范生成提交 | 手动 / 自动 |
 | `/git:find-issues` | 在指定仓库中搜索相关 Issue 和 PR | 手动 / 自动 |
 
-### `setup` — 项目初始化
+### `setup` — 项目级初始化
 
-一次性执行，把通用规范落地成项目自己的、随仓库提交的配置。
+一次性执行，把通用规范落地成**项目自己的**、随仓库提交的配置。
+**三个各自独立，装任意一个都能单独工作**——`docs` 与 `dev-memory` 把各自的收尾子代理
+装进项目的 `.claude/agents/` 并随仓库提交，谁都不依赖谁，也不依赖 `global-setup`。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `/setup:dev-memory` | 在当前项目装上项目级 `dev-memory` skill 并挂进 `CLAUDE.md`：开工前读 `docs/dev-memory/`，收尾时沉淀经验 | 手动 |
-| `/setup:docs` | 在当前项目装上项目级 `docs` skill 与提交前的文档同步检查：规范项目地图、产品文档、开发文档三类文档的维护 | 手动 |
+| `/setup:dev-memory` | 项目级 `dev-memory` skill + 收尾闸门 + `memory-writer` 子代理：开工前读 `docs/dev-memory/`，收尾时派它判断值不值得记 | 手动 |
+| `/setup:docs` | 项目级 `docs` skill + 收尾闸门 + `doc-writer` 子代理：规范项目地图、产品文档、开发文档三类文档的维护 | 手动 |
 | `/setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」的流程写进项目的 `CLAUDE.md` / `AGENTS.md`，并让 `.gitignore` 忽略 worktree 目录 | 手动 |
+
+### `global-setup` — 本机级初始化
+
+一次性执行，装的是**跨项目、跨工具**共用的配置，落在 `~/` 下、不进任何仓库。
+与 `setup` 分成两个 plugin 就是为了让作用域一眼可辨：**`/setup:` 写仓库，`/global-setup:` 写 home**。
+
+| Skill | 说明 | 触发方式 |
+|-------|------|----------|
+| `/global-setup:workflow` | 全局规则真身 `~/.config/agents/`（注释规范、提交信息、收尾自检 + 四个跨项目通用的子代理），软链进 Claude Code 与 Codex 的配置目录；换电脑重跑一次即复原 | 手动 |
 
 > **触发方式**说明：标「手动」的 skill 设置了 `disable-model-invocation: true`，只能由你显式 `/xxx` 调用，不会被模型自动触发——这类 skill 是流程编排或一次性初始化指令，自动触发会造成干扰。其余 skill 在语境相关时也会被自动调用。
 

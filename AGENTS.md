@@ -26,6 +26,10 @@ Plugin 名即调用前缀：`plugins/dev/skills/coding/SKILL.md` 对应 `/dev:co
 skill 需要携带脚本、模板等文件时，放在自己的目录下，用 `$CLAUDE_PLUGIN_ROOT/skills/<skill>/<file>` 引用——
 plugin 安装后的实际路径不可预测，只有这个环境变量能定位。
 
+**同一 plugin 内多个 skill 共用的资源放 plugin 级 `scripts/`**（`$CLAUDE_PLUGIN_ROOT/scripts/<file>`），
+不要让一个 skill 去引另一个 skill 的 `template/`——那样两者就绑死了，单独装其中一个会读到不属于它的路径。
+plugin 根目录下的任意文件都会随安装一并分发。
+
 附带的模板文件不要命名为 `SKILL.md`，避免与 skill 本体混淆。
 
 ## Frontmatter

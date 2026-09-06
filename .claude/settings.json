@@ -3,7 +3,6 @@
     "allow": [
       "WebFetch(domain:agentskills.io)",
       "WebFetch(domain:docs.anthropic.com)",
-
       "Bash(ls:*)",
       "Bash(find:*)",
       "Bash(cat:*)",
@@ -11,27 +10,23 @@
       "Bash(tail:*)",
       "Bash(tree:*)",
       "Bash(wc:*)",
-
       "Bash(git status:*)",
       "Bash(git log:*)",
       "Bash(git diff:*)",
       "Bash(git show:*)",
       "Bash(git branch:*)",
       "Bash(git remote:*)",
-
       "Skill(dev:coding)",
       "Skill(dev:discuss)",
       "Skill(dev:docs)",
       "Skill(dev:exec)",
       "Skill(dev:optimize)",
-
       "Skill(ai:skill-authoring)",
-
       "Skill(git:commit)",
       "Skill(git:find-issues)",
-
       "Skill(setup:dev-memory)",
       "Skill(setup:docs)",
+      "Skill(global-setup:workflow)",
       "Skill(setup:git-worktree)"
     ],
     "deny": []
