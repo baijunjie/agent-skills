@@ -63,11 +63,12 @@ claude plugin update global-setup@bjj-agent-skills
 ### `setup` — 项目级初始化
 
 一次性执行，把通用规范落地成**项目自己的**、随仓库提交的配置。
-**三个各自独立，装任意一个都能单独工作**——`docs` 与 `dev-memory` 把各自的收尾子代理
+**四个各自独立，装任意一个都能单独工作**——`docs` 与 `dev-memory` 把各自的收尾子代理
 装进项目的 `.claude/agents/` 并随仓库提交，谁都不依赖谁，也不依赖 `global-setup`。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
+| `/setup:cron` | 项目级 crontab 定时任务安装器：任务清单 `scripts/cron/tasks.conf` + `install.sh` / `uninstall.sh`，标记区块隔离、固化 `PATH`、支持子分钟调度 | 手动 |
 | `/setup:dev-memory` | 项目级 `dev-memory` skill + `memory-writer` 子代理：开工前读 `docs/dev-memory/`，收尾时派它判断值不值得记 | 手动 |
 | `/setup:docs` | 项目级 `docs` skill + `doc-writer` 子代理：开工前读总索引、项目地图、产品文档三类正式文档建立上下文，收尾时派子代理维护 | 手动 |
 | `/setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」的流程写进项目的 `CLAUDE.md` / `AGENTS.md`，并让 `.gitignore` 忽略 worktree 目录 | 手动 |
