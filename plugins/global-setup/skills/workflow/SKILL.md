@@ -1,6 +1,6 @@
 ---
 name: workflow
-description: 在本机装上（或更新）跨工具共用的全局 agent 工作流：一份全局规则真身 + 子代理定义，软链进 Claude Code 与 Codex 的配置目录。用于"配一台新电脑""同步我的 agent 工作流""初始化全局规则""更新全局 AGENTS.md"等场景。
+description: 在本机装上（或更新）跨工具共用的全局 agent 工作流：一份全局规则真身 + 子代理定义 + Codex 侧读取 Claude 规范的 skill，软链进 Claude Code 与 Codex 的配置目录。用于"配一台新电脑""同步我的 agent 工作流""初始化全局规则""更新全局 AGENTS.md""让 Codex 也认 Claude 的规范"等场景。
 disable-model-invocation: true
 ---
 
@@ -19,11 +19,14 @@ $ARGUMENTS
 ```text
 ~/.config/agents/
 ├── AGENTS.md              # 全局规则真身（工具无关；工具专属内容单独成节并标注）
-└── claude-subagents/      # 通用子代理定义（只有 Claude Code 用得上）
+├── claude-subagents/      # 通用子代理定义（只有 Claude Code 用得上）
+└── codex-skills/
+    └── claude/            # 让 Codex 开工前先读 Claude 的全局与项目规范（只有 Codex 用得上）
 
 <Claude 配置目录>/CLAUDE.md → ~/.config/agents/AGENTS.md
 <Claude 配置目录>/agents    → ~/.config/agents/claude-subagents
 ~/.codex/AGENTS.md          → ~/.config/agents/AGENTS.md
+~/.codex/skills/claude      → ~/.config/agents/codex-skills/claude
 ```
 
 ## 步骤
@@ -31,10 +34,16 @@ $ARGUMENTS
 1. **建真身**：
 
    ```bash
-   mkdir -p ~/.config/agents/claude-subagents
-   cp -n "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/AGENTS.md" ~/.config/agents/AGENTS.md
-   cp -n "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/claude-subagents/"*.md ~/.config/agents/claude-subagents/
+   T="$CLAUDE_PLUGIN_ROOT/skills/workflow/template"
+   mkdir -p ~/.config/agents/claude-subagents ~/.config/agents/codex-skills/claude/agents
+   cp -n "$T/AGENTS.md" ~/.config/agents/AGENTS.md
+   cp -n "$T/claude-subagents/"*.md ~/.config/agents/claude-subagents/
+   cp -n "$T/codex-skills/claude/SKILL.template.md" ~/.config/agents/codex-skills/claude/SKILL.md
+   cp -n "$T/codex-skills/claude/agents/openai.yaml" ~/.config/agents/codex-skills/claude/agents/
    ```
+
+   Codex skill 的模板在仓库里叫 `SKILL.template.md`，装到位时才改名成 `SKILL.md`——
+   仓库里直接叫 `SKILL.md` 会和 skill 本体混淆。
 
    已有内容怎么合并见「已存在时」。`$CLAUDE_PLUGIN_ROOT` 为空时用本 skill 目录下的 `template/`。
 2. **列出要接的配置目录**：Codex 固定是 `~/.codex`。Claude Code 默认 `~/.claude`，用户可能另有
@@ -50,18 +59,22 @@ $ARGUMENTS
    | **真实文件 / 目录** | **先把内容并进真身**，确认无误再替换；不要直接覆盖 |
 
    ```bash
-   ln -sfn ~/.config/agents/AGENTS.md        <Claude 配置目录>/CLAUDE.md
-   ln -sfn ~/.config/agents/claude-subagents <Claude 配置目录>/agents
-   ln -sfn ~/.config/agents/AGENTS.md        ~/.codex/AGENTS.md
+   ln -sfn ~/.config/agents/AGENTS.md           <Claude 配置目录>/CLAUDE.md
+   ln -sfn ~/.config/agents/claude-subagents    <Claude 配置目录>/agents
+   ln -sfn ~/.config/agents/AGENTS.md           ~/.codex/AGENTS.md
+   ln -sfn ~/.config/agents/codex-skills/claude ~/.codex/skills/claude
    ```
 
    `-n` 不能省：目标已经是指向目录的软链时，少了它会把新链建**进**那个目录里。
-   子代理定义只接进 Claude 的配置目录，Codex 没有对应机制。
+   只接 `~/.codex/skills/claude` 这一个条目，不要把整个 `~/.codex/skills/` 接出去——
+   Codex 会往里放自带的 `.system/` 和用户另外装的 skill。
+   子代理定义只接进 Claude 的配置目录、Codex skill 只接进 Codex：两边都没有对方那套机制。
 4. **多配置目录的切换**：第二个 Claude 配置目录靠环境变量切，在 shell 配置里留个 alias，例如
    `alias claude-work='CLAUDE_CONFIG_DIR=~/.claude-work claude'`。**每个配置目录都是独立的安装
    环境**，plugin、marketplace、settings 都要各配一遍。
 5. **告知用户**：以后改规则只改 `~/.config/agents/` 里的真身，各工具自动跟上，但**要重启工具
-   才重新加载**。子代理定义只对 Claude Code 生效。
+   才重新加载**。子代理定义只对 Claude Code 生效；`codex-skills/claude` 只对 Codex 生效，
+   在 Codex 里用 `$claude` 显式触发，也会按它的 description 自动命中。
 
 ## 已存在时
 

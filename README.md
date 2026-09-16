@@ -81,7 +81,7 @@ claude plugin update global-setup@bjj-agent-skills
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
 | `/global-setup:report-style` | 自定义 output style `Concise+`（内置 `Concise` + 「要用户拍板的事项与疑问必须显式列出」+ 「不附和：不先肯定再转折」），真身同样放 `~/.config/agents/`，软链进各 Claude 配置目录。Claude Code 专属 | 手动 |
-| `/global-setup:workflow` | 全局规则真身 `~/.config/agents/`（注释规范、提交信息、收尾自检 + 四个跨项目通用的子代理），软链进 Claude Code 与 Codex 的配置目录；换电脑重跑一次即复原 | 手动 |
+| `/global-setup:workflow` | 全局规则真身 `~/.config/agents/`（注释规范、提交信息、收尾自检 + 四个跨项目通用的子代理 + 让 Codex 读 Claude 规范的 `claude` skill），软链进 Claude Code 与 Codex 的配置目录；换电脑重跑一次即复原 | 手动 |
 
 > **触发方式**说明：标「手动」的 skill 设置了 `disable-model-invocation: true`，只能由你显式 `/xxx` 调用，不会被模型自动触发——这类 skill 是流程编排或一次性初始化指令，自动触发会造成干扰。其余 skill 在语境相关时也会被自动调用。
 

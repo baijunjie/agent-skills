@@ -1,0 +1,4 @@
+interface:
+  display_name: "Claude"
+  short_description: "Load project-local Claude development guidance"
+  default_prompt: "Use $claude to load this project's Claude guidance before starting development."
