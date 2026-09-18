@@ -43,7 +43,7 @@ $ARGUMENTS
    cp -n "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/agents/"*.md .claude/agents/
    ```
 
-   **装进项目的 `.claude/agents/`，不是 `~/.claude/agents/`**；已有同名文件 `cp -n` 会静默跳过，
+   **装进项目的 `.claude/agents/`，不是用户级配置目录（默认 `~/.claude`）下的 `agents/`**；已有同名文件 `cp -n` 会静默跳过，
    跳过了就转「已存在时」，不要当成装好了。
    「编码结束自检」点名要派的 `code-reviewer` 就在这批里，不装它那条规则就落空。
 3. **告知用户**：`CLAUDE.md` 与 `.claude/agents/` 的改动要提交进版本库才随仓库生效；
@@ -53,13 +53,15 @@ $ARGUMENTS
 
 ## 用户级安装
 
-装进 Claude Code 的配置目录 `~/.claude`，对这台机器上的所有项目生效。
+装进**当前会话的用户级配置目录**，对这台机器上的所有项目生效。这个目录由 Claude Code 的
+`CLAUDE_CONFIG_DIR` 决定，没设就是 `~/.claude`；下面的命令用 `C` 指代它，不要写死路径。
 
 1. **写规则正文**：
 
    ```bash
-   mkdir -p ~/.claude
-   cat "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/rules.md" >> ~/.claude/CLAUDE.md
+   C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
+   mkdir -p "$C"
+   cat "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/rules.md" >> "$C/CLAUDE.md"
    ```
 
    `$CLAUDE_PLUGIN_ROOT` 为空时用本 skill 目录下的 `template/rules.md`。
@@ -69,14 +71,16 @@ $ARGUMENTS
 2. **装子代理**：
 
    ```bash
-   mkdir -p ~/.claude/agents
-   cp -n "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/agents/"*.md ~/.claude/agents/
+   C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
+   mkdir -p "$C/agents"
+   cp -n "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/agents/"*.md "$C/agents/"
    ```
 
    已有同名文件 `cp -n` 会静默跳过，跳过了就转「已存在时」，不要当成装好了。
    **这一步与上一步各自独立**：规则正文已经有了、子代理没装，仍然要把这一步做完——
    「编码结束自检」点名要派的 `code-reviewer` 就在这批里。
-3. **告知用户**：以后改规则直接改 `~/.claude/` 下这两处，但**要重启 Claude Code 才重新加载**。
+3. **告知用户**：装到了哪个用户级配置目录要说清楚（用户可能开着多个）；以后改规则直接改那两处，
+   但**要重启 Claude Code 才重新加载**。
 
 ## 已存在时
 

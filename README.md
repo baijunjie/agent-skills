@@ -65,17 +65,17 @@ claude plugin update global-setup@bjj-agent-skills
 一次性执行，把通用规范落地成**随仓库提交的项目配置**。
 默认全都装进当前项目；`report-style` 与 `workflow` 另带「用户级安装」一节，
 明说只给自己这台机器装时才走那条路。
-**六个各自独立，装任意一个都能单独工作**——带子代理的那几个（`docs` / `dev-memory` / `workflow`）
-把子代理装进项目的 `.claude/agents/` 并随仓库提交，谁都不依赖谁，也不依赖 `global-setup`。
+**六个各自独立，装任意一个都能单独工作**——带子代理的那几个各装各的，谁都不依赖谁，
+也不依赖 `global-setup`。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `/setup:cron` | 项目级 crontab 定时任务安装器：任务清单 `tasks.conf` 加 `install.sh` / `uninstall.sh`，随仓库提交 | 手动 |
-| `/setup:dev-memory` | 项目级 `dev-memory` skill + `memory-writer` 子代理：开工前读 `docs/dev-memory/`，收尾时派它判断值不值得记 | 手动 |
-| `/setup:docs` | 项目级 `docs` skill + `doc-writer` 子代理：开工前读总索引、项目地图、产品文档三类正式文档建立上下文，收尾时派子代理维护 | 手动 |
-| `/setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」的流程写进项目的 `CLAUDE.md`，并让 `.gitignore` 忽略 worktree 目录 | 手动 |
-| `/setup:report-style` | 自定义 output style `Concise+`（内置 `Concise` + 「要用户拍板的事项与疑问必须显式列出」+ 「不附和：不先肯定再转折」）写进项目 `.claude/output-styles/`。Claude Code 专属；可选装到本机用户级 | 手动 |
-| `/setup:workflow` | 通用规则（注释规范、提交信息、分派子任务、收尾自检）追加进项目的 `CLAUDE.md`，五个通用子代理装进 `.claude/agents/`；可选装到本机用户级 | 手动 |
+| `/setup:cron` | 项目级 crontab 定时任务安装器：任务清单加安装 / 卸载脚本，改任务不用手写 crontab | 手动 |
+| `/setup:dev-memory` | 项目级 `dev-memory` skill 加 `memory-writer` 子代理：开工前读项目记忆，收尾时派它判断值不值得记 | 手动 |
+| `/setup:docs` | 项目级 `docs` skill 加 `doc-writer` 子代理：开工前读总索引、项目地图、产品文档三类正式文档建立上下文，收尾时派子代理维护 | 手动 |
+| `/setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」这套流程写成项目规则，并让 worktree 目录不进版本库 | 手动 |
+| `/setup:report-style` | 自定义 output style `Concise+`：内置 `Concise` 加「要用户拍板的事项与疑问必须显式列出」「不附和：不先肯定再转折」。Claude Code 专属；可选装到本机用户级 | 手动 |
+| `/setup:workflow` | 通用规则（注释规范、提交信息、分派子任务、收尾自检）加五个通用子代理；可选装到本机用户级 | 手动 |
 
 ### `global-setup` — 本机级初始化
 
@@ -84,7 +84,7 @@ claude plugin update global-setup@bjj-agent-skills
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `/global-setup:codex-bridge` | 给 Codex 装上读取 Claude 规范的 `claude` skill：开工前盘点全局与项目级的 `CLAUDE.md`、`skills/`、`agents/`、`settings.json` 并采用兼容的工作流。直接装进 `~/.codex/skills/claude/` | 手动 |
+| `/global-setup:codex-bridge` | 给 Codex 装上读取 Claude 规范的 `claude` skill：开工前盘点全局与项目级的 Claude 配置，照 Claude 这套工具链继续开发 | 手动 |
 
 > **触发方式**说明：标「手动」的 skill 设置了 `disable-model-invocation: true`，只能由你显式 `/xxx` 调用，不会被模型自动触发——这类 skill 是流程编排或一次性初始化指令，自动触发会造成干扰。其余 skill 在语境相关时也会被自动调用。
 

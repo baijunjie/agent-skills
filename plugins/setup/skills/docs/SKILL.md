@@ -41,7 +41,7 @@ $ARGUMENTS
    cp -n "$CLAUDE_PLUGIN_ROOT/skills/docs/template/agents/doc-writer.md" .claude/agents/
    ```
 
-   **装进项目的 `.claude/agents/`，不是 `~/.claude/agents/`**；已有同名文件 `cp -n` 会静默跳过，
+   **装进项目的 `.claude/agents/`，不是用户级配置目录（默认 `~/.claude`）下的 `agents/`**；已有同名文件 `cp -n` 会静默跳过，
    跳过了就转「已存在时」，不要当成装好了。
 6. **挂触发点**：在项目根目录的 `CLAUDE.md` 里写明开工前调用 `docs` skill 建立上下文、
    一个阶段的开发收尾要写或改产品文档与项目地图时**派 `doc-writer` 子代理**。
