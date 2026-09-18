@@ -75,7 +75,7 @@ claude plugin update global-setup@bjj-agent-skills
 | `/setup:docs` | 项目级 `docs` skill 加 `doc-writer` 子代理：开工前读总索引、项目地图、产品文档三类正式文档建立上下文，收尾时派子代理维护 | 手动 |
 | `/setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」这套流程写成项目规则，并让 worktree 目录不进版本库 | 手动 |
 | `/setup:report-style` | 自定义 output style `Concise+`：内置 `Concise` 加「要用户拍板的事项与疑问必须显式列出」「不附和：不先肯定再转折」。Claude Code 专属；可选装到本机用户级 | 手动 |
-| `/setup:workflow` | 通用规则（注释规范、提交信息、分派子任务、收尾自检）加五个通用子代理；可选装到本机用户级 | 手动 |
+| `/setup:workflow` | 通用规则（注释规范、提交信息、分派子代理、收尾自检）加五个通用子代理；可选装到本机用户级 | 手动 |
 
 ### `global-setup` — 本机级初始化
 
