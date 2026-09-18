@@ -7,7 +7,8 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 # 脚本默认放在 <项目根>/scripts/cron/，上溯两级即项目根；
-# 放在其它深度时用 CRON_PROJECT_ROOT 指定。
+# 放在其它深度时把下面的默认值改掉。环境变量只用于临时覆盖，
+# 靠它长期生效的话，以后每次 install / uninstall 都得带上同一组，漏一次就装到别处去了。
 PROJECT_ROOT=${CRON_PROJECT_ROOT:-$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)}
 
 TASKS_FILE=${CRON_TASKS_FILE:-$SCRIPT_DIR/tasks.conf}

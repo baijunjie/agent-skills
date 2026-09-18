@@ -28,8 +28,9 @@
       "Skill(setup:dev-memory)",
       "Skill(setup:docs)",
       "Skill(setup:git-worktree)",
-      "Skill(global-setup:report-style)",
-      "Skill(global-setup:workflow)"
+      "Skill(setup:report-style)",
+      "Skill(setup:workflow)",
+      "Skill(global-setup:codex-bridge)"
     ],
     "deny": []
   }

@@ -60,28 +60,31 @@ claude plugin update global-setup@bjj-agent-skills
 | `/git:commit` | 按 Conventional Commits 规范生成提交 | 手动 / 自动 |
 | `/git:find-issues` | 在指定仓库中搜索相关 Issue 和 PR | 手动 / 自动 |
 
-### `setup` — 项目级初始化
+### `setup` — 初始化
 
-一次性执行，把通用规范落地成**项目自己的**、随仓库提交的配置。
-**四个各自独立，装任意一个都能单独工作**——`docs` 与 `dev-memory` 把各自的收尾子代理
-装进项目的 `.claude/agents/` 并随仓库提交，谁都不依赖谁，也不依赖 `global-setup`。
+一次性执行，把通用规范落地成**随仓库提交的项目配置**。
+默认全都装进当前项目；`report-style` 与 `workflow` 另带「用户级安装」一节，
+明说只给自己这台机器装时才走那条路。
+**六个各自独立，装任意一个都能单独工作**——带子代理的那几个（`docs` / `dev-memory` / `workflow`）
+把子代理装进项目的 `.claude/agents/` 并随仓库提交，谁都不依赖谁，也不依赖 `global-setup`。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `/setup:cron` | 项目级 crontab 定时任务安装器：任务清单 `scripts/cron/tasks.conf` + `install.sh` / `uninstall.sh`，标记区块隔离、固化 `PATH`、支持子分钟调度 | 手动 |
+| `/setup:cron` | 项目级 crontab 定时任务安装器：任务清单 `tasks.conf` 加 `install.sh` / `uninstall.sh`，随仓库提交 | 手动 |
 | `/setup:dev-memory` | 项目级 `dev-memory` skill + `memory-writer` 子代理：开工前读 `docs/dev-memory/`，收尾时派它判断值不值得记 | 手动 |
 | `/setup:docs` | 项目级 `docs` skill + `doc-writer` 子代理：开工前读总索引、项目地图、产品文档三类正式文档建立上下文，收尾时派子代理维护 | 手动 |
-| `/setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」的流程写进项目的 `CLAUDE.md` / `AGENTS.md`，并让 `.gitignore` 忽略 worktree 目录 | 手动 |
+| `/setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」的流程写进项目的 `CLAUDE.md`，并让 `.gitignore` 忽略 worktree 目录 | 手动 |
+| `/setup:report-style` | 自定义 output style `Concise+`（内置 `Concise` + 「要用户拍板的事项与疑问必须显式列出」+ 「不附和：不先肯定再转折」）写进项目 `.claude/output-styles/`。Claude Code 专属；可选装到本机用户级 | 手动 |
+| `/setup:workflow` | 通用规则（注释规范、提交信息、分派子任务、收尾自检）追加进项目的 `CLAUDE.md`，五个通用子代理装进 `.claude/agents/`；可选装到本机用户级 | 手动 |
 
 ### `global-setup` — 本机级初始化
 
-一次性执行，装的是**跨项目、跨工具**共用的配置，落在 `~/` 下、不进任何仓库。
-与 `setup` 分成两个 plugin 就是为了让作用域一眼可辨：**`/setup:` 写仓库，`/global-setup:` 写 home**。
+只放**确实只能在本机做**的事：装进任何仓库都没有意义的那种。
+其余初始化 skill 一律在 `setup` 里，只给自己装时由它们自己的「用户级安装」一节负责。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `/global-setup:report-style` | 自定义 output style `Concise+`（内置 `Concise` + 「要用户拍板的事项与疑问必须显式列出」+ 「不附和：不先肯定再转折」），真身同样放 `~/.config/agents/`，软链进各 Claude 配置目录。Claude Code 专属 | 手动 |
-| `/global-setup:workflow` | 全局规则真身 `~/.config/agents/`（注释规范、提交信息、收尾自检 + 五个跨项目通用的子代理 + 让 Codex 读 Claude 规范的 `claude` skill），软链进 Claude Code 与 Codex 的配置目录；换电脑重跑一次即复原 | 手动 |
+| `/global-setup:codex-bridge` | 给 Codex 装上读取 Claude 规范的 `claude` skill：开工前盘点全局与项目级的 `CLAUDE.md`、`skills/`、`agents/`、`settings.json` 并采用兼容的工作流。直接装进 `~/.codex/skills/claude/` | 手动 |
 
 > **触发方式**说明：标「手动」的 skill 设置了 `disable-model-invocation: true`，只能由你显式 `/xxx` 调用，不会被模型自动触发——这类 skill 是流程编排或一次性初始化指令，自动触发会造成干扰。其余 skill 在语境相关时也会被自动调用。
 

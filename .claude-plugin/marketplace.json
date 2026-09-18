@@ -36,7 +36,7 @@
     },
     {
       "name": "setup",
-      "description": "项目级初始化 skills：把通用规范落地成随仓库提交的项目配置（skill / 子代理 / 脚本）",
+      "description": "初始化 skills：把通用规范落地成配置（skill / 子代理 / 脚本 / 输出风格），默认装进当前项目，部分可选装到本机用户级",
       "author": {
         "name": "BaiJunjie"
       },
@@ -45,7 +45,7 @@
     },
     {
       "name": "global-setup",
-      "description": "本机初始化 skills：把跨项目跨工具共用的规则落地成本机级配置（全局规则真身 + 各工具软链）",
+      "description": "本机初始化 skills：只放确实只能在本机做、装进仓库没有意义的事（把 Codex 接到本机的 Claude 配置上）",
       "author": {
         "name": "BaiJunjie"
       },

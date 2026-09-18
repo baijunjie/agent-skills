@@ -1,6 +1,6 @@
 ---
 name: docs
-description: 给当前项目装上（或更新）项目级 docs skill 与提交前的文档同步检查，让总索引、项目地图、产品文档的维护规则随仓库提交。用于"给这个项目配文档规范""初始化项目文档结构""让 agent 维护文档""更新项目里的 docs skill"等场景。
+description: 给当前项目装上（或更新）项目级 docs skill 与 doc-writer 子代理，让总索引、项目地图、产品文档的维护规则随仓库提交。用于"给这个项目配文档规范""初始化项目文档结构""让 agent 维护文档""更新项目里的 docs skill"等场景。
 disable-model-invocation: true
 ---
 
@@ -21,7 +21,8 @@ $ARGUMENTS
 
 1. **定文档目录**：项目已有对应目录的沿用，没有则用默认的
    `docs/README.md`（索引）、`docs/project-map.md`、`docs/product/`。
-2. **写入 skill**：
+2. **写入 skill**：**先看 `.claude/skills/docs/SKILL.md` 在不在**，在就转「已存在时」，
+   不要执行下面的 `cp`——它会直接覆盖项目自己改过的那份。
 
    ```bash
    mkdir -p .claude/skills/docs
@@ -33,15 +34,16 @@ $ARGUMENTS
    约定，就地补写进去。
 4. **建骨架**：缺 `docs/README.md` 就建一个只有标题和空索引的骨架。项目地图与产品文档等有内容再建，
    不要预建空目录或占位文档。项目已有散落的文档时，按类归位是另一件事，先问用户要不要一起做。
-5. **装写文档的子代理**（Claude Code 专属，其它工具跳过本步）：
+5. **装写文档的子代理**：
 
    ```bash
    mkdir -p .claude/agents
    cp -n "$CLAUDE_PLUGIN_ROOT/skills/docs/template/agents/doc-writer.md" .claude/agents/
    ```
 
-   **装进项目的 `.claude/agents/`，不是 `~/.claude/agents/`**；已有同名文件不要覆盖。
-6. **挂触发点**：在项目的 `CLAUDE.md` / `AGENTS.md` 里写明开工前调用 `docs` skill 建立上下文、
+   **装进项目的 `.claude/agents/`，不是 `~/.claude/agents/`**；已有同名文件 `cp -n` 会静默跳过，
+   跳过了就转「已存在时」，不要当成装好了。
+6. **挂触发点**：在项目根目录的 `CLAUDE.md` 里写明开工前调用 `docs` skill 建立上下文、
    一个阶段的开发收尾要写或改产品文档与项目地图时**派 `doc-writer` 子代理**。
    已有指向文档目录的说法改成指向 skill，`@` 前缀一并去掉。
    只写触发时机——写法与判断标准留在 skill 与 `doc-writer` 的定义里，不要复制成第二份。
@@ -53,3 +55,8 @@ $ARGUMENTS
 `.claude/skills/docs/SKILL.md` 已存在时不要直接覆盖：与模板逐节比对，
 补齐模板有而它没有的规则，保留项目自己加的内容和改过的路径、匹配模式。
 要动的地方超过补充规则的范围时，先把打算怎么改告诉用户。
+
+## 现状与预期不符时
+
+要写入的路径不是普通文件 / 目录时**停下来问用户**，不要照写。最常见的是软链：
+`cp` 会写到它指向的地方，而 `mkdir -p` 在软链上仍然静默成功，表面看不出异常。
