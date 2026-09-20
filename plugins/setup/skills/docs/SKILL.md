@@ -64,7 +64,8 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
    ```
 
    Markdown 是唯一模板源。Codex 安装时由共享脚本机械提取 `name`、`description` 与完整正文，
-   组装成 `.toml`；不映射 Claude Code 的 `model`、`effort`，也不改写正文。
+   组装成 `.toml`，并按代理职责写入 Codex 的模型与 reasoning effort；不直接照搬 Claude Code
+   的 `model`、`effort`，也不改写正文。
    两种宿主都装进项目目录，不是用户级配置目录。写入前发现同名文件就转「已存在时」，不要覆盖。
 6. **挂触发点**：Claude Code 在项目根目录的 `CLAUDE.md`、Codex 在 `AGENTS.md` 里写明开工前调用 `docs` skill 建立上下文、
    一个阶段的开发收尾要写或改产品文档与项目地图时**派 `doc-writer` 子代理**。

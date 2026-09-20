@@ -6,8 +6,36 @@ import os
 from pathlib import Path
 
 
-CODEX_OVERRIDES = {
-    "code-reviewer": {"sandbox_mode": "read-only"},
+CODEX_AGENT_CONFIGURATION = {
+    "mechanical": {
+        "model": "gpt-5.6-luna",
+        "model_reasoning_effort": "low",
+    },
+    "implement": {
+        "model": "gpt-5.6-terra",
+        "model_reasoning_effort": "medium",
+    },
+    "code-reviewer": {
+        "model": "gpt-5.6-sol",
+        "model_reasoning_effort": "high",
+        "sandbox_mode": "read-only",
+    },
+    "investigate": {
+        "model": "gpt-5.6-sol",
+        "model_reasoning_effort": "high",
+    },
+    "architect": {
+        "model": "gpt-6-astra",
+        "model_reasoning_effort": "xhigh",
+    },
+    "doc-writer": {
+        "model": "gpt-5.6-sol",
+        "model_reasoning_effort": "high",
+    },
+    "memory-writer": {
+        "model": "gpt-5.6-sol",
+        "model_reasoning_effort": "high",
+    },
 }
 
 
@@ -60,13 +88,18 @@ def render_agent(source: Path) -> str:
         raise ValueError(
             f"{source}: agent name {name!r} must match filename {source.stem!r}"
         )
+    try:
+        configuration = CODEX_AGENT_CONFIGURATION[name]
+    except KeyError as error:
+        raise ValueError(f"{source}: missing Codex agent configuration") from error
+
     fields = [
         f"name = {toml_string(name)}",
         f"description = {toml_string(metadata['description'])}",
     ]
     fields.extend(
         f"{key} = {toml_string(value)}"
-        for key, value in CODEX_OVERRIDES.get(name, {}).items()
+        for key, value in configuration.items()
     )
     fields.append(f"developer_instructions = {toml_instructions(instructions)}")
     return "\n".join(fields) + "\n"

@@ -24,6 +24,7 @@ else
 fi
 TEMPLATE_DIR="$SETUP_ROOT/skills/workflow/template"
 RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
+RENDER_RULES="$SETUP_ROOT/scripts/render-workflow-rules.py"
 ```
 
 ## 选作用域
@@ -41,13 +42,13 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
    **先看目标文件里有没有同名节**，有就转「已存在时」逐节比对，不要直接追加。
 
    ```bash
-   cat "$TEMPLATE_DIR/rules-codex.md" >> AGENTS.md
+   "$RENDER_RULES" --host codex --scope project "$TEMPLATE_DIR/rules.md" >> AGENTS.md
    ```
 
-   模板的标题层级要和目标文件对齐。
+   渲染结果的标题层级要和目标文件对齐。
 2. **装子代理**：先确认每个目标 `.toml` 都不存在；已有同名文件就转「已存在时」，不要覆盖。
    再从 Markdown 唯一模板源组装 Codex agent。转换只提取 `name`、`description` 与完整正文，
-   不映射 Claude Code 的 `model`、`effort`；`code-reviewer` 额外设为只读沙箱。
+   再按各代理职责写入 Codex 的 `model` 与 `model_reasoning_effort`；`code-reviewer` 额外设为只读沙箱。
 
    ```bash
    mkdir -p .codex/agents
@@ -73,7 +74,7 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
 
    ```bash
    X=${CODEX_HOME:-$HOME/.codex}
-   cat "$TEMPLATE_DIR/rules-codex.md" >> "$X/AGENTS.md"
+   "$RENDER_RULES" --host codex --scope user "$TEMPLATE_DIR/rules.md" >> "$X/AGENTS.md"
    ```
 
 2. **装子代理**：先确认每个目标 `.toml` 都不存在；已有同名文件就转「已存在时」，不要覆盖。再执行：
@@ -84,7 +85,7 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
    "$RENDER_AGENT" --output-dir "$X/agents" "$TEMPLATE_DIR/agents/"*.md
    ```
 
-   转换规则与项目安装相同；TOML 不指定模型，由当前环境选择。
+   转换规则与项目安装相同。
 3. **告知用户**：说明实际写入的用户级配置目录；重启 Codex 后重新加载。
    这两步各自独立，规则正文已经有了、子代理没装时，仍要完成第 2 步。
 
@@ -95,11 +96,10 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
    追加完再手工删是最该避免的。
 
    ```bash
-   cat "$TEMPLATE_DIR/rules.md" >> CLAUDE.md
+   "$RENDER_RULES" --host claude --scope project "$TEMPLATE_DIR/rules.md" >> CLAUDE.md
    ```
 
-   追加后删掉模板顶部的 `# 全局规则` 标题和它下面那句「与项目自己的指令文件冲突时，以项目的为准」——
-   这份现在就是项目自己的规则，那句话不成立。其余各节按目标文件的标题层级对齐。
+   渲染器会去掉只适用于用户级安装的 `# 全局规则` 标题和优先级说明；其余各节按目标文件的标题层级对齐。
 2. **装子代理**：
 
    ```bash
@@ -125,12 +125,11 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
    ```bash
    C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
    mkdir -p "$C"
-   cat "$TEMPLATE_DIR/rules.md" >> "$C/CLAUDE.md"
+   "$RENDER_RULES" --host claude --scope user "$TEMPLATE_DIR/rules.md" >> "$C/CLAUDE.md"
    ```
 
    文件里已有本模板的同名节时转「已存在时」，不要追加出第二份。
-   这一份要**保留**模板顶部那句「与项目自己的指令文件冲突时，以项目的为准」——
-   它就是用户级与项目级同时加载时优先级的依据，别顺手删掉。
+   用户级渲染会保留「与项目自己的指令文件冲突时，以项目的为准」作为两层同时加载时的优先级依据。
 2. **装子代理**：
 
    ```bash
@@ -147,7 +146,8 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
 
 ## 已存在时
 
-已有内容时不要覆盖：与当前宿主对应的规则模板和代理模板逐节比对，补齐模板有而它没有的，保留当前用户环境或当前项目已有的补充内容。
+已有内容时不要覆盖：先为当前宿主与作用域渲染共享规则模板，再与规则和代理模板逐节比对，
+补齐模板有而它没有的，保留当前用户环境或当前项目已有的补充内容。
 Codex 子代理与 Markdown 模板转换后的字段逐项比对，不要另找或创建一份 TOML 模板。
 不要修改已安装 plugin 内的模板。
 要动的地方超过补充规则的范围时，先把打算怎么改告诉用户。

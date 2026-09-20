@@ -55,7 +55,9 @@ YAML frontmatter 必须位于文件最开头，`---` 是第一行，前面不能
 
 ### Agent 模板
 
-Agent 模板只维护 Claude Markdown 版本，禁止另建重复的 Codex TOML 模板。安装时由 `plugins/setup/scripts/render-codex-agent.py` 机械提取 Markdown 的 `name`、`description` 和完整正文，生成 Codex 所需的 `developer_instructions`；renderer 忽略 Claude 专属的 `model`、`effort` 等字段，并集中应用明确的 Codex 专属配置。
+Agent 模板的共享指令正文只维护一份，禁止另建重复的宿主版本。Claude 模板的模型配置由 Claude Markdown frontmatter 明确定义；Codex 模板的模型与 reasoning effort 由 `plugins/setup/scripts/render-codex-agent.py` 集中映射和生成，两者不要求使用相同的模型名称。新增 agent 时必须同时补齐 Codex 的 model 与 model_reasoning_effort 映射。renderer 从共享模板提取 `name`、`description` 和完整正文生成 Codex 所需的 `developer_instructions`，宿主专属配置只在各自的配置源中维护。
+
+Workflow 规则同样只维护一份共享模板；宿主和安装作用域的差异由 `plugins/setup/scripts/render-workflow-rules.py` 集中生成，禁止另建宿主摘要版或作用域副本。
 
 ## 参数传递
 
