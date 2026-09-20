@@ -8,13 +8,10 @@ description: 在指定的 Git 仓库中搜索与问题描述相关的 Issue 和 
 在指定的 Git 仓库中搜索与问题描述相关的 Issue 和 PR。
 
 参数格式：`<仓库地址> <问题描述>`
-示例：`/git:find-issues https://github.com/anthropics/claude-code 快捷键无法自定义`
+Claude Code 示例：`/git:find-issues https://github.com/anthropics/claude-code 快捷键无法自定义`
+Codex 示例：`$git:find-issues https://github.com/anthropics/claude-code 快捷键无法自定义`
 
-请解析用户输入：
-
-<input>
-$ARGUMENTS
-</input>
+请从当前用户请求中解析仓库地址和问题描述：
 
 1. 如果缺少仓库地址或问题描述，请向用户询问缺失的信息，拿到所有信息后再继续
 2. 从仓库地址中提取 `owner/repo`（支持 `https://github.com/owner/repo` 或 `owner/repo` 格式）

@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "bjj-agent-skills",
-  "description": "个人 agent skills 集合：开发流程编排与 Git 规范",
+  "description": "个人 agent skills 集合：开发流程、AI 与 skill 编写、Git 规范，以及项目级与用户级初始化",
   "owner": {
     "name": "BaiJunjie",
     "email": "bjj19851010@gmail.com"
@@ -36,7 +36,7 @@
     },
     {
       "name": "setup",
-      "description": "初始化 skills：把通用规范落地成配置（skill / 子代理 / 脚本 / 输出风格），默认装进当前项目，部分可选装到本机用户级",
+      "description": "初始化项目级 agent 工作流，并支持可选的用户级安装",
       "author": {
         "name": "BaiJunjie"
       },
@@ -44,12 +44,12 @@
       "category": "productivity"
     },
     {
-      "name": "global-setup",
-      "description": "本机初始化 skills：只放确实只能在本机做、装进仓库没有意义的事（把 Codex 接到本机的 Claude 配置上）",
+      "name": "setup-user",
+      "description": "可从 Claude Code 或 Codex 执行的用户级初始化，当前提供 Codex 的 Claude 配置预检能力",
       "author": {
         "name": "BaiJunjie"
       },
-      "source": "./plugins/global-setup",
+      "source": "./plugins/setup-user",
       "category": "productivity"
     }
   ]

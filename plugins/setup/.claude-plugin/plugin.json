@@ -1,7 +1,9 @@
 {
   "name": "setup",
-  "description": "初始化 skills：把通用规范落地成配置（skill / 子代理 / 脚本 / 输出风格），默认装进当前项目，部分可选装到本机用户级",
+  "version": "0.1.0",
+  "description": "为 Claude Code 或 Codex 初始化项目级 agent 工作流，并支持可选的用户级安装",
   "author": {
     "name": "BaiJunjie"
-  }
+  },
+  "repository": "https://github.com/baijunjie/agent-skills"
 }

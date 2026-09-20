@@ -6,12 +6,6 @@ disable-model-invocation: true
 
 # 开发文档输出
 
-补充说明（可选）：
-
-<notes>
-$ARGUMENTS
-</notes>
-
 把本次讨论确定的方案**简洁整理**成开发文档，只整理讨论过的内容，不添加额外信息。
 
 开发文档目录默认 `docs/development/`，项目已有自己的约定时按项目的。这里只放**尚未落地**的内容：

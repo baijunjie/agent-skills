@@ -1,0 +1,6 @@
+interface:
+  display_name: "Development Memory Setup"
+  short_description: "安装项目级开发记忆 skill 与子代理"
+  default_prompt: "Use $setup:dev-memory to add project development memory."
+policy:
+  allow_implicit_invocation: false

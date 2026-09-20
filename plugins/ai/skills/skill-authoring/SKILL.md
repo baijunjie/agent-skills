@@ -32,6 +32,13 @@ Skill 是给 agent 的**规则**，不是操作手册。写多了限制它发挥
 - 一条规则一行。有条件分支用表格，不用段落。
 - 用祈使句写死约束：「必须」「不要」「先…再…」。不用「建议」「可以考虑」。
 - `description` 写清**做什么 + 什么时候用 + 触发关键词**，模型靠它决定是否自动调用。
+- 双宿主 skill 的通用 frontmatter 只依赖 `name` 与 `description`；宿主专属能力放各自的元数据文件，
+  不把 Claude Code 或 Codex 的工具名、路径和调用语法写成另一端也必须支持的前提。
+- 需要禁止隐式调用时，Claude Code 使用 `disable-model-invocation: true`，Codex 同时在
+  `agents/openai.yaml` 设置 `policy.allow_implicit_invocation: false`。发布到 OpenAI 公共目录前，
+  另行生成不含 Claude 专属 frontmatter 的 Codex 包；不要为通过校验而悄悄放开 Claude Code 的隐式调用。
+- 附带资源优先从 `PLUGIN_ROOT` 定位，回退 `CLAUDE_PLUGIN_ROOT`；两者都没有时按当前 `SKILL.md`
+  的绝对路径定位，不能假定进程工作目录就是 plugin 根目录。
 - 篇幅是信号。明显变长通常意味着混进了上面「不写这些」里的东西，回头砍。
 
 ## 自检

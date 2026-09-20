@@ -1,0 +1,17 @@
+{
+  "name": "setup",
+  "version": "0.1.0",
+  "description": "为 Claude Code 或 Codex 初始化项目级 agent 工作流，并支持可选的用户级安装",
+  "author": { "name": "BaiJunjie" },
+  "repository": "https://github.com/baijunjie/agent-skills",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agent Setup",
+    "shortDescription": "初始化项目级 agent 工作流",
+    "longDescription": "安装项目文档、开发记忆、工作流、worktree、定时任务与输出规范。",
+    "developerName": "BaiJunjie",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": ["为当前项目安装 agent 工作流。"]
+  }
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Development Docs"
+  short_description: "把已定方案整理成里程碑开发文档"
+  default_prompt: "Use $dev:docs to turn the agreed solution into development documents."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,17 @@
+{
+  "name": "dev",
+  "version": "0.1.0",
+  "description": "开发流程 skills：讨论、文档、执行与优化",
+  "author": { "name": "BaiJunjie" },
+  "repository": "https://github.com/baijunjie/agent-skills",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Dev Workflows",
+    "shortDescription": "讨论、文档、执行与优化工作流",
+    "longDescription": "用于讨论方案、编写开发文档、执行里程碑与代码收尾检查的开发流程 skills。",
+    "developerName": "BaiJunjie",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": ["使用开发流程 skill 处理当前任务。"]
+  }
+}

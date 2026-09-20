@@ -1,0 +1,6 @@
+interface:
+  display_name: "Codex Bridge Setup"
+  short_description: "安装 Codex 的 Claude 配置预检能力"
+  default_prompt: "Use $setup-user:codex-bridge to install the Claude configuration bridge for Codex."
+policy:
+  allow_implicit_invocation: false

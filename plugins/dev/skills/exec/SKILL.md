@@ -6,12 +6,6 @@ disable-model-invocation: true
 
 # 根据开发文档，执行开发任务
 
-开发文档位置 / 补充说明：
-
-<target>
-$ARGUMENTS
-</target>
-
 开发前先按开发文档提及的内容，结合项目文档充分理解开发背景和上下文。
 
 ## 如何读开发文档

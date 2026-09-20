@@ -1,6 +1,6 @@
 ---
 name: workflow
-description: 装上（或更新）通用 agent 工作流规范——注释规范、提交信息、分派子代理、编码结束自检，外加五个通用子代理。默认装进当前项目，也可装成本机用户级、对这台机器上的所有项目生效。用于"给这个项目配 agent 规范""装通用子代理""配一台新电脑""同步我的 agent 工作流""更新全局规则"等场景。
+description: 装上（或更新）通用 agent 工作流规范——注释规范、提交信息、分派子代理、编码结束自检，外加五个通用子代理。默认装进当前项目，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"给这个项目配 agent 规范""装通用子代理""配一台新电脑""同步我的 agent 工作流""更新全局规则"等场景。
 disable-model-invocation: true
 ---
 
@@ -8,39 +8,103 @@ disable-model-invocation: true
 
 一份规则正文（注释规范 / Git 提交信息 / 分派子代理 / 编码结束自检）加五个通用子代理。
 
-补充说明（可选）：
+## 跨宿主约定
 
-<task>
-$ARGUMENTS
-</task>
+只执行当前宿主对应的分支。模板资源先用 `$PLUGIN_ROOT`，为空再用 `$CLAUDE_PLUGIN_ROOT`；
+两者都为空时，先把 `SKILL_DIR` 设为**当前已加载的这个 `SKILL.md` 的绝对父目录**（不是项目工作目录），
+再按相对路径定位。执行写入前先确定：
+
+```bash
+if [ -n "${PLUGIN_ROOT:-}" ]; then
+  SETUP_ROOT="$PLUGIN_ROOT"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+  SETUP_ROOT="$CLAUDE_PLUGIN_ROOT"
+else
+  SETUP_ROOT="${SKILL_DIR:?先将 SKILL_DIR 设为当前 SKILL.md 的绝对父目录}/../.."
+fi
+TEMPLATE_DIR="$SETUP_ROOT/skills/workflow/template"
+RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
+```
 
 ## 选作用域
 
 **默认装进当前项目**，随仓库提交。**整份装齐**，不要因为「用户级可能已经装过」而缩水。
 
-用户明确说了「全局 / 本机 / 用户级 / 所有项目 / 新电脑」，或当前目录不是 git 仓库时，
-才走「用户级安装」——那一份只对这台机器上的自己生效，是个人偏好，不进任何仓库。
+用户明确说了「全局 / 用户级 / 所有项目 / 新电脑」，或当前目录不是 git 仓库时，
+才走「用户级安装」——那一份只在当前用户环境生效，是个人偏好，不进任何仓库。
 
 两层会同时加载，同名节以项目的为准，不必为此少装哪一层。
 
-## 项目安装（默认）
+## Codex 项目安装（默认）
+
+1. **追加规则节**：目标是项目根目录的 `AGENTS.md`，没有就新建；它是符号链接时写它指向的实际文件。
+   **先看目标文件里有没有同名节**，有就转「已存在时」逐节比对，不要直接追加。
+
+   ```bash
+   cat "$TEMPLATE_DIR/rules-codex.md" >> AGENTS.md
+   ```
+
+   模板的标题层级要和目标文件对齐。
+2. **装子代理**：先确认每个目标 `.toml` 都不存在；已有同名文件就转「已存在时」，不要覆盖。
+   再从 Markdown 唯一模板源组装 Codex agent。转换只提取 `name`、`description` 与完整正文，
+   不映射 Claude Code 的 `model`、`effort`；`code-reviewer` 额外设为只读沙箱。
+
+   ```bash
+   mkdir -p .codex/agents
+   "$RENDER_AGENT" --output-dir .codex/agents "$TEMPLATE_DIR/agents/"*.md
+   ```
+3. **告知用户**：`AGENTS.md` 与 `.codex/agents/` 的改动要提交进版本库才随仓库生效；
+   `.gitignore` 整体忽略了 `.codex/` 的项目要为 `.codex/agents/` 加例外，否则子代理提交不进去。
+   `AGENTS.md` 在会话开始时读取，当前会话不会自动重读，下次会话生效。
+
+## Codex 用户级安装
+
+把规则正文追加到当前 Codex 用户级配置目录的 `AGENTS.md`，并从 Markdown 唯一模板源组装子代理到
+该目录的 `agents/`。使用 `CODEX_HOME`；未设置时回退到 `$HOME/.codex`。
+
+1. **写规则正文**：先计算用户级配置根目录：
+
+   ```bash
+   X=${CODEX_HOME:-$HOME/.codex}
+   mkdir -p "$X"
+   ```
+
+   确认 `$X/AGENTS.md` 没有本模板的同名节后，再执行：
+
+   ```bash
+   X=${CODEX_HOME:-$HOME/.codex}
+   cat "$TEMPLATE_DIR/rules-codex.md" >> "$X/AGENTS.md"
+   ```
+
+2. **装子代理**：先确认每个目标 `.toml` 都不存在；已有同名文件就转「已存在时」，不要覆盖。再执行：
+
+   ```bash
+   X=${CODEX_HOME:-$HOME/.codex}
+   mkdir -p "$X/agents"
+   "$RENDER_AGENT" --output-dir "$X/agents" "$TEMPLATE_DIR/agents/"*.md
+   ```
+
+   转换规则与项目安装相同；TOML 不指定模型，由当前环境选择。
+3. **告知用户**：说明实际写入的用户级配置目录；重启 Codex 后重新加载。
+   这两步各自独立，规则正文已经有了、子代理没装时，仍要完成第 2 步。
+
+## Claude Code 项目安装（默认）
 
 1. **追加规则节**：目标是项目根目录的 `CLAUDE.md`，没有就新建；它是符号链接时写它指向的实际文件。
    **先看目标文件里有没有同名节**，有就转「已存在时」逐节比对，不要执行下面的 `cat`——
    追加完再手工删是最该避免的。
 
    ```bash
-   cat "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/rules.md" >> CLAUDE.md
+   cat "$TEMPLATE_DIR/rules.md" >> CLAUDE.md
    ```
 
-   `$CLAUDE_PLUGIN_ROOT` 为空时用本 skill 目录下的 `template/rules.md`。
    追加后删掉模板顶部的 `# 全局规则` 标题和它下面那句「与项目自己的指令文件冲突时，以项目的为准」——
    这份现在就是项目自己的规则，那句话不成立。其余各节按目标文件的标题层级对齐。
 2. **装子代理**：
 
    ```bash
    mkdir -p .claude/agents
-   cp -n "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/agents/"*.md .claude/agents/
+   cp -n "$TEMPLATE_DIR/agents/"*.md .claude/agents/
    ```
 
    **装进项目的 `.claude/agents/`，不是用户级配置目录（默认 `~/.claude`）下的 `agents/`**；已有同名文件 `cp -n` 会静默跳过，
@@ -49,11 +113,11 @@ $ARGUMENTS
 3. **告知用户**：`CLAUDE.md` 与 `.claude/agents/` 的改动要提交进版本库才随仓库生效；
    `.gitignore` 整体忽略了 `.claude/` 的项目要为 `.claude/agents/` 加例外，否则子代理提交不进去。
    `CLAUDE.md` 在会话开始时读取，当前会话不会自动重读，下次会话生效。
-   本机用户级也装过同一套时，两层都会加载，同名节以项目这份为准。
+   用户级配置也装过同一套时，两层都会加载，同名节以项目这份为准。
 
-## 用户级安装
+## Claude Code 用户级安装
 
-装进**当前会话的用户级配置目录**，对这台机器上的所有项目生效。这个目录由 Claude Code 的
+装进**当前会话的用户级配置目录**，对当前用户环境中的所有项目生效。这个目录由 Claude Code 的
 `CLAUDE_CONFIG_DIR` 决定，没设就是 `~/.claude`；下面的命令用 `C` 指代它，不要写死路径。
 
 1. **写规则正文**：
@@ -61,10 +125,9 @@ $ARGUMENTS
    ```bash
    C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
    mkdir -p "$C"
-   cat "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/rules.md" >> "$C/CLAUDE.md"
+   cat "$TEMPLATE_DIR/rules.md" >> "$C/CLAUDE.md"
    ```
 
-   `$CLAUDE_PLUGIN_ROOT` 为空时用本 skill 目录下的 `template/rules.md`。
    文件里已有本模板的同名节时转「已存在时」，不要追加出第二份。
    这一份要**保留**模板顶部那句「与项目自己的指令文件冲突时，以项目的为准」——
    它就是用户级与项目级同时加载时优先级的依据，别顺手删掉。
@@ -73,7 +136,7 @@ $ARGUMENTS
    ```bash
    C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
    mkdir -p "$C/agents"
-   cp -n "$CLAUDE_PLUGIN_ROOT/skills/workflow/template/agents/"*.md "$C/agents/"
+   cp -n "$TEMPLATE_DIR/agents/"*.md "$C/agents/"
    ```
 
    已有同名文件 `cp -n` 会静默跳过，跳过了就转「已存在时」，不要当成装好了。
@@ -84,8 +147,9 @@ $ARGUMENTS
 
 ## 已存在时
 
-已有内容时不要覆盖：与 `template/rules.md`、`template/agents/` 逐节比对，补齐模板有而它没有的，保留本机 / 本项目自己加的。
-反过来，本机有而模板没有、且不是这台机器专属的内容，回写进模板。
+已有内容时不要覆盖：与当前宿主对应的规则模板和代理模板逐节比对，补齐模板有而它没有的，保留当前用户环境或当前项目已有的补充内容。
+Codex 子代理与 Markdown 模板转换后的字段逐项比对，不要另找或创建一份 TOML 模板。
+不要修改已安装 plugin 内的模板。
 要动的地方超过补充规则的范围时，先把打算怎么改告诉用户。
 
 ## 现状与预期不符时

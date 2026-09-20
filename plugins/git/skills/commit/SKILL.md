@@ -7,12 +7,6 @@ description: 按 Conventional Commits 规范生成 Git 提交。用于提交代�
 
 按 Conventional Commits 规范生成提交。
 
-补充上下文（可选）：
-
-<context>
-$ARGUMENTS
-</context>
-
 ## 单次提交
 
 **一次调用只产生一个 commit，不拆分。** 即使改动跨了多个 type，也全部归入这一个提交：

@@ -1,7 +1,0 @@
-{
-  "name": "global-setup",
-  "description": "本机级初始化 skills：只放确实只能在本机做、装进仓库没有意义的事",
-  "author": {
-    "name": "BaiJunjie"
-  }
-}

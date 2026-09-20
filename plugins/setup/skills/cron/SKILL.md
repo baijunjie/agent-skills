@@ -10,11 +10,22 @@ disable-model-invocation: true
 装好后改任务只动 `tasks.conf`，不用记 crontab 语法，也不用 `crontab -e` 手工编辑。
 清单格式、标记区块、`PATH` 固化的做法都写在模板自己的注释里，本文不复述。
 
-补充说明（可选）：
+## 跨宿主约定
 
-<task>
-$ARGUMENTS
-</task>
+只执行当前宿主对应的说明入口。
+
+模板资源先用 `$PLUGIN_ROOT`，为空再用 `$CLAUDE_PLUGIN_ROOT`；两者都为空时，先把 `SKILL_DIR`
+设为**当前已加载的这个 `SKILL.md` 的绝对父目录**（不是项目工作目录），再按相对路径定位。执行拷贝前先确定：
+
+```bash
+if [ -n "${PLUGIN_ROOT:-}" ]; then
+  TEMPLATE_DIR="$PLUGIN_ROOT/skills/cron/template/cron"
+elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
+  TEMPLATE_DIR="$CLAUDE_PLUGIN_ROOT/skills/cron/template/cron"
+else
+  TEMPLATE_DIR="${SKILL_DIR:?先将 SKILL_DIR 设为当前 SKILL.md 的绝对父目录}/template/cron"
+fi
+```
 
 ## 步骤
 
@@ -24,11 +35,10 @@ $ARGUMENTS
 
    ```bash
    mkdir -p <脚本目录>/cron
-   cp -n "$CLAUDE_PLUGIN_ROOT/skills/cron/template/cron/"* <脚本目录>/cron/
+   cp -n "$TEMPLATE_DIR/"* <脚本目录>/cron/
    chmod +x <脚本目录>/cron/install.sh <脚本目录>/cron/uninstall.sh
    ```
 
-   `$CLAUDE_PLUGIN_ROOT` 为空时用本 skill 目录下的 `template/cron/`。
    已存在的文件 `cp -n` 会静默跳过，跳过了就转「已存在时」，不要当成装好了。
 3. **对齐项目**：`common.sh` 里只有两处按项目改，**直接改默认值**，不要靠环境变量——
    环境变量要求以后每次 install / uninstall 都带上同一组，漏一次就装到别处去了。
@@ -46,7 +56,7 @@ $ARGUMENTS
 5. **忽略日志目录**：`.gitignore` 里确认日志目录已被忽略。
 6. **注册入口**（项目有统一入口时才做）：`package.json` 加 `"cron:install"` / `"cron:uninstall"`，
    或 `Makefile` 加对应 target，命令就是 `sh <脚本目录>/cron/install.sh` / `uninstall.sh`。
-7. **挂说明**：在项目根目录的 `CLAUDE.md` 里写明定时任务改 `tasks.conf` 后跑 `install.sh`，
+7. **挂说明**：Codex 在项目根目录的 `AGENTS.md`、Claude Code 在 `CLAUDE.md` 里写明定时任务改 `tasks.conf` 后跑 `install.sh`，
    不要直接 `crontab -e`——这是后来者唯一推不出来的一条，写一行就够，
    格式和参数留在 `tasks.conf` 的注释里，不要复制成第二份。
 8. **不要替用户执行 `install.sh`**：它改的是用户账号的 crontab，不是仓库内容。

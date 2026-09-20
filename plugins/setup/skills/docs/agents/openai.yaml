@@ -1,0 +1,6 @@
+interface:
+  display_name: "Documentation Setup"
+  short_description: "安装项目文档 skill 与文档子代理"
+  default_prompt: "Use $setup:docs to add project documentation workflows."
+policy:
+  allow_implicit_invocation: false

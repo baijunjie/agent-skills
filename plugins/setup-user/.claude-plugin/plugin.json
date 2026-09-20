@@ -1,0 +1,9 @@
+{
+  "name": "setup-user",
+  "version": "0.1.0",
+  "description": "可从 Claude Code 或 Codex 执行的用户级初始化，当前提供 Codex 的 Claude 配置预检能力",
+  "author": {
+    "name": "BaiJunjie"
+  },
+  "repository": "https://github.com/baijunjie/agent-skills"
+}

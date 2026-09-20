@@ -1,0 +1,36 @@
+{
+  "name": "bjj-agent-skills",
+  "interface": { "displayName": "BJJ Agent Skills" },
+  "plugins": [
+    {
+      "name": "dev",
+      "source": { "source": "local", "path": "./plugins/dev" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    },
+    {
+      "name": "ai",
+      "source": { "source": "local", "path": "./plugins/ai" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    },
+    {
+      "name": "git",
+      "source": { "source": "local", "path": "./plugins/git" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Development"
+    },
+    {
+      "name": "setup",
+      "source": { "source": "local", "path": "./plugins/setup" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    },
+    {
+      "name": "setup-user",
+      "source": { "source": "local", "path": "./plugins/setup-user" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}

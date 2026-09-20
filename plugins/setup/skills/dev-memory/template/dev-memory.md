@@ -8,12 +8,6 @@ description: 开发记忆的读取与沉淀入口。开工前读 docs/dev-memory
 项目特有的经验与约定存放在 `docs/dev-memory/`，写的是「动手时会栽在哪儿」：踩过的坑、
 反直觉的前提、不同于通用做法的约定。
 
-补充说明（可选）：
-
-<task>
-$ARGUMENTS
-</task>
-
 ## 开工前：读记忆
 
 1. 先读 `docs/dev-memory/README.md` 索引，按当前任务类型找到相关的那几份，只读相关的。

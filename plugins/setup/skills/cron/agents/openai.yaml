@@ -1,0 +1,6 @@
+interface:
+  display_name: "Cron Setup"
+  short_description: "安装项目级 crontab 任务管理脚本"
+  default_prompt: "Use $setup:cron to add a project-level cron installer."
+policy:
+  allow_implicit_invocation: false

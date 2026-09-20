@@ -6,10 +6,4 @@ disable-model-invocation: true
 
 # 问题讨论
 
-讨论主题：
-
-<topic>
-$ARGUMENTS
-</topic>
-
 请不要直接编写代码，而是应该先了解足够的项目上下文，然后描述你的解决方案。

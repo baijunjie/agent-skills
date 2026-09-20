@@ -1,0 +1,6 @@
+interface:
+  display_name: "Optimize"
+  short_description: "开发收尾时检查遗漏、冗余与优化点"
+  default_prompt: "Use $dev:optimize to review the completed implementation."
+policy:
+  allow_implicit_invocation: false

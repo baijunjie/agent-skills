@@ -1,0 +1,6 @@
+interface:
+  display_name: "Git Worktree Setup"
+  short_description: "安装项目级 Git worktree 开发规则"
+  default_prompt: "Use $setup:git-worktree to add the worktree workflow."
+policy:
+  allow_implicit_invocation: false

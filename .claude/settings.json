@@ -30,7 +30,7 @@
       "Skill(setup:git-worktree)",
       "Skill(setup:report-style)",
       "Skill(setup:workflow)",
-      "Skill(global-setup:codex-bridge)"
+      "Skill(setup-user:codex-bridge)"
     ],
     "deny": []
   }
