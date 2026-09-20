@@ -35,17 +35,6 @@ claude plugin update setup-user@bjj-agent-skills
 
 改动本仓库后需先 `git push`，更新才拉得到。
 
-### Claude Code：从 `global-setup` 迁移
-
-`global-setup` 已更名为 `setup-user`，以明确它配置的是当前用户环境，而非系统全局环境。已安装旧 plugin 的用户请先刷新 marketplace，再卸载旧名、安装新名并重启 Claude Code：
-
-```bash
-claude plugin marketplace update
-claude plugin uninstall global-setup@bjj-agent-skills
-claude plugin install setup-user@bjj-agent-skills
-# 重启 Claude Code
-```
-
 ### Codex
 
 ```bash
