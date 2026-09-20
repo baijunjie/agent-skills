@@ -96,13 +96,21 @@ codex plugin add <plugin>@bjj-agent-skills
 
 ### 发布改动
 
-Plugin 按 git commit SHA 缓存；仅修改工作副本不会发布。先提交并推送改动：
+GitHub marketplace 的仓库快照与已安装 plugin 缓存是两层。发布 plugin 内容改动时，先同步提升该 plugin 在以下三个 manifest 中的 `version`：
+
+- `plugins/<plugin>/plugin.json`
+- `plugins/<plugin>/.codex-plugin/plugin.json`
+- `plugins/<plugin>/.claude-plugin/plugin.json`
+
+然后提交并推送改动：
 
 ```bash
 git add <changed-files>
 git commit -m "..."
 git push
 ```
+
+Claude Code 的 `plugin update` 会按版本判断是否需要更新；版本不变时会认为已是最新版。Codex 当前刷新 marketplace 后重新安装可能覆盖同版本内容，但发布流程不得依赖该行为。两边都应以递增且三处一致的 plugin 版本作为新版本边界。
 
 #### Claude Code
 

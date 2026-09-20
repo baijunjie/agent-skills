@@ -33,7 +33,7 @@ claude plugin update setup@bjj-agent-skills
 claude plugin update setup-user@bjj-agent-skills
 ```
 
-改动本仓库后需先 `git push`，更新才拉得到。
+维护者发布 plugin 内容改动时，需同步提升该 plugin 的三份 manifest 版本并 `git push`；具体要求见 [AGENTS.md](AGENTS.md)「发布改动」。
 
 ### Codex
 
