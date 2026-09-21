@@ -1,0 +1,6 @@
+interface:
+  display_name: "Check TODOs"
+  short_description: "查证项目 TODO 是否过时或可以开始处理"
+  default_prompt: "Use $dev:todo to audit the project's TODO markers."
+policy:
+  allow_implicit_invocation: false

@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "dev",
-  "version": "0.1.0",
-  "description": "开发流程 skills：讨论、文档、执行与优化",
+  "version": "0.2.0",
+  "description": "开发流程 skills：讨论、文档、执行、TODO 检查与优化",
   "author": { "name": "BaiJunjie" },
   "repository": "https://github.com/baijunjie/agent-skills"
 }

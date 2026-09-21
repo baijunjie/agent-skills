@@ -21,6 +21,7 @@
       "Skill(dev:docs)",
       "Skill(dev:exec)",
       "Skill(dev:optimize)",
+      "Skill(dev:todo)",
       "Skill(ai:skill-authoring)",
       "Skill(git:commit)",
       "Skill(git:find-issues)",

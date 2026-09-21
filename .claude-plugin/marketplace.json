@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "dev",
-      "description": "开发流程 skills：讨论 → 文档 → 执行 → 优化",
+      "description": "开发流程 skills：讨论 → 文档 → 执行 → 优化，附 TODO 检查",
       "author": {
         "name": "BaiJunjie"
       },
