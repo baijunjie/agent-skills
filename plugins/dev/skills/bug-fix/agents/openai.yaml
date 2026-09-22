@@ -1,0 +1,6 @@
+interface:
+  display_name: "Fix Bug"
+  short_description: "复现并定位根因后只改代码修复 bug"
+  default_prompt: "Use $dev:bug-fix to reproduce, diagnose and fix the bug."
+policy:
+  allow_implicit_invocation: false

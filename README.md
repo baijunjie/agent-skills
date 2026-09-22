@@ -12,7 +12,7 @@ claude plugin marketplace add baijunjie/agent-skills
 
 # 2. 安装需要的 plugin
 claude plugin install dev@bjj-agent-skills
-claude plugin install ai@bjj-agent-skills
+claude plugin install create@bjj-agent-skills
 claude plugin install git@bjj-agent-skills
 claude plugin install setup@bjj-agent-skills
 claude plugin install setup-user@bjj-agent-skills
@@ -27,7 +27,7 @@ claude plugin install setup-user@bjj-agent-skills
 ```bash
 claude plugin marketplace update
 claude plugin update dev@bjj-agent-skills
-claude plugin update ai@bjj-agent-skills
+claude plugin update create@bjj-agent-skills
 claude plugin update git@bjj-agent-skills
 claude plugin update setup@bjj-agent-skills
 claude plugin update setup-user@bjj-agent-skills
@@ -43,7 +43,7 @@ codex plugin marketplace add baijunjie/agent-skills
 
 # 2. 安装需要的 plugin（也可在 Codex CLI 的 /plugins 中安装）
 codex plugin add dev@bjj-agent-skills
-codex plugin add ai@bjj-agent-skills
+codex plugin add create@bjj-agent-skills
 codex plugin add git@bjj-agent-skills
 codex plugin add setup@bjj-agent-skills
 codex plugin add setup-user@bjj-agent-skills
@@ -61,7 +61,7 @@ codex plugin marketplace upgrade bjj-agent-skills
 
 # 2. 对需要更新的 plugin 重新执行安装命令
 codex plugin add dev@bjj-agent-skills
-codex plugin add ai@bjj-agent-skills
+codex plugin add create@bjj-agent-skills
 codex plugin add git@bjj-agent-skills
 codex plugin add setup@bjj-agent-skills
 codex plugin add setup-user@bjj-agent-skills
@@ -75,22 +75,25 @@ codex plugin add setup-user@bjj-agent-skills
 
 ### `dev` — 开发流程
 
-典型链路：`dev:discuss` → `dev:docs` → `dev:exec` → `dev:optimize`。
+典型链路：`dev:discuss` → `dev:plan-write` → `dev:plan-exec` → `dev:optimize`。
+
+Bug 链路：`dev:bug-report` → `dev:bug-fix`；口头描述的缺陷可以直接用 `dev:bug-fix`。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
 | `dev:discuss` | 问题讨论：只补上下文、给方案，不写代码 | 手动 |
-| `dev:coding` | 编写代码：先补上下文再动手，任务多时调度子代理 | 手动 |
-| `dev:docs` | 文档输出：把讨论结论整理成开发文档（按里程碑拆分，只写设计不写实现） | 手动 |
-| `dev:exec` | 按开发文档编号顺序执行开发，边做边勾 checkbox；里程碑收尾把内容固化进产品文档后删除开发文档 | 手动 |
+| `dev:plan-write` | 开发文档输出：把讨论结论整理成开发文档（按里程碑拆分，只写设计不写实现） | 手动 |
+| `dev:plan-exec` | 按开发文档编号顺序执行开发，边做边勾 checkbox；里程碑收尾把内容固化进产品文档后删除开发文档 | 手动 |
 | `dev:optimize` | 优化代码：复查逻辑遗漏、冗余代码、可优化点 | 手动 |
 | `dev:todo` | 检查 TODO：逐条查证前提与阻塞，分成已过时 / 可以处理 / 还不能处理 / 无法判定列表，再问用户是否清理、是否开工 | 手动 |
+| `dev:bug-report` | 创建 bug 工单：把缺陷整理成 `docs/bugs/` 下的规范工单，只写查证过的事实；工单一次性，修完即删 | 手动 |
+| `dev:bug-fix` | 修复 bug：指定工单或自己挑一个，先复现再定位根因；只改代码不改产品文档，要改产品设计先问用户，验证通过即删工单 | 手动 |
 
-### `ai` — AI agent 规范
+### `create` — 创建规范
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `ai:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本 | 手动 / 自动 |
+| `create:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本 | 手动 / 自动 |
 
 ### `git` — Git 规范
 

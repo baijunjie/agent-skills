@@ -14,7 +14,7 @@ plugins/<plugin>/                    # 同时分发到 Claude Code 与 Codex
 └── skills/<skill>/SKILL.md           # skill 本体
 ```
 
-Plugin 名即调用前缀：`plugins/dev/skills/coding/SKILL.md` 在 Claude Code 中对应 `/dev:coding`，在 Codex 中对应 `$dev:coding`。
+Plugin 名即调用前缀：`plugins/dev/skills/plan-exec/SKILL.md` 在 Claude Code 中对应 `/dev:plan-exec`，在 Codex 中对应 `$dev:plan-exec`。
 
 ## 新增 Skill
 

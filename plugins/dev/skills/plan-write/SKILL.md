@@ -1,5 +1,5 @@
 ---
-name: docs
+name: plan-write
 description: 开发文档输出。把已讨论确定的方案整理成开发文档，按 docs/development/YYYYMMDD-{简述}/ 目录、按可独立测试合并的里程碑拆分并编号（只有一个里程碑时就只写一份 README.md），只写设计不写实现代码。
 disable-model-invocation: true
 ---

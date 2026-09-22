@@ -1,13 +1,13 @@
 {
-  "name": "ai",
-  "version": "0.1.0",
-  "description": "AI agent 与 skill 编写规范",
+  "name": "create",
+  "version": "0.2.0",
+  "description": "创建类规范：agent skill 编写",
   "author": { "name": "BaiJunjie" },
   "repository": "https://github.com/baijunjie/agent-skills",
   "skills": "./skills/",
   "interface": {
-    "displayName": "AI Authoring",
-    "shortDescription": "Agent skill 编写规范",
+    "displayName": "Create",
+    "shortDescription": "创建 agent skill 的规范",
     "longDescription": "提供自包含、可维护且容易可靠触发的 agent skill 编写规范。",
     "developerName": "BaiJunjie",
     "category": "Productivity",

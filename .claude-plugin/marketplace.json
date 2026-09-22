@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "bjj-agent-skills",
-  "description": "个人 agent skills 集合：开发流程、AI 与 skill 编写、Git 规范，以及项目级与用户级初始化",
+  "description": "个人 agent skills 集合：开发流程、agent skill 创建、Git 规范，以及项目级与用户级初始化",
   "owner": {
     "name": "BaiJunjie",
     "email": "bjj19851010@gmail.com"
@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "dev",
-      "description": "开发流程 skills：讨论 → 文档 → 执行 → 优化，附 TODO 检查",
+      "description": "开发流程 skills：讨论 → 文档 → 执行 → 优化，附 Bug 工单与修复、TODO 检查",
       "author": {
         "name": "BaiJunjie"
       },
@@ -17,12 +17,12 @@
       "category": "productivity"
     },
     {
-      "name": "ai",
-      "description": "AI agent 相关规范：skill 编写（只写 agent 推不出来的规则，保持自包含，给判断标准而非操作脚本）",
+      "name": "create",
+      "description": "创建类规范：agent skill 编写（只写 agent 推不出来的规则，保持自包含，给判断标准而非操作脚本）",
       "author": {
         "name": "BaiJunjie"
       },
-      "source": "./plugins/ai",
+      "source": "./plugins/create",
       "category": "productivity"
     },
     {

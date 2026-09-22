@@ -1,0 +1,6 @@
+interface:
+  display_name: "Bug Report"
+  short_description: "把缺陷整理成规范的 bug 工单"
+  default_prompt: "Use $dev:bug-report to file a bug ticket for the described defect."
+policy:
+  allow_implicit_invocation: false

@@ -9,8 +9,8 @@
       "category": "Productivity"
     },
     {
-      "name": "ai",
-      "source": { "source": "local", "path": "./plugins/ai" },
+      "name": "create",
+      "source": { "source": "local", "path": "./plugins/create" },
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
       "category": "Productivity"
     },

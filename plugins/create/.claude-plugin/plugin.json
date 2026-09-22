@@ -1,7 +1,7 @@
 {
-  "name": "ai",
-  "version": "0.1.0",
-  "description": "AI agent 与 skill 编写规范",
+  "name": "create",
+  "version": "0.2.0",
+  "description": "创建类规范：agent skill 编写",
   "author": {
     "name": "BaiJunjie"
   },

@@ -1,6 +1,6 @@
 interface:
   display_name: "Execute Development Plan"
   short_description: "按里程碑开发文档执行并更新进度"
-  default_prompt: "Use $dev:exec to implement the referenced development plan."
+  default_prompt: "Use $dev:plan-exec to implement the referenced development plan."
 policy:
   allow_implicit_invocation: false
