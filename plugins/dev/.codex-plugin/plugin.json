@@ -1,6 +1,6 @@
 {
   "name": "dev",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "开发流程 skills：讨论、文档、执行、Bug 工单与修复、TODO 检查与优化",
   "author": { "name": "BaiJunjie" },
   "repository": "https://github.com/baijunjie/agent-skills",
@@ -8,7 +8,7 @@
   "interface": {
     "displayName": "Dev Workflows",
     "shortDescription": "讨论、文档、执行、Bug 修复、TODO 检查与优化工作流",
-    "longDescription": "用于讨论方案、编写开发文档、执行里程碑、创建与修复 bug 工单、检查 TODO 与代码收尾检查的开发流程 skills。",
+    "longDescription": "用于讨论方案、编写开发计划文档、执行里程碑、创建与修复 bug 工单、检查 TODO 与代码收尾检查的开发流程 skills。",
     "developerName": "BaiJunjie",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],

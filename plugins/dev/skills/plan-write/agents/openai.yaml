@@ -1,6 +1,6 @@
 interface:
-  display_name: "Development Docs"
-  short_description: "把已定方案整理成里程碑开发文档"
+  display_name: "Write Dev Plan"
+  short_description: "把已定方案整理成里程碑开发计划文档"
   default_prompt: "Use $dev:plan-write to turn the agreed solution into development documents."
 policy:
   allow_implicit_invocation: false
