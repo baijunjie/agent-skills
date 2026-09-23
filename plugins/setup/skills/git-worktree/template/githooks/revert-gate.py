@@ -12,7 +12,11 @@ rebase、amend 也拦下来；没记录的目标分支因此不受守护。这�
 1. 非快进只在被丢下的提交都没发布过时才可能放行（`pull --rebase`、改写还没推送的本地提交），
    且同样要过第 2 条的内容检查——同一个 clone 里没推送的提交也可能是别人刚合并的。
    与远端跟踪分支对齐、且不丢下本地未推送提交的移动直接放行（已发布的历史本地拦不回来）。
-2. 移动前该分支上最近 WINDOW 个非 merge 提交里，有被这次移动撤销的就拒绝，判据见 find_reverts。
+2. 移动前该分支上最近的非 merge 提交里，有被这次移动撤销的就拒绝，判据见 find_reverts。查多远：
+   至少最近 WINDOW 个；这次移动能对应到某个特性分支、且它记录了切出点
+   （`git config branch.<分支>.worktreeBase`）时，延伸到切出点之后的全部提交。
+   只靠 git 历史找不到切出点——换了基点的压平正是把父提交改成了最新的目标分支，
+   所以要在创建分支时记下来。
    只新增内容的提交被整体删掉不算撤销，所以撤销一个纯新增的提交拦不住——这是为了不把
    「删掉做完的计划文档」「去掉临时代码」这类正常清理挡下来。
 3. 本次新增提交的信息里带 `Reverts: <sha>` 或 git revert 默认的
@@ -21,7 +25,7 @@ rebase、amend 也拦下来；没记录的目标分支因此不受守护。这�
 用法：
   revert-gate.py reference-transaction <state>   由 hook.sh 调用，stdin 为 ref 更新列表
   revert-gate.py pre-push <remote> <url>         由 hook.sh 调用
-  revert-gate.py check <目标分支> <new>          手动检查把目标分支移到 new；命中退出码 1，检查出错退出码 2
+  revert-gate.py check <目标分支> <分支>         手动检查把目标分支移到该分支；命中退出码 1，检查出错退出码 2
 
 hook 模式下拒绝时退出码为 3，hook.sh 只把 3 当作拒绝（两边分开更新，这个约定不能改）：
 闸门自身出错（含脚本跑不起来）时放行，宁可漏检一次，也不能让它卡死所有 ref 更新。
@@ -35,8 +39,10 @@ import sys
 from collections import Counter
 
 # 往回查多少个提交。回退通常来自同一时期并行开发的分支，基点落后不会太远；
-# 太大则每次合并都要多读很多 blob。
+# 太大则每次合并都要多读很多 blob。有切出点记录时另查切出点之后的全部提交，但不超过 MAX_DEPTH，
+# 免得一个很久没合并的分支让检查慢到卡住合并。
 WINDOW = 50
+MAX_DEPTH = 1000
 
 # 行级判定：C 增加的行消失、删掉的行重现，各自占比达到 RATIO 才算这个文件被还原。
 # 「成批重现」另要求重现行数不少于 MIN_LINES，零星几行撞上是正常改动。
@@ -155,11 +161,18 @@ def tree_diff(a, b):
     return result
 
 
-def recent_commits(base):
-    """base 上最近 WINDOW 个非 merge 提交：[(sha, 标题, [(改前 id, 改后 id, 路径)])]。"""
-    listing = text(git("log", "--no-merges", f"--max-count={WINDOW}", "--format=%H %s", base).stdout)
-    subjects = dict(line.split(" ", 1) if " " in line else (line, "")
-                    for line in listing.split("\n") if line)
+def recent_commits(old, forks):
+    """要核对的提交：old 上最近 WINDOW 个，并上每个切出点到 old 之间的全部（至多 MAX_DEPTH 个），
+    都只取非 merge 提交。返回 [(sha, 标题, [(改前 id, 改后 id, 路径)])]。"""
+    ranges = [[f"--max-count={WINDOW}", old]]
+    ranges += [[f"--max-count={MAX_DEPTH}", f"{fork}..{old}"] for fork in forks if is_ancestor(fork, old)]
+    subjects = {}
+    for args in ranges:
+        listing = text(git("log", "--no-merges", "--format=%H %s", *args).stdout)
+        for line in listing.split("\n"):
+            if line:
+                sha, _, subject = line.partition(" ")
+                subjects.setdefault(sha, subject)
     if not subjects:
         return []
     # --stdin 模式下每个提交先输出自己的 id、再跟文件列表；--root 让根提交与空树比较。
@@ -188,7 +201,25 @@ def ratio(part, whole):
     return sum(part.values()) / sum(whole.values()) if whole else 1.0
 
 
-def find_reverts(old, new):
+def recorded_forks(branches):
+    """这些分支记录的切出点（branch.<分支>.worktreeBase）解析成的提交 id，没记录或解析不了的略过。"""
+    forks = []
+    for name in branches:
+        fork = text(git("config", "--get", f"branch.{name}.worktreeBase", check=False).stdout).strip()
+        if fork:
+            oid = text(git("rev-parse", "--verify", "-q", f"{fork}^{{commit}}", check=False).stdout).strip()
+            if oid:
+                forks.append(oid)
+    return forks
+
+
+def branches_at(commit):
+    """指向 commit 的本地分支名。快进合并时 new 就是特性分支的尖端，借此找回它记录的切出点。"""
+    out = git("for-each-ref", "--format=%(refname)", f"--points-at={commit}", "refs/heads/").stdout
+    return [ref[len("refs/heads/"):] for ref in text(out).split()]
+
+
+def find_reverts(old, new, forks=()):
     """返回 old → new 撤销掉的提交：[(sha, 标题, [(文件, 说明)])]，按从新到旧。
 
     一个提交 C 在两种情况下算被撤销：
@@ -202,7 +233,7 @@ def find_reverts(old, new):
     if not touched:
         return []
     allowed = overridden(old, new)
-    candidates = [c for c in recent_commits(old)
+    candidates = [c for c in recent_commits(old, forks)
                   if any(path in touched for _, _, path in c[2])
                   and not any(c[0].startswith(a) for a in allowed)]
     if not candidates:
@@ -285,7 +316,7 @@ def remote_tips(branch):
     return text(git("for-each-ref", "--format=%(objectname)", f"refs/remotes/*/{branch}").stdout).split()
 
 
-def check_move(branch, old, new, local, merge_hint=False):
+def check_move(branch, old, new, local, merge_hint=False, forks=()):
     """检查受守护的分支 branch 从 old 到 new 的一次移动，放行返回 True。local 表示移动的是本地分支。"""
     if is_null(old) or is_null(new) or old == new:
         return True
@@ -304,7 +335,7 @@ def check_move(branch, old, new, local, merge_hint=False):
                   f"包括别人刚合并进来的，先确认过再做。\n", file=sys.stderr)
             return False
     # find_reverts 不要求 old 是 new 的祖先：非快进时同样以 old 为参照，丢下的本地提交也在检查之列。
-    findings = find_reverts(old, new)
+    findings = find_reverts(old, new, forks)
     if findings:
         report(branch, old, new, findings, merge_hint)
         return False
@@ -329,7 +360,8 @@ def reference_transaction(state):
             old = text(git("rev-parse", "--verify", "-q", parts[2], check=False).stdout).strip()
         if not OID.match(old or "") or not OID.match(new):
             continue  # 符号引用的值（ref:...）不是提交
-        if not check_move(branch, old, new, local=True, merge_hint=True):
+        forks = recorded_forks(b for b in branches_at(new) if b != branch)
+        if not check_move(branch, old, new, local=True, merge_hint=True, forks=forks):
             return REJECTED
     return 0
 
@@ -362,7 +394,8 @@ def main(argv):
         if mode == "check" and len(argv) == 4:
             old = text(git("rev-parse", "--verify", f"refs/heads/{argv[2]}^{{commit}}").stdout).strip()
             new = text(git("rev-parse", "--verify", f"{argv[3]}^{{commit}}").stdout).strip()
-            return 0 if check_move(argv[2], old, new, local=False) else 1
+            forks = recorded_forks({argv[3], *branches_at(new)} - {argv[2]})
+            return 0 if check_move(argv[2], old, new, local=False, forks=forks) else 1
     except Exception as e:  # noqa: BLE001 —— 任何意外都按文件说明里的出错策略处理
         print(f"[revert-gate] 检查出错{'' if mode == 'check' else '，已放行'}：{e!r}", file=sys.stderr)
         return 2 if mode == "check" else 0

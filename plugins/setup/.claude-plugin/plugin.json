@@ -1,6 +1,6 @@
 {
   "name": "setup",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "为 Claude Code 或 Codex 初始化项目级 agent 工作流，并支持可选的用户级安装",
   "author": {
     "name": "BaiJunjie"
