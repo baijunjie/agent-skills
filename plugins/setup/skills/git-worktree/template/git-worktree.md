@@ -8,5 +8,5 @@
 - 压平后再 `git rebase <目标分支>`，一个提交只解一次冲突。解冲突要把双方的改动合起来，一律取自己这一侧等于撤销目标分支上的对应改动。rebase 后还要改的，并回原提交，不要再堆新提交。
 - 自己独用的分支压平后需要强制推送，推之前先向用户确认。
 - 仓库装有回退闸门（`.githooks/revert-gate.py`）：受守护的分支（上面记录的目标分支，以及闸门常驻守护的分支，通常是主分支）移动时，本地 merge / commit / reset 与 push 都会被自动检查，拒绝改写已发布的历史、以及撤销该分支已有改动的更新。被拦说明压平或解冲突出了错，照提示回分支重做，不要设 `REVERT_GATE_SKIP=1` 绕过。确要撤销某个提交，先问用户，同意后用 `git revert` 或在提交信息里加一行 `Reverts: <sha>`，不要在目标分支上用 reset、amend 去掉提交。
-- 合并前必须：功能已验证；收尾自检（代码质量检查、文档同步、静态检查）已完成；历史已压平并 rebase 到最新的目标分支；闸门预检 `s=$(git show "$(git config --get revert-gate.branch)":.githooks/revert-gate.py) && python3 -I -c "$s" check <目标分支> <分支>` 退出码为 0（merge 被闸门拦下时主工作副本已被写成分支内容，要 `git reset --merge` 复原，所以先预检）；主工作副本仍在目标分支上；已向用户确认。
+- 合并前必须：功能已验证；收尾自检（静态检查、改动检查、文档同步）已完成；历史已压平并 rebase 到最新的目标分支；闸门预检 `s=$(git show "$(git config --get revert-gate.branch)":.githooks/revert-gate.py) && python3 -I -c "$s" check <目标分支> <分支>` 退出码为 0（merge 被闸门拦下时主工作副本已被写成分支内容，要 `git reset --merge` 复原，所以先预检）；主工作副本仍在目标分支上；已向用户确认。
 - 在主工作副本里用 `git merge --ff-only <分支>` 合并，快进失败说明目标分支又前进了或 rebase 没做干净：回分支重新 rebase、重跑预检再合，不要退回裸 merge；重新 rebase 没解冲突时沿用原确认，解过冲突要重新确认。rebase 带进来的新代码没参与过之前的验证，合并后要在目标分支上重跑构建、测试、格式检查。确认合并成功（`merge --ff-only` 退出码为 0、目标分支已指向该分支的提交）后立即 `git worktree remove` 掉该 worktree 并删除分支——这是合并动作的一部分，不必再问。

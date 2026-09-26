@@ -105,19 +105,20 @@ Bug 链路：`dev:bug-report` → `dev:bug-fix`；口头描述的缺陷可以直
 ### `setup` — 初始化
 
 一次性执行，把通用规范落地成**随仓库提交的项目配置**。
-默认全都装进当前项目；`report-style` 与 `workflow` 另带「用户级安装」一节，
+默认全都装进当前项目；`change-check`、`report-style` 与 `workflow` 另带「用户级安装」一节，
 用户明确要求安装到当前用户环境时才走那条路。
-**六个各自独立，装任意一个都能单独工作**——带子代理的那几个各装各的，谁都不依赖谁，
+**七个各自独立，装任意一个都能单独工作**——带子代理的那几个各装各的，谁都不依赖谁，
 也不依赖 `setup-user`。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
+| `setup:change-check` | `change-check` skill 加 `change-checker` 子代理：收尾时派子代理审查本次改动，只给意见不改文件；项目安装时可补本项目的检查项，可选安装到用户级配置 | 手动 |
 | `setup:cron` | 项目级 crontab 定时任务安装器：任务清单加安装 / 卸载脚本，改任务不用手写 crontab | 手动 |
 | `setup:dev-memory` | 项目级 `dev-memory` skill 加 `memory-writer` 子代理：开工前读项目记忆，收尾时派它判断值不值得记 | 手动 |
 | `setup:docs` | 项目级 `docs` skill 加 `doc-writer` 子代理：开工前读总索引、项目地图、产品文档三类正式文档建立上下文，收尾时派子代理维护 | 手动 |
 | `setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」这套流程写成项目规则，让 worktree 目录不进版本库，并装上拦截「合并时撤销目标分支已有改动」的回退闸门 | 手动 |
 | `setup:report-style` | 输出规范 `Concise+`：Claude Code 使用自定义 output style，Codex 将等价规则写入 `AGENTS.md`；可选安装到用户级配置 | 手动 |
-| `setup:workflow` | 通用规则（注释规范、提交信息、分派子代理、交付前自检）加五个通用子代理；可选安装到用户级配置 | 手动 |
+| `setup:workflow` | 通用规则（注释规范、提交信息、分派子代理、交付前自检）加四个通用子代理；可选安装到用户级配置 | 手动 |
 
 ### `setup-user` — 用户级初始化
 

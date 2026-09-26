@@ -15,7 +15,7 @@ CODEX_AGENT_CONFIGURATION = {
         "model": "gpt-5.6-terra",
         "model_reasoning_effort": "medium",
     },
-    "code-reviewer": {
+    "change-checker": {
         "model": "gpt-5.6-sol",
         "model_reasoning_effort": "high",
         "sandbox_mode": "read-only",

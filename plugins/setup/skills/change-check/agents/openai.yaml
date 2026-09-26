@@ -1,0 +1,6 @@
+interface:
+  display_name: "Change Check Setup"
+  short_description: "安装改动检查 skill 与审查子代理"
+  default_prompt: "Use $setup:change-check to add the change check workflow."
+policy:
+  allow_implicit_invocation: false

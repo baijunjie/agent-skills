@@ -26,6 +26,7 @@
       "Skill(create:skill-authoring)",
       "Skill(git:commit)",
       "Skill(git:find-issues)",
+      "Skill(setup:change-check)",
       "Skill(setup:cron)",
       "Skill(setup:dev-memory)",
       "Skill(setup:docs)",
