@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "setup",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "为 Claude Code 或 Codex 初始化项目级 agent 工作流，并支持可选的用户级安装",
   "author": { "name": "BaiJunjie" },
   "repository": "https://github.com/baijunjie/agent-skills"

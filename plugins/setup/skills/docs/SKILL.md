@@ -68,7 +68,7 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
    的 `model`、`effort`，也不改写正文。
    两种宿主都装进项目目录，不是用户级配置目录。写入前发现同名文件就转「已存在时」，不要覆盖。
 6. **挂触发点**：Claude Code 在项目根目录的 `CLAUDE.md`、Codex 在 `AGENTS.md` 里写明开工前调用 `docs` skill 建立上下文、
-   一个阶段的开发收尾要写或改产品文档与项目地图时**派 `doc-writer` 子代理**。
+   开发收尾要写或改产品文档与项目地图时**派 `doc-writer` 子代理**。
    已有指向文档目录的说法改成指向 skill，`@` 前缀一并去掉。
    只写触发时机——写法与判断标准留在 skill 与 `doc-writer` 的定义里，不要复制成第二份。
 7. **告知用户**：项目中安装后的 `.claude/skills/docs/` 与 `.claude/agents/doc-writer.md`，
