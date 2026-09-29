@@ -1,0 +1,6 @@
+interface:
+  display_name: "Unit Test Setup"
+  short_description: "安装单元测试 skill 与测试子代理"
+  default_prompt: "Use $setup:unit-test to add the unit test workflow."
+policy:
+  allow_implicit_invocation: false

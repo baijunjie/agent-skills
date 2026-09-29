@@ -32,6 +32,7 @@
       "Skill(setup:docs)",
       "Skill(setup:git-worktree)",
       "Skill(setup:report-style)",
+      "Skill(setup:unit-test)",
       "Skill(setup:workflow)",
       "Skill(setup-user:codex-bridge)"
     ],
