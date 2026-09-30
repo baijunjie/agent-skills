@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "bjj-agent-skills",
-  "description": "个人 agent skills 集合：开发流程、agent skill 创建，以及 agent 工作方式、Git 规范、项目工具与用户级配置的安装器",
+  "description": "个人 agent skills 集合：开发流程、agent skill 创建，以及 agent 工作方式、Git 规范、项目工具、知识类规范与用户级配置的安装器",
   "owner": {
     "name": "BaiJunjie",
     "email": "bjj19851010@gmail.com"
@@ -50,6 +50,15 @@
         "name": "BaiJunjie"
       },
       "source": "./plugins/setup-tools",
+      "category": "productivity"
+    },
+    {
+      "name": "setup-knowledge",
+      "description": "安装知识类规范 skill：多语言 App 界面文案规范",
+      "author": {
+        "name": "BaiJunjie"
+      },
+      "source": "./plugins/setup-knowledge",
       "category": "productivity"
     },
     {

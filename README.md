@@ -16,6 +16,7 @@ claude plugin install create@bjj-agent-skills
 claude plugin install setup-agent@bjj-agent-skills
 claude plugin install setup-git@bjj-agent-skills
 claude plugin install setup-tools@bjj-agent-skills
+claude plugin install setup-knowledge@bjj-agent-skills
 claude plugin install setup-user@bjj-agent-skills
 
 # 3. 重启 Claude Code
@@ -32,6 +33,7 @@ claude plugin update create@bjj-agent-skills
 claude plugin update setup-agent@bjj-agent-skills
 claude plugin update setup-git@bjj-agent-skills
 claude plugin update setup-tools@bjj-agent-skills
+claude plugin update setup-knowledge@bjj-agent-skills
 claude plugin update setup-user@bjj-agent-skills
 ```
 
@@ -49,6 +51,7 @@ codex plugin add create@bjj-agent-skills
 codex plugin add setup-agent@bjj-agent-skills
 codex plugin add setup-git@bjj-agent-skills
 codex plugin add setup-tools@bjj-agent-skills
+codex plugin add setup-knowledge@bjj-agent-skills
 codex plugin add setup-user@bjj-agent-skills
 
 # 3. 开启新会话
@@ -68,6 +71,7 @@ codex plugin add create@bjj-agent-skills
 codex plugin add setup-agent@bjj-agent-skills
 codex plugin add setup-git@bjj-agent-skills
 codex plugin add setup-tools@bjj-agent-skills
+codex plugin add setup-knowledge@bjj-agent-skills
 codex plugin add setup-user@bjj-agent-skills
 
 # 3. 开启新会话
@@ -135,10 +139,18 @@ Bug 链路：`dev:bug-report` → `dev:bug-fix`；口头描述的缺陷可以直
 |-------|------|----------|
 | `setup-tools:cron` | 项目级 crontab 定时任务安装器：任务清单加安装 / 卸载脚本，改任务不用手写 crontab | 手动 |
 
+### `setup-knowledge` — 安装知识类规范
+
+一次性执行，给当前项目装上**随仓库提交的知识类规范 skill**（装出的 skill 带 `knowledge-` 前缀）。目前只有一个。
+
+| Skill | 说明 | 触发方式 |
+|-------|------|----------|
+| `setup-knowledge:ui-copy` | 安装 `knowledge-ui-copy` skill：多语言 App 界面文案规范（各语言语体、破坏性操作与确认框、进行态、报错、括号空格、iOS / Android / Web 大小写、术语统一与多端同步）；默认装进项目随仓库提交，并在末尾补「本项目」一节（语种、资源位置、术语表等），可选用户级 | 手动 |
+
 ### `setup-user` — 用户级初始化
 
 只放**安装到当前用户配置、装进仓库没有意义**的事。
-其余初始化 skill 按领域分在各个 `setup-*` plugin 里（如 `setup-agent`、`setup-git`、`setup-tools`）；只给当前用户安装时，由它们各自的「用户级安装」一节负责。
+其余初始化 skill 按领域分在各个 `setup-*` plugin 里（如 `setup-agent`、`setup-git`、`setup-tools`、`setup-knowledge`）；只给当前用户安装时，由它们各自的「用户级安装」一节负责。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|

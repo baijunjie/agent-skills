@@ -1,0 +1,17 @@
+{
+  "name": "setup-knowledge",
+  "version": "0.1.0",
+  "description": "为 Claude Code 或 Codex 安装知识类规范 skill，当前提供多语言 App 界面文案规范；默认装进项目，可选用户级安装",
+  "author": { "name": "BaiJunjie" },
+  "repository": "https://github.com/baijunjie/agent-skills",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Knowledge Setup",
+    "shortDescription": "安装知识类规范 skill",
+    "longDescription": "把多语言 App 界面文案规范（各语言语体、确认框、进行态、报错、括号空格、iOS / Android / Web 大小写、术语与多端同步）装进项目或用户级配置，项目安装时补上本项目的语种、资源位置与术语。",
+    "developerName": "BaiJunjie",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": ["为当前项目安装界面文案规范。"]
+  }
+}

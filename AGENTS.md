@@ -25,7 +25,7 @@ Plugin 名即调用前缀：`plugins/dev/skills/plan-exec/SKILL.md` 在 Claude C
 
 新增 plugin 时，创建 `plugins/<plugin>/plugin.json`、`plugins/<plugin>/.codex-plugin/plugin.json` 与 `plugins/<plugin>/.claude-plugin/plugin.json`，并分别在 `.agents/plugins/marketplace.json` 与 `.claude-plugin/marketplace.json` 的 `plugins` 数组中登记。`setup-user` 是当前用户级（非系统全局级）配置，但同样是双宿主 plugin；具体 skill 是否创建 `agents/openai.yaml`，取决于它是否分发到 Codex，以及是否需要 Codex UI 或调用策略。
 
-安装器类 plugin 统一以 `setup-` 为前缀，一般按领域划分（如 `setup-agent` 装 agent 的开发工作方式、`setup-git` 装 Git 规范与流程、`setup-tools` 装项目开发辅助脚本）；`setup-user` 是按作用域（用户级）划分的例外。需要随仓库提交、团队共用的，做成对应领域 `setup-*` 下的安装器（模板放 skill 自己的 `template/`）；不需要的作为运行时 plugin（如 `dev`、`create`）。`setup-<领域>` 下的安装器名不重复领域前缀，装出去的 skill 名带 `<领域>-` 前缀（如 `setup-git:commit` 装出 `git-commit`、`setup-agent:docs` 装出 `agent-docs`），避免装进项目或用户级后与其它 skill 重名。依赖同一 plugin 级 `scripts/` 的 skill 必须留在同一 plugin，因为 plugin 之间不共享文件。
+安装器类 plugin 统一以 `setup-` 为前缀，一般按领域划分（如 `setup-agent` 装 agent 的开发工作方式、`setup-git` 装 Git 规范与流程、`setup-tools` 装项目开发辅助脚本、`setup-knowledge` 装知识类规范，装出的 skill 带 `knowledge-` 前缀）；`setup-user` 是按作用域（用户级）划分的例外。需要随仓库提交、团队共用的，做成对应领域 `setup-*` 下的安装器（模板放 skill 自己的 `template/`）；不需要的作为运行时 plugin（如 `dev`、`create`）。`setup-<领域>` 下的安装器名不重复领域前缀，装出去的 skill 名带 `<领域>-` 前缀（如 `setup-git:commit` 装出 `git-commit`、`setup-agent:docs` 装出 `agent-docs`），避免装进项目或用户级后与其它 skill 重名。依赖同一 plugin 级 `scripts/` 的 skill 必须留在同一 plugin，因为 plugin 之间不共享文件。
 
 plugin 名表达安装作用域或能力组；宿主适用性由具体 skill 的描述与实现分支决定。不要因某个 skill（如 `codex-bridge`）只配置某一目标宿主，就把整个 plugin 排除出另一 marketplace。
 
