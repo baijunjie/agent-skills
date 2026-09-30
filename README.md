@@ -118,12 +118,13 @@ Bug 链路：`dev:bug-report` → `dev:bug-fix`；口头描述的缺陷可以直
 ### `setup-git` — 安装 Git 规范与流程
 
 一次性执行，把 Git 相关的规范与流程装进配置。
-默认装进当前项目随仓库提交；`commit`、`find-issues` 也可选安装到用户级配置。三个各自独立。安装器名不带 `git` 前缀，装出的 skill 统一加 `git-` 前缀。
+默认装进当前项目随仓库提交；`commit`、`find-issues` 也可选安装到用户级配置。四个各自独立。安装器名不带 `git` 前缀，装出的 skill 统一加 `git-` 前缀。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
 | `setup-git:commit` | 安装 `git-commit` skill：按 Conventional Commits 规范生成提交；默认装进项目随仓库提交，可选用户级 | 手动 |
 | `setup-git:find-issues` | 安装 `git-find-issues` skill：在指定仓库中搜索相关 Issue 和 PR；默认装进项目随仓库提交，可选用户级 | 手动 |
+| `setup-git:pr` | 安装项目级 `git-pr` skill：压平本地提交、推送并提 PR，建好后清理本地分支与 worktree；安装时确定默认的 PR 目标分支（查不到就问用户），调用时可另行指定 | 手动 |
 | `setup-git:worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」这套流程写成项目规则，让 worktree 目录不进版本库，并装上拦截「合并时撤销目标分支已有改动」的回退闸门 | 手动 |
 
 ### `setup-tools` — 安装项目开发辅助脚本

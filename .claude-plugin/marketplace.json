@@ -36,7 +36,7 @@
     },
     {
       "name": "setup-git",
-      "description": "安装 Git 相关规范与流程：提交规范、Issue/PR 检索、worktree 流程与回退闸门",
+      "description": "安装 Git 相关规范与流程：提交规范、Issue/PR 检索、提交 PR 流程、worktree 流程与回退闸门",
       "author": {
         "name": "BaiJunjie"
       },

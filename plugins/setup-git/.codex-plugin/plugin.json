@@ -1,14 +1,14 @@
 {
   "name": "setup-git",
-  "version": "0.1.0",
-  "description": "为 Claude Code 或 Codex 安装 Git 相关规范与流程：提交规范、Issue/PR 检索、worktree 流程与回退闸门；提交规范与 Issue 检索可选用户级安装",
+  "version": "0.2.0",
+  "description": "为 Claude Code 或 Codex 安装 Git 相关规范与流程：提交规范、Issue/PR 检索、提交 PR 流程、worktree 流程与回退闸门；提交规范与 Issue 检索可选用户级安装",
   "author": { "name": "BaiJunjie" },
   "repository": "https://github.com/baijunjie/agent-skills",
   "skills": "./skills/",
   "interface": {
     "displayName": "Git Setup",
     "shortDescription": "安装 Git 规范与流程",
-    "longDescription": "把 Conventional Commits 提交规范、Issue/PR 检索 skill 装进项目或用户级配置，并可给项目装上 git worktree 开发流程与合并回退闸门。",
+    "longDescription": "把 Conventional Commits 提交规范、Issue/PR 检索 skill 装进项目或用户级配置，给项目装上按约定目标分支提交 PR 的 skill，并可给项目装上 git worktree 开发流程与合并回退闸门。",
     "developerName": "BaiJunjie",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],

@@ -32,6 +32,7 @@
       "Skill(setup-agent:unit-test)",
       "Skill(setup-git:commit)",
       "Skill(setup-git:find-issues)",
+      "Skill(setup-git:pr)",
       "Skill(setup-git:worktree)",
       "Skill(setup-tools:cron)",
       "Skill(setup-user:codex-bridge)"
