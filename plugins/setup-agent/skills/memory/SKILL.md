@@ -30,7 +30,7 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
 
 ## 步骤
 
-1. **定记忆目录**：项目已有的记忆目录（如 `docs/dev-memory/`）就沿用，没有则用 `docs/dev-memory/`。
+1. **定记忆目录**：项目已有的记忆目录（如 `docs/memory/`）就沿用，没有则用 `docs/memory/`。
 2. **写入 skill**：Claude Code 先看 `.claude/skills/agent-memory/SKILL.md`，Codex 先看
    `.agents/skills/agent-memory/SKILL.md`；目标已在就转「已存在时」，不要执行下面的 `cp`——它会直接覆盖项目自己改过的那份。
 
@@ -44,7 +44,7 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
    cp "$TEMPLATE_DIR/agent-memory.md" .agents/skills/agent-memory/SKILL.md
    ```
 
-3. **对齐项目**：记忆目录不是 `docs/dev-memory/` 时把新文件里的路径全部改成实际目录；
+3. **对齐项目**：记忆目录不是 `docs/memory/` 时把新文件里的路径全部改成实际目录；
    项目另有与通用规则不同的约定，就地补写进去。
 4. **建索引**：记忆目录缺 `README.md` 就建一个只有标题和空索引的骨架，不要预填占位记忆。
 5. **装写记忆的子代理**：

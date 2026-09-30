@@ -115,7 +115,7 @@ Bug 链路：`dev:bug-report` → `dev:bug-fix`；口头描述的缺陷可以直
 | `setup-agent:change-check` | 安装 `agent-change-check` skill 加 `change-checker` 子代理：收尾时派子代理审查本次改动，只给意见不改文件；项目安装时可补本项目的检查项，可选安装到用户级配置 | 手动 |
 | `setup-agent:core` | 安装 agent 核心规则（注释规范、提交信息、分派子代理、交付前自检）加四个通用子代理，不装 skill；可选安装到用户级配置 | 手动 |
 | `setup-agent:docs` | 安装项目级 `agent-docs` skill 加 `doc-writer` 子代理：开工前读总索引、项目地图、产品文档三类正式文档建立上下文，收尾时派子代理维护 | 手动 |
-| `setup-agent:memory` | 安装项目级 `agent-memory` skill 加 `memory-writer` 子代理：开工前读项目记忆（`docs/dev-memory/`），收尾时派它判断值不值得记 | 手动 |
+| `setup-agent:memory` | 安装项目级 `agent-memory` skill 加 `memory-writer` 子代理：开工前读项目记忆（`docs/memory/`），收尾时派它判断值不值得记 | 手动 |
 | `setup-agent:report-style` | 输出规范 `Concise+`，不装 skill：Claude Code 使用自定义 output style，Codex 将等价规则写入 `AGENTS.md`；可选安装到用户级配置 | 手动 |
 | `setup-agent:unit-test` | 安装项目级 `agent-unit-test` skill 加 `test-writer` 子代理：沿用项目的单元测试框架（没有就问用户并协助安装），测试放独立目录镜像源码结构，收尾时为改动文件补测试、只跑受影响的测试 | 手动 |
 
