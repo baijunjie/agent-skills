@@ -35,7 +35,7 @@
       "Skill(setup-git:pr)",
       "Skill(setup-git:worktree)",
       "Skill(setup-tools:cron)",
-      "Skill(setup-knowledge:ui-copy)",
+      "Skill(setup-knowledge:i18n-copy)",
       "Skill(setup-user:codex-bridge)"
     ],
     "deny": []

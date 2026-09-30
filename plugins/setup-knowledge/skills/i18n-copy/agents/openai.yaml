@@ -1,0 +1,6 @@
+interface:
+  display_name: "I18n Copy Setup"
+  short_description: "安装 knowledge-i18n-copy skill"
+  default_prompt: "Use $setup-knowledge:i18n-copy to install the knowledge-i18n-copy skill."
+policy:
+  allow_implicit_invocation: false

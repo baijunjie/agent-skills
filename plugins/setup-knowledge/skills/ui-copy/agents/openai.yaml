@@ -1,6 +1,0 @@
-interface:
-  display_name: "UI Copy Setup"
-  short_description: "安装 knowledge-ui-copy skill"
-  default_prompt: "Use $setup-knowledge:ui-copy to install the knowledge-ui-copy skill."
-policy:
-  allow_implicit_invocation: false

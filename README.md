@@ -145,7 +145,7 @@ Bug 链路：`dev:bug-report` → `dev:bug-fix`；口头描述的缺陷可以直
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `setup-knowledge:ui-copy` | 安装 `knowledge-ui-copy` skill：多语言 App 界面文案规范（各语言语体、破坏性操作与确认框、进行态、报错、括号空格、iOS / Android / Web 大小写、术语统一与多端同步）；默认装进项目随仓库提交，并在末尾补「本项目」一节（语种、资源位置、术语表等），可选用户级 | 手动 |
+| `setup-knowledge:i18n-copy` | 安装 `knowledge-i18n-copy` skill：多语言 App 界面文案规范（各语言语体、破坏性操作与确认框、进行态、报错、括号空格、iOS / Android / Web 大小写、术语统一与多端同步）；默认装进项目随仓库提交，并在末尾补「本项目」一节（语种、资源位置、术语表等），可选用户级 | 手动 |
 
 ### `setup-user` — 用户级初始化
 

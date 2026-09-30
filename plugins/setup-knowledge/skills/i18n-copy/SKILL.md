@@ -1,12 +1,12 @@
 ---
-name: ui-copy
-description: 装上（或更新）多语言 App 界面文案规范 knowledge-ui-copy skill：各语言语体、破坏性操作与确认框、进行态、报错、括号空格、iOS / Android / Web 大小写、术语统一与多端同步。默认装进当前项目，随仓库提交、团队共用，项目安装时可补本项目的语种、资源位置与术语；也可安装到用户级配置。用于"装界面文案规范""给项目配本地化规范""统一多语言文案""新电脑装文案规范"等场景。
+name: i18n-copy
+description: 装上（或更新）多语言 App 界面文案规范 knowledge-i18n-copy skill：各语言语体、破坏性操作与确认框、进行态、报错、括号空格、iOS / Android / Web 大小写、术语统一与多端同步。默认装进当前项目，随仓库提交、团队共用，项目安装时可补本项目的语种、资源位置与术语；也可安装到用户级配置。用于"装界面文案规范""给项目配本地化规范""统一多语言文案""新电脑装文案规范"等场景。
 disable-model-invocation: true
 ---
 
-# 安装 knowledge-ui-copy skill
+# 安装 knowledge-i18n-copy skill
 
-只装 `knowledge-ui-copy` skill 本体，不装子代理，也不改指令文件。装好后就能独立工作。
+只装 `knowledge-i18n-copy` skill 本体，不装子代理，也不改指令文件。装好后就能独立工作。
 
 ## 跨宿主约定
 
@@ -16,9 +16,9 @@ disable-model-invocation: true
 
 ```bash
 if [ -n "${PLUGIN_ROOT:-}" ]; then
-  TEMPLATE_DIR="$PLUGIN_ROOT/skills/ui-copy/template"
+  TEMPLATE_DIR="$PLUGIN_ROOT/skills/i18n-copy/template"
 elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
-  TEMPLATE_DIR="$CLAUDE_PLUGIN_ROOT/skills/ui-copy/template"
+  TEMPLATE_DIR="$CLAUDE_PLUGIN_ROOT/skills/i18n-copy/template"
 else
   TEMPLATE_DIR="${SKILL_DIR:?先将 SKILL_DIR 设为当前 SKILL.md 的绝对父目录}/template"
 fi
@@ -51,12 +51,12 @@ fi
 ## Claude Code 项目安装（默认）
 
 ```bash
-mkdir -p .claude/skills/knowledge-ui-copy
-cp "$TEMPLATE_DIR/knowledge-ui-copy.md" .claude/skills/knowledge-ui-copy/SKILL.md
+mkdir -p .claude/skills/knowledge-i18n-copy
+cp "$TEMPLATE_DIR/knowledge-i18n-copy.md" .claude/skills/knowledge-i18n-copy/SKILL.md
 ```
 
-**告知用户**：`.claude/skills/knowledge-ui-copy/` 要提交进版本库才随仓库生效；
-`.gitignore` 整体忽略了 `.claude/` 的项目要为它加例外。装好后可用 `/knowledge-ui-copy` 调用，也会按描述自动触发。
+**告知用户**：`.claude/skills/knowledge-i18n-copy/` 要提交进版本库才随仓库生效；
+`.gitignore` 整体忽略了 `.claude/` 的项目要为它加例外。装好后可用 `/knowledge-i18n-copy` 调用，也会按描述自动触发。
 
 ## Claude Code 用户级安装
 
@@ -65,8 +65,8 @@ cp "$TEMPLATE_DIR/knowledge-ui-copy.md" .claude/skills/knowledge-ui-copy/SKILL.m
 
 ```bash
 C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
-mkdir -p "$C/skills/knowledge-ui-copy"
-cp "$TEMPLATE_DIR/knowledge-ui-copy.md" "$C/skills/knowledge-ui-copy/SKILL.md"
+mkdir -p "$C/skills/knowledge-i18n-copy"
+cp "$TEMPLATE_DIR/knowledge-i18n-copy.md" "$C/skills/knowledge-i18n-copy/SKILL.md"
 ```
 
 **告知用户**：装到了哪个用户级配置目录要说清楚（用户可能开着多个）；重启 Claude Code 后生效。
@@ -74,26 +74,26 @@ cp "$TEMPLATE_DIR/knowledge-ui-copy.md" "$C/skills/knowledge-ui-copy/SKILL.md"
 ## Codex 项目安装（默认）
 
 ```bash
-mkdir -p .agents/skills/knowledge-ui-copy
-cp "$TEMPLATE_DIR/knowledge-ui-copy.md" .agents/skills/knowledge-ui-copy/SKILL.md
+mkdir -p .agents/skills/knowledge-i18n-copy
+cp "$TEMPLATE_DIR/knowledge-i18n-copy.md" .agents/skills/knowledge-i18n-copy/SKILL.md
 ```
 
-**告知用户**：`.agents/skills/knowledge-ui-copy/` 要提交进版本库才随仓库生效。开启新会话后生效。
+**告知用户**：`.agents/skills/knowledge-i18n-copy/` 要提交进版本库才随仓库生效。开启新会话后生效。
 
 ## Codex 用户级安装
 
-使用 `CODEX_HOME`；未设置时回退到 `$HOME/.codex`。`$HOME/.agents/skills/knowledge-ui-copy` 已经有一份时
-就地更新它，否则装到 `$X/skills/knowledge-ui-copy`：
+使用 `CODEX_HOME`；未设置时回退到 `$HOME/.codex`。`$HOME/.agents/skills/knowledge-i18n-copy` 已经有一份时
+就地更新它，否则装到 `$X/skills/knowledge-i18n-copy`：
 
 ```bash
 X=${CODEX_HOME:-$HOME/.codex}
-if [ -d "$HOME/.agents/skills/knowledge-ui-copy" ]; then
-  D="$HOME/.agents/skills/knowledge-ui-copy"
+if [ -d "$HOME/.agents/skills/knowledge-i18n-copy" ]; then
+  D="$HOME/.agents/skills/knowledge-i18n-copy"
 else
-  D="$X/skills/knowledge-ui-copy"
+  D="$X/skills/knowledge-i18n-copy"
 fi
 mkdir -p "$D"
-cp "$TEMPLATE_DIR/knowledge-ui-copy.md" "$D/SKILL.md"
+cp "$TEMPLATE_DIR/knowledge-i18n-copy.md" "$D/SKILL.md"
 ```
 
 **告知用户**：说明实际写入的用户级配置目录；重启 Codex 后生效。

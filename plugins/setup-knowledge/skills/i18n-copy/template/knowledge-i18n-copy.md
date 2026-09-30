@@ -1,5 +1,5 @@
 ---
-name: knowledge-ui-copy
+name: knowledge-i18n-copy
 description: 多语言 App 界面文案规范：各语言语体、句式、破坏性操作与确认框、进行态、报错、括号与空格、iOS / Android / Web 大小写、术语统一、多端同步。用于撰写、翻译、审查界面文案与本地化字符串（Localizable.xcstrings、strings.xml、Web i18n 资源），以及"改文案""补翻译""统一用词""Title Case 还是句首大写"等场景。
 ---
 
