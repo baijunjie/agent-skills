@@ -25,6 +25,8 @@ Plugin 名即调用前缀：`plugins/dev/skills/plan-exec/SKILL.md` 在 Claude C
 
 新增 plugin 时，创建 `plugins/<plugin>/plugin.json`、`plugins/<plugin>/.codex-plugin/plugin.json` 与 `plugins/<plugin>/.claude-plugin/plugin.json`，并分别在 `.agents/plugins/marketplace.json` 与 `.claude-plugin/marketplace.json` 的 `plugins` 数组中登记。`setup-user` 是当前用户级（非系统全局级）配置，但同样是双宿主 plugin；具体 skill 是否创建 `agents/openai.yaml`，取决于它是否分发到 Codex，以及是否需要 Codex UI 或调用策略。
 
+安装器类 plugin 统一以 `setup-` 为前缀，一般按领域划分（如 `setup-agent` 装 agent 的开发工作方式、`setup-git` 装 Git 规范与流程、`setup-tools` 装项目开发辅助脚本）；`setup-user` 是按作用域（用户级）划分的例外。需要随仓库提交、团队共用的，做成对应领域 `setup-*` 下的安装器（模板放 skill 自己的 `template/`）；不需要的作为运行时 plugin（如 `dev`、`create`）。`setup-<领域>` 下的安装器名不重复领域前缀，装出去的 skill 名带 `<领域>-` 前缀（如 `setup-git:commit` 装出 `git-commit`、`setup-agent:docs` 装出 `agent-docs`），避免装进项目或用户级后与其它 skill 重名。依赖同一 plugin 级 `scripts/` 的 skill 必须留在同一 plugin，因为 plugin 之间不共享文件。
+
 plugin 名表达安装作用域或能力组；宿主适用性由具体 skill 的描述与实现分支决定。不要因某个 skill（如 `codex-bridge`）只配置某一目标宿主，就把整个 plugin 排除出另一 marketplace。
 
 ## 附带资源
@@ -55,9 +57,9 @@ YAML frontmatter 必须位于文件最开头，`---` 是第一行，前面不能
 
 ### Agent 模板
 
-Agent 模板的共享指令正文只维护一份，禁止另建重复的宿主版本。Claude 模板的模型配置由 Claude Markdown frontmatter 明确定义；Codex 模板的模型与 reasoning effort 由 `plugins/setup/scripts/render-codex-agent.py` 集中映射和生成，两者不要求使用相同的模型名称。新增 agent 时必须同时补齐 Codex 的 model 与 model_reasoning_effort 映射。renderer 从共享模板提取 `name`、`description` 和完整正文生成 Codex 所需的 `developer_instructions`，宿主专属配置只在各自的配置源中维护。
+Agent 模板的共享指令正文只维护一份，禁止另建重复的宿主版本。Claude 模板的模型配置由 Claude Markdown frontmatter 明确定义；Codex 模板的模型与 reasoning effort 由 `plugins/setup-agent/scripts/render-codex-agent.py` 集中映射和生成，两者不要求使用相同的模型名称。新增 agent 时必须同时补齐 Codex 的 model 与 model_reasoning_effort 映射。renderer 从共享模板提取 `name`、`description` 和完整正文生成 Codex 所需的 `developer_instructions`，宿主专属配置只在各自的配置源中维护。
 
-Workflow 规则同样只维护一份共享模板；宿主和安装作用域的差异由 `plugins/setup/scripts/render-workflow-rules.py` 集中生成，禁止另建宿主摘要版或作用域副本。
+core 规则同样只维护一份共享模板；宿主和安装作用域的差异由 `plugins/setup-agent/scripts/render-core-rules.py` 集中生成，禁止另建宿主摘要版或作用域副本。
 
 ## 参数传递
 

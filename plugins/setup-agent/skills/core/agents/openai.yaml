@@ -1,0 +1,6 @@
+interface:
+  display_name: "Agent Core Setup"
+  short_description: "安装 agent 核心规则与通用子代理"
+  default_prompt: "Use $setup-agent:core to install the agent core rules."
+policy:
+  allow_implicit_invocation: false

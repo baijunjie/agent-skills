@@ -1,9 +1,0 @@
-{
-  "name": "git",
-  "version": "0.1.0",
-  "description": "Git 提交规范与 GitHub Issue、PR 检索 workflows",
-  "author": {
-    "name": "BaiJunjie"
-  },
-  "repository": "https://github.com/baijunjie/agent-skills"
-}

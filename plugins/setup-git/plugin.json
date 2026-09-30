@@ -1,0 +1,8 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "setup-git",
+  "version": "0.1.0",
+  "description": "为 Claude Code 或 Codex 安装 Git 相关规范与流程：提交规范、Issue/PR 检索、worktree 流程与回退闸门；提交规范与 Issue 检索可选用户级安装",
+  "author": { "name": "BaiJunjie" },
+  "repository": "https://github.com/baijunjie/agent-skills"
+}

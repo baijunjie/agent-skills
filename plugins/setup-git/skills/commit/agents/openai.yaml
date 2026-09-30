@@ -1,0 +1,6 @@
+interface:
+  display_name: "Git Commit Setup"
+  short_description: "安装 git-commit skill"
+  default_prompt: "Use $setup-git:commit to install the git-commit skill."
+policy:
+  allow_implicit_invocation: false

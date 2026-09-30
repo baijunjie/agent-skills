@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "bjj-agent-skills",
-  "description": "个人 agent skills 集合：开发流程、agent skill 创建、Git 规范，以及项目级与用户级初始化",
+  "description": "个人 agent skills 集合：开发流程、agent skill 创建，以及 agent 工作方式、Git 规范、项目工具与用户级配置的安装器",
   "owner": {
     "name": "BaiJunjie",
     "email": "bjj19851010@gmail.com"
@@ -26,21 +26,30 @@
       "category": "productivity"
     },
     {
-      "name": "git",
-      "description": "Git 相关 skills：Conventional Commits 提交信息生成、仓库 Issue/PR 检索",
+      "name": "setup-agent",
+      "description": "安装 agent 的开发工作方式：核心规则、输出风格与收尾子代理，支持可选的用户级安装",
       "author": {
         "name": "BaiJunjie"
       },
-      "source": "./plugins/git",
-      "category": "development"
+      "source": "./plugins/setup-agent",
+      "category": "productivity"
     },
     {
-      "name": "setup",
-      "description": "初始化项目级 agent 工作流，并支持可选的用户级安装",
+      "name": "setup-git",
+      "description": "安装 Git 相关规范与流程：提交规范、Issue/PR 检索、worktree 流程与回退闸门",
       "author": {
         "name": "BaiJunjie"
       },
-      "source": "./plugins/setup",
+      "source": "./plugins/setup-git",
+      "category": "productivity"
+    },
+    {
+      "name": "setup-tools",
+      "description": "给项目安装随仓库提交的开发辅助脚本，当前提供 crontab 定时任务安装器",
+      "author": {
+        "name": "BaiJunjie"
+      },
+      "source": "./plugins/setup-tools",
       "category": "productivity"
     },
     {

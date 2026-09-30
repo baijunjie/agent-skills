@@ -1,0 +1,17 @@
+{
+  "name": "setup-tools",
+  "version": "0.1.0",
+  "description": "为 Claude Code 或 Codex 项目安装随仓库提交的开发辅助脚本，当前提供 crontab 定时任务安装器",
+  "author": { "name": "BaiJunjie" },
+  "repository": "https://github.com/baijunjie/agent-skills",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Tools Setup",
+    "shortDescription": "安装项目开发辅助脚本",
+    "longDescription": "给项目安装随仓库提交的开发辅助脚本，当前提供 crontab 定时任务安装器。",
+    "developerName": "BaiJunjie",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "defaultPrompt": ["为当前项目安装 cron 定时任务安装器。"]
+  }
+}

@@ -13,8 +13,9 @@ claude plugin marketplace add baijunjie/agent-skills
 # 2. 安装需要的 plugin
 claude plugin install dev@bjj-agent-skills
 claude plugin install create@bjj-agent-skills
-claude plugin install git@bjj-agent-skills
-claude plugin install setup@bjj-agent-skills
+claude plugin install setup-agent@bjj-agent-skills
+claude plugin install setup-git@bjj-agent-skills
+claude plugin install setup-tools@bjj-agent-skills
 claude plugin install setup-user@bjj-agent-skills
 
 # 3. 重启 Claude Code
@@ -28,8 +29,9 @@ claude plugin install setup-user@bjj-agent-skills
 claude plugin marketplace update
 claude plugin update dev@bjj-agent-skills
 claude plugin update create@bjj-agent-skills
-claude plugin update git@bjj-agent-skills
-claude plugin update setup@bjj-agent-skills
+claude plugin update setup-agent@bjj-agent-skills
+claude plugin update setup-git@bjj-agent-skills
+claude plugin update setup-tools@bjj-agent-skills
 claude plugin update setup-user@bjj-agent-skills
 ```
 
@@ -44,8 +46,9 @@ codex plugin marketplace add baijunjie/agent-skills
 # 2. 安装需要的 plugin（也可在 Codex CLI 的 /plugins 中安装）
 codex plugin add dev@bjj-agent-skills
 codex plugin add create@bjj-agent-skills
-codex plugin add git@bjj-agent-skills
-codex plugin add setup@bjj-agent-skills
+codex plugin add setup-agent@bjj-agent-skills
+codex plugin add setup-git@bjj-agent-skills
+codex plugin add setup-tools@bjj-agent-skills
 codex plugin add setup-user@bjj-agent-skills
 
 # 3. 开启新会话
@@ -62,8 +65,9 @@ codex plugin marketplace upgrade bjj-agent-skills
 # 2. 对需要更新的 plugin 重新执行安装命令
 codex plugin add dev@bjj-agent-skills
 codex plugin add create@bjj-agent-skills
-codex plugin add git@bjj-agent-skills
-codex plugin add setup@bjj-agent-skills
+codex plugin add setup-agent@bjj-agent-skills
+codex plugin add setup-git@bjj-agent-skills
+codex plugin add setup-tools@bjj-agent-skills
 codex plugin add setup-user@bjj-agent-skills
 
 # 3. 开启新会话
@@ -95,36 +99,45 @@ Bug 链路：`dev:bug-report` → `dev:bug-fix`；口头描述的缺陷可以直
 |-------|------|----------|
 | `create:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本 | 手动 / 自动 |
 
-### `git` — Git 规范
+### `setup-agent` — 安装 agent 的开发工作方式
+
+一次性执行，把 agent 的开发工作方式（核心规则、收尾自检、项目记忆等）落地成**随仓库提交的项目配置**。
+默认全都装进当前项目；`change-check`、`report-style` 与 `core` 另带「用户级安装」一节，
+用户明确要求安装到当前用户环境时才走那条路。安装器名不带 `agent` 前缀，装出的 skill 统一加 `agent-` 前缀。
+**六个各自独立，装任意一个都能单独工作**——带子代理的那几个各装各的，谁都不依赖谁。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `git:commit` | 按 Conventional Commits 规范生成提交 | 手动 / 自动 |
-| `git:find-issues` | 在指定仓库中搜索相关 Issue 和 PR | 手动 / 自动 |
+| `setup-agent:change-check` | 安装 `agent-change-check` skill 加 `change-checker` 子代理：收尾时派子代理审查本次改动，只给意见不改文件；项目安装时可补本项目的检查项，可选安装到用户级配置 | 手动 |
+| `setup-agent:core` | 安装 agent 核心规则（注释规范、提交信息、分派子代理、交付前自检）加四个通用子代理，不装 skill；可选安装到用户级配置 | 手动 |
+| `setup-agent:docs` | 安装项目级 `agent-docs` skill 加 `doc-writer` 子代理：开工前读总索引、项目地图、产品文档三类正式文档建立上下文，收尾时派子代理维护 | 手动 |
+| `setup-agent:memory` | 安装项目级 `agent-memory` skill 加 `memory-writer` 子代理：开工前读项目记忆（`docs/dev-memory/`），收尾时派它判断值不值得记 | 手动 |
+| `setup-agent:report-style` | 输出规范 `Concise+`，不装 skill：Claude Code 使用自定义 output style，Codex 将等价规则写入 `AGENTS.md`；可选安装到用户级配置 | 手动 |
+| `setup-agent:unit-test` | 安装项目级 `agent-unit-test` skill 加 `test-writer` 子代理：沿用项目的单元测试框架（没有就问用户并协助安装），测试放独立目录镜像源码结构，收尾时为改动文件补测试、只跑受影响的测试 | 手动 |
 
-### `setup` — 初始化
+### `setup-git` — 安装 Git 规范与流程
 
-一次性执行，把通用规范落地成**随仓库提交的项目配置**。
-默认全都装进当前项目；`change-check`、`report-style` 与 `workflow` 另带「用户级安装」一节，
-用户明确要求安装到当前用户环境时才走那条路。
-**八个各自独立，装任意一个都能单独工作**——带子代理的那几个各装各的，谁都不依赖谁，
-也不依赖 `setup-user`。
+一次性执行，把 Git 相关的规范与流程装进配置。
+默认装进当前项目随仓库提交；`commit`、`find-issues` 也可选安装到用户级配置。三个各自独立。安装器名不带 `git` 前缀，装出的 skill 统一加 `git-` 前缀。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `setup:change-check` | `change-check` skill 加 `change-checker` 子代理：收尾时派子代理审查本次改动，只给意见不改文件；项目安装时可补本项目的检查项，可选安装到用户级配置 | 手动 |
-| `setup:cron` | 项目级 crontab 定时任务安装器：任务清单加安装 / 卸载脚本，改任务不用手写 crontab | 手动 |
-| `setup:dev-memory` | 项目级 `dev-memory` skill 加 `memory-writer` 子代理：开工前读项目记忆，收尾时派它判断值不值得记 | 手动 |
-| `setup:docs` | 项目级 `docs` skill 加 `doc-writer` 子代理：开工前读总索引、项目地图、产品文档三类正式文档建立上下文，收尾时派子代理维护 | 手动 |
-| `setup:git-worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」这套流程写成项目规则，让 worktree 目录不进版本库，并装上拦截「合并时撤销目标分支已有改动」的回退闸门 | 手动 |
-| `setup:report-style` | 输出规范 `Concise+`：Claude Code 使用自定义 output style，Codex 将等价规则写入 `AGENTS.md`；可选安装到用户级配置 | 手动 |
-| `setup:unit-test` | 项目级 `unit-test` skill 加 `test-writer` 子代理：沿用项目的单元测试框架（没有就问用户并协助安装），测试放独立目录镜像源码结构，收尾时为改动文件补测试、只跑受影响的测试 | 手动 |
-| `setup:workflow` | 通用规则（注释规范、提交信息、分派子代理、交付前自检）加四个通用子代理；可选安装到用户级配置 | 手动 |
+| `setup-git:commit` | 安装 `git-commit` skill：按 Conventional Commits 规范生成提交；默认装进项目随仓库提交，可选用户级 | 手动 |
+| `setup-git:find-issues` | 安装 `git-find-issues` skill：在指定仓库中搜索相关 Issue 和 PR；默认装进项目随仓库提交，可选用户级 | 手动 |
+| `setup-git:worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」这套流程写成项目规则，让 worktree 目录不进版本库，并装上拦截「合并时撤销目标分支已有改动」的回退闸门 | 手动 |
+
+### `setup-tools` — 安装项目开发辅助脚本
+
+一次性执行，给当前项目装上**随仓库提交的开发辅助脚本**。目前只有一个。
+
+| Skill | 说明 | 触发方式 |
+|-------|------|----------|
+| `setup-tools:cron` | 项目级 crontab 定时任务安装器：任务清单加安装 / 卸载脚本，改任务不用手写 crontab | 手动 |
 
 ### `setup-user` — 用户级初始化
 
 只放**安装到当前用户配置、装进仓库没有意义**的事。
-其余初始化 skill 一律在 `setup` 里；只给当前用户安装时，由它们各自的「用户级安装」一节负责。
+其余初始化 skill 按领域分在各个 `setup-*` plugin 里（如 `setup-agent`、`setup-git`、`setup-tools`）；只给当前用户安装时，由它们各自的「用户级安装」一节负责。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
