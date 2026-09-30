@@ -160,13 +160,31 @@ description: 多语言 App 界面文案规范：各语言语体、句式、破�
 
 ### 输入框占位符
 
-- 只写示例，格式见下表。不重复字段名，不写选填、optional——字段名由标签承担。
+- 只写示例。不重复字段名，不写选填、optional——字段名由标签承担。前缀按示例类型取：
 
-  | 语言 | 格式 |
+  | 示例类型 | 写法 |
   |---|---|
-  | zh | 如：X |
-  | ja | 例：X |
-  | en | 直接放例子，不加 e.g. 等前缀：name@example.com |
+  | 格式示例：邮箱、网址、域名 | 各语言都直接放示例，不加前缀：name@example.com；name、example 可换成本地词 |
+  | 内容示例：名称、地点、数值等 | 加该语言的前缀，见下表 |
+
+  | 语言 | 前缀 | 例 |
+  |---|---|---|
+  | zh-Hans、zh-Hant | 例如： | 例如：室外 |
+  | ja | 例: （半角冒号加空格） | 例: 屋外 |
+  | en | Ex. | Ex. Outside |
+  | ko | 예: | 예: 실외 |
+  | fr | Ex. :（冒号前为不换行空格） | Ex. : Extérieur |
+  | de | z. B.（中间为不换行空格） | z. B. Außen |
+  | es | p. ej. | p. ej. exterior |
+  | it | Es.: | Es.: Esterno |
+  | pt-BR | Ex.: | Ex.: Área Externa |
+  | ru | Например: | Например: снаружи |
+  | ar | مثال: | مثال: بالخارج |
+  | id | Misalnya: | Misalnya: Di Luar |
+  | hi | उदाहरण: | उदाहरण: बाहर |
+  | tr | Örneğin: | Örneğin: Dışarıda |
+  | th | เช่น | เช่น ข้างนอก |
+  | vi | Ví dụ: | Ví dụ: Bên ngoài |
 
 - 示例要具体到真实可用；跨字段示例语义自洽（名称是充电器，关键词就是电源适配器，不是另一件东西）。
 - 搜索框不对应要填的字段，不套示例写法；写成引导提问（找什么？ / What are you looking for?）时，称呼按该语言语体（de Was suchst du?）。
