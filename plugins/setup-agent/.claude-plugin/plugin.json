@@ -1,6 +1,6 @@
 {
   "name": "setup-agent",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "为 Claude Code 或 Codex 安装 agent 的开发工作方式：核心规则、输出风格与收尾子代理，支持可选的用户级安装",
   "author": {
     "name": "BaiJunjie"
