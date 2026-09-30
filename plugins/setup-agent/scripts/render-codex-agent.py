@@ -28,8 +28,12 @@ CODEX_AGENT_CONFIGURATION = {
         "model": "gpt-6-astra",
         "model_reasoning_effort": "xhigh",
     },
-    "doc-writer": {
+    "product-writer": {
         "model": "gpt-5.6-sol",
+        "model_reasoning_effort": "high",
+    },
+    "map-writer": {
+        "model": "gpt-5.6-terra",
         "model_reasoning_effort": "high",
     },
     "memory-writer": {
