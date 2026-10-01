@@ -1,119 +1,179 @@
 ---
 name: report-style
-description: 装上（或更新）Concise+ 回答规则，让 Claude Code 使用自定义 output style，Codex 把等价规则合并进 AGENTS.md。默认装进当前项目，也可安装到用户级配置。用于"agent 报告太啰嗦""让它少说废话只给结论""别顺着我说""配输出风格""装 output style"等场景。
+description: 装上（或更新）Concise+ 回答规则，让 Claude Code 使用自定义 output style，Codex 把等价规则写进 AGENTS.md。默认装进当前项目随仓库提交，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"agent 报告太啰嗦""让它少说废话只给结论""别顺着我说""配输出风格""装 output style"等场景。
 disable-model-invocation: true
 ---
 
 # 安装输出风格 Concise+
 
-内置 `Concise` 的基础上补三类硬要求：**不讲实现细节**——按预期做成、没有疑问的工作一句带过；
-**未做的、未验证的、自行决定的、要拍板的必须单独列出**，不许混在正文里；**不附和**——不先肯定再转折，
-分歧当分歧说。
-
 ## 跨宿主约定
 
-只执行当前宿主对应的安装分支。
+只执行当前宿主对应的分支。Claude Code 装 output style；Codex 分支改为把等价规则写进 `AGENTS.md`。
 
 模板资源先用 `$PLUGIN_ROOT`，为空再用 `$CLAUDE_PLUGIN_ROOT`；两者都为空时，先把 `SKILL_DIR`
-设为**当前已加载的这个 `SKILL.md` 的绝对父目录**（不是项目工作目录），再按相对路径定位。执行写入前先确定：
+设为**当前已加载的这个 `SKILL.md` 的绝对父目录**（不是项目工作目录），再按相对路径定位。
+下面的变量定义要和后续命令放在同一次 shell 调用里，分开执行就每次重新定义：
 
 ```bash
 if [ -n "${PLUGIN_ROOT:-}" ]; then
-  TEMPLATE_DIR="$PLUGIN_ROOT/skills/report-style/template"
+  SETUP_ROOT="$PLUGIN_ROOT"
 elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
-  TEMPLATE_DIR="$CLAUDE_PLUGIN_ROOT/skills/report-style/template"
+  SETUP_ROOT="$CLAUDE_PLUGIN_ROOT"
 else
-  TEMPLATE_DIR="${SKILL_DIR:?先将 SKILL_DIR 设为当前 SKILL.md 的绝对父目录}/template"
+  SETUP_ROOT="${SKILL_DIR:?先将 SKILL_DIR 设为当前 SKILL.md 的绝对父目录}/../.."
 fi
+TEMPLATE_DIR="$SETUP_ROOT/skills/report-style/template"
+RENDER_STYLE="$SETUP_ROOT/scripts/render-report-style.py"
 ```
 
 ## 选作用域
 
-**默认装进当前项目**，随仓库提交。
+**默认装进当前项目**，随仓库提交，团队共用。用户明确说了「全局 / 用户级 / 所有项目 / 新电脑」时，才装进用户级配置目录。
+当前目录不是 git 仓库时，先告诉用户，确认改装用户级后再装，不要直接写进用户级配置。
 
-用户明确说了「全局 / 用户级 / 所有项目 / 新电脑」，或当前目录不是 git 仓库时，
-才走「用户级安装」——那一份对当前用户环境中的所有项目生效。
+## 指令文件里的标记
 
-## Codex 安装
+- **标记**：本安装器往指令文件（`CLAUDE.md` / `AGENTS.md`）写的内容，整块包在一对标记里：
+  `<!-- setup-agent:report-style:begin -->` 开头、`<!-- setup-agent:report-style:end -->` 结尾，各独占一行，与相邻内容之间各空一行，
+  免得粘连前后的段落、列表与表格。下文的「标记范围」指这对标记
+  连同其间的内容。不按标题去找，标记之外的内容不碰，节标题相同也不算本安装器的。
+- **替换还是追加**：安装步骤给出的写入命令以 `>> <文件>` 结尾，输出已带这对标记，并以空行开头。
+  - 文件里没有这对标记，就当作本安装器还没往这个文件写过：照原样执行，追加到文件末尾。开头的空行用来与原有内容隔开；
+    追加后 begin 标记与上文之间没空出一行的（原文件末尾没有换行）补一个空行，新建的文件删掉开头的空行。
+  - 文件里已有这对标记：去掉命令末尾的 `>> <文件>` 执行，只用输出里从 begin 标记到 end 标记的那一段替换标记范围，
+    写回原位置，不再追加第二份。替换内容不带前导空行，标记与相邻内容之间原有的空行保持不变，重装多少次空行都不会累积。
+  - 安装步骤直接给出带标记的内容、不经命令输出的，照同样的做法追加或替换。
+- **冲突**：指令文件里本安装器的标记范围是本安装器装出的，照常重装、不问；其它安装器标记范围里的内容各管各的，
+  也不算冲突。标记范围之外已有管同一件事的规则或流程才是冲突。
+- **冲突的处理结果**：冲突处理完，结果一律写进标记范围，标记之外原来那段删掉。
+- **重装**：指令文件里清理的是本安装器的标记范围，同一指令文件里的其它内容不碰。
+- **异常**：下列情况按「现状与预期不符时」**停下来问用户**，不要照写，也不要自行修复；软链要在「写入前检查」里一并查。
+  - 指令文件里本安装器的标记不成对：只出现一个、出现多对，或先后颠倒。
+  - 要写的指令文件本身是软链。
+- **共用的指令文件**：另一宿主的指令文件是指向要写的这份的软链（如 `CLAUDE.md` → `AGENTS.md`）时，两个宿主读的是同一份。
+  写入前**停下来问用户**：说明这一点，问是否写进这份共用的文件；写进去后，按宿主渲染的内容只会保留最后写入的那个宿主的版本。
+  这个软链同样在「写入前检查」里一并查。
 
-Codex 没有 Claude Code 的 output style 机制。把等价规则合并到指令文件，不创建
-`.claude/output-styles/`，也不修改 `.claude/settings.json`。
+## 写入前检查
 
-### 项目安装（默认）
+首次安装与重装都要做。这一节做完之前只读取，不写入、不删除任何文件。
 
-1. **追加规则节**：目标是项目根目录的 `AGENTS.md`，没有就新建；它是符号链接时写它指向的实际文件。
-   先看有没有「输出风格：Concise+」节；有就转「已存在时」，不要重复追加。
+- **查软链**：逐个确认将要写入或删除的路径本身——本安装器独占的目录（如装出的 skill 目录），要写入、整份替换或删除的文件——都不是软链（`[ -L <路径> ]`，路径末尾不带 `/`）。
+  配置目录（`.claude/`、`.agents/`、`.codex/`、用户级配置目录）、其下多个安装器共用的 `skills/`、`agents/` 等目录，以及它们的上层目录是软链属正常布局，不查。
+  要查的路径是软链，或有别的不符合预期的情况，按「现状与预期不符时」处理。
+- **查冲突**：本安装器装出的是安装步骤里约定路径上做同一件事的 skill、子代理、脚本等文件（内容与模板差多少都算），照常重装、不问；其它安装器装出的内容各管各的，也不算。
+  除此之外，要写入的位置已有与要写入的内容重叠或冲突的东西就是冲突：已有管同一件事的规则或流程；约定路径上的同名文件明显是另一样东西（用途不同）；已有的同一配置项取值与要写入的不同（定制值除外）。
+  这几项各安装器都要查，本安装器另外要查的写在本节末尾。
+  有冲突就**停下来问用户**是「完全覆盖」还是「融入现有内容」，用户选定前这一处不动手；安装步骤里说的「已有的直接 / 整份覆盖」只指本安装器装出的，冲突的那部分照用户的选择处理。
+  - 问的时候写清冲突的是哪个文件、哪一段，以及两个选项各会改成什么样：完全覆盖是去掉现有的那部分、装本安装器的；
+    融入是按用户的指示把要装的内容并进现有内容。两种做法的具体改法都先说给用户，不擅自定。
+  - 两种结果都落进本安装器装出的内容，以后重装才界定得出：融入后与要写入内容重叠的部分落进本安装器装出的文件，
+    落不进的，询问时说明下次重装还会再问。
+  - 落进本安装器装出内容的部分以后照常重装，只有定制值所在的位置（见「重装」）会保留，所以融入的内容优先放进这些位置；
+    这次安装的作用域下没有定制值的，询问时直说「融入只对这一次有效，下次重装会被覆盖」，建议选完全覆盖。
+
+本安装器另外要查的冲突：
+
+- Claude Code：要写的 `settings.json` 里 `"outputStyle"` 已设成 `Concise+` 以外的风格。这个键只能取一个值，
+  所以只问改不改：改成 `Concise+`（完全覆盖），或保留原值、只写入风格文件不启用；不提供融入。
+- Claude Code：这次作用域的 `CLAUDE.md`（项目级看项目根目录的，用户级看用户级配置目录下的）里已有管回答风格、
+  报告写法的规则。Claude Code 分支不往 `CLAUDE.md` 写标记：选完全覆盖就删掉那段；选融入就并进风格文件，
+  并说明下次重装会被覆盖。
+- Claude Code：另一层（用户级或项目里）也有一份同名风格时，内容一致没有影响；不一致就告诉用户两份都在、
+  内容差在哪，留哪份交给用户定。
+- Codex：`AGENTS.md` 标记范围之外已有管回答风格、报告写法的规则。
+
+Claude Code 还要看优先级高于要写的那份、本安装器不写的设置文件：项目级安装看 `.claude/settings.local.json`，
+用户级安装看当前项目的 `.claude/settings.json` 与 `.claude/settings.local.json`。其中 `"outputStyle"` 已设成
+`Concise+` 以外的风格时，这几份不改，告诉用户它会盖过本次设置。
+
+## Claude Code 项目级安装（默认）
+
+1. **写入风格文件**：已有的同名文件直接覆盖。
 
    ```bash
-   cat "$TEMPLATE_DIR/agents.md" >> AGENTS.md
-   ```
-
-2. **告知用户**：`AGENTS.md` 的改动要提交进版本库；当前会话不会自动重读，下次会话生效。
-
-### 用户级安装
-
-把同一规则追加到当前 Codex 用户级配置目录的 `AGENTS.md`。使用 `CODEX_HOME`；未设置时回退到
-`$HOME/.codex`。先检查同名节，避免重复。
-
-```bash
-X=${CODEX_HOME:-$HOME/.codex}
-mkdir -p "$X"
-cat "$TEMPLATE_DIR/agents.md" >> "$X/AGENTS.md"
-```
-
-先确认 `$X/AGENTS.md` 没有「输出风格：Concise+」节再执行；说明实际写入的用户级配置目录。重启 Codex 后生效。
-
-## Claude Code 项目安装（默认）
-
-1. **写入风格文件**：
-
-   ```bash
+   cd "$(git rev-parse --show-toplevel)" || exit 1
    mkdir -p .claude/output-styles
-   cp -n "$TEMPLATE_DIR/output-styles/concise-plus.md" .claude/output-styles/
+   cp "$TEMPLATE_DIR/output-styles/concise-plus.md" .claude/output-styles/
    ```
 
-   目标已存在时 `cp -n` 会静默跳过，跳过了就转「已存在时」，不要当成装好了。
-2. **启用**：在项目的 `.claude/settings.json` 里设 `"outputStyle": "Concise+"`。
-   **不要让用户靠 `/output-style` 或 `/config` 菜单来启用**——那两个入口写的是
-   `.claude/settings.local.json`，不进版本库，只在当前用户环境生效；要随仓库走得写进 `settings.json`。
+2. **启用**：在项目的 `.claude/settings.json` 里设 `"outputStyle": "Concise+"`，只设这一个键，其它设置不动；这个键冲突、用户选了保留原值的不设。
 3. **告知用户**：`.claude/output-styles/concise-plus.md` 与 `settings.json` 的改动要提交进版本库；
    `.gitignore` 整体忽略了 `.claude/` 的项目要为这两个文件加例外，否则改了也提交不进去。
-   其余见「装完都要说的」。
+   其余见「Claude Code 装完都要说的」。
 
 ## Claude Code 用户级安装
 
-装进**当前会话的用户级配置目录**，对当前用户环境中的所有项目生效。这个目录由 Claude Code 的
-`CLAUDE_CONFIG_DIR` 决定，没设就是 `~/.claude`；下面的命令用 `C` 指代它，不要写死路径。
+装进**当前会话的用户级配置目录**，不要写死路径。
 
-1. **写入风格文件**：
+1. **写入风格文件**：已有的同名文件直接覆盖。
 
    ```bash
    C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
    mkdir -p "$C/output-styles"
-   cp -n "$TEMPLATE_DIR/output-styles/concise-plus.md" "$C/output-styles/"
+   cp "$TEMPLATE_DIR/output-styles/concise-plus.md" "$C/output-styles/"
    ```
 
-   已存在时 `cp -n` 会静默跳过，跳过了就转「已存在时」，不要当成装好了。
-2. **启用**：在 `$C/settings.json` 里设 `"outputStyle": "Concise+"`。
-   用户自己用 `/output-style Concise+` 或 `/config` 菜单切也行，但那两个入口写的是当前项目的
-   `.claude/settings.local.json`，只对那个项目生效，**替代不了用户级的 `settings.json`**。
-3. **告知用户**：装到了哪个用户级配置目录要说清楚（用户可能开着多个）；其余见「装完都要说的」。
+2. **启用**：在 `$C/settings.json` 里设 `"outputStyle": "Concise+"`，只设这一个键，其它设置不动；这个键冲突、用户选了保留原值的不设。
+3. **告知用户**：装到了哪个用户级配置目录要说清楚（用户可能开着多个）；其余见「Claude Code 装完都要说的」。
 
 ## Claude Code 装完都要说的
 
-- 风格文件在启动时读取，**重启 Claude Code 才生效**。
-- 同一时刻只能启用一个 output style，启用它就用不了 `Explanatory` / `Learning`；
-  想临时切回内置，用 `/output-style <名字>` 或 `/config` 的 Output style 一项。
-- 用户级与项目里各有一份同名风格时，内容一致没有影响；不一致就告诉用户两份都在、
-  内容差在哪，留哪份由他定。
+- 风格文件在启动时读取，重启 Claude Code 后生效。
+- 同一时刻只能启用一个 output style，启用它就用不了 `Explanatory` / `Learning`。
+- `/output-style <名字>` 与 `/config` 菜单写的是当前项目的 `.claude/settings.local.json`：不进版本库，
+  只对当前用户在这个项目里生效，替代不了这次写的 `settings.json`，却会一直盖过它。想切回内置风格可以用它们，
+  要恢复本次设置就删掉 `settings.local.json` 里的那个键。
 
-## 已存在时
+## Codex 项目级安装（默认）
 
-宿主目标已有同名规则或风格文件时不要覆盖：与对应模板逐条比对，补齐模板有而它没有的规则，保留当前用户环境或当前项目已有的补充内容。
+1. **写规则**：目标是项目根目录的 `AGENTS.md`，没有就新建。命令把输出风格文件渲染成 `AGENTS.md` 里的一节，
+   并带上本安装器的标记，追加还是替换按「指令文件里的标记」处理：
+
+   ```bash
+   cd "$(git rev-parse --show-toplevel)" || exit 1
+   : "${RENDER_STYLE:?}" "${TEMPLATE_DIR:?}"
+   rules=$(python3 "$RENDER_STYLE" "$TEMPLATE_DIR/output-styles/concise-plus.md") &&
+     printf '\n<!-- setup-agent:report-style:begin -->\n\n%s\n\n<!-- setup-agent:report-style:end -->\n' "$rules" >> AGENTS.md
+   ```
+
+2. **告知用户**：`AGENTS.md` 的改动要提交进版本库；开启新会话后生效。
+
+## Codex 用户级安装
+
+写法同项目级，目标是 Codex 用户级配置目录下的 `AGENTS.md`：
+
+```bash
+X=${CODEX_HOME:-$HOME/.codex}
+: "${RENDER_STYLE:?}" "${TEMPLATE_DIR:?}"
+mkdir -p "$X"
+rules=$(python3 "$RENDER_STYLE" "$TEMPLATE_DIR/output-styles/concise-plus.md") &&
+  printf '\n<!-- setup-agent:report-style:begin -->\n\n%s\n\n<!-- setup-agent:report-style:end -->\n' "$rules" >> "$X/AGENTS.md"
+```
+
+**告知用户**：说明实际写入的用户级配置目录；开启新会话后生效。
+
+## 重装
+
+每次运行都按当前模板重装，不判断版本，也不与模板比对。目标里已有本安装器装过的内容时，依次做下面四件事：
+
+- **读定制值**：从旧文件里读出本安装器的定制值，作为这次填写这些位置的依据。定制值只限安装过程本来就要
+  填写的位置，逐项写在本节末尾，写「无」的不读。能从项目现状重新确定的以现状为准，旧值只在现状确定不了、
+  或本来就由用户填写时沿用。
+- **清理**：只清理这一次要写的位置——整份替换的文件由安装步骤的写入命令直接覆盖；模板里没有的文件不管，
+  同一目录里的其它内容不碰；安装步骤另有清理约定的照做。用户对冲突做了选择的那部分照他的选择处理。
+- **装新的**：按安装步骤写入。
+- **填回**：把读出的定制值填回新文件的对应位置。
+
+**告知用户**时说明：定制值以外的手改，重装时都会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
 不要修改已安装 plugin 内的模板。
-要动的地方超过补充规则的范围时，先把打算怎么改告诉用户。
+
+本安装器的定制值：无。
 
 ## 现状与预期不符时
 
-要写入的路径不是普通文件 / 目录时**停下来问用户**，不要照写。最常见的是软链：
-`cp` 会写到它指向的地方，而 `mkdir -p` 在软链上仍然静默成功，表面看不出异常。
+下列情况，以及各节指明要按本节处理的情形，**停下来问用户**，不要照写、照删，也不要自行修复：
+
+- 要写入、替换或删除的路径不是普通文件 / 目录。最常见的是软链：写入会写穿到它指向的地方，删掉或整份替换的
+  只是链接本身、原来链向的那份从此脱钩，而且这几种情况表面上都不报错。
+- 安装步骤里的命令报错退出、拒绝写入。

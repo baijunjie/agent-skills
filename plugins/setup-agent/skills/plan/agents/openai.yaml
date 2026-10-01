@@ -1,0 +1,6 @@
+interface:
+  display_name: "Plan Setup"
+  short_description: "安装开发计划编写与执行 skill"
+  default_prompt: "Use $setup-agent:plan to add the development plan workflow."
+policy:
+  allow_implicit_invocation: false

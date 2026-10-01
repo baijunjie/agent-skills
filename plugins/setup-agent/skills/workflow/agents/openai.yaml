@@ -1,0 +1,6 @@
+interface:
+  display_name: "Workflow Setup"
+  short_description: "把开工前与交付前的工作流写进项目指令文件"
+  default_prompt: "Use $setup-agent:workflow to add the project workflow."
+policy:
+  allow_implicit_invocation: false

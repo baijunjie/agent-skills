@@ -1,24 +1,15 @@
 ---
 name: git-find-issues
-description: 在指定的 Git 仓库中搜索与问题描述相关的 Issue 和 PR。用于"这个问题上游有人提过吗""帮我搜下 xxx 仓库的 issue""查查有没有相关 PR"等场景。
+description: 在指定的 GitHub 仓库中搜索与问题描述相关的 Issue 和 PR。用于"这个问题上游有人提过吗""帮我搜下 xxx 仓库的 issue""查查有没有相关 PR"等场景。
 ---
 
 # 查找 Issue / PR
 
-在指定的 Git 仓库中搜索与问题描述相关的 Issue 和 PR。
+从当前用户请求中解析仓库地址和问题描述，例如 `https://github.com/anthropics/claude-code 快捷键无法自定义`。请求里没给仓库时，问用户。
 
-参数格式：`<仓库地址> <问题描述>`
-Claude Code 示例：`/git-find-issues https://github.com/anthropics/claude-code 快捷键无法自定义`
-Codex 示例：`$git-find-issues https://github.com/anthropics/claude-code 快捷键无法自定义`
-
-请从当前用户请求中解析仓库地址和问题描述：
-
-1. 如果缺少仓库地址或问题描述，请向用户询问缺失的信息，拿到所有信息后再继续
-2. 从仓库地址中提取 `owner/repo`（支持 `https://github.com/owner/repo` 或 `owner/repo` 格式）
-3. 使用 `gh search issues` 和 `gh search prs` 在该仓库中搜索与问题描述相关的内容
-4. 将搜索结果以列表形式输出，每项包含：
-   - 标题
-   - 链接
-   - 状态（open/closed）
-   - 简要说明其与问题的关联
-5. 如果没有找到相关结果，告知用户并建议调整描述或手动创建 Issue
+- 用 `gh search issues` 与 `gh search prs` 限定在该仓库里搜。
+- 问题描述的语言与仓库常用语言不同时，先译成仓库常用语言的关键词再搜。
+- 同一问题换两三组同义关键词分别搜（报错原文、功能名、现象描述），一组没结果不代表没人提过。
+- open 与 closed 都搜：closed 的可能已修复，要看修在哪个版本、还是被判为不修。
+- 相关性按正文与讨论判断，不只看标题；标题像但讲的是另一回事的不列。
+- 每条结果给出标题、链接、状态与它和问题的关联；没有相关结果时直说，并说明搜过哪些关键词。

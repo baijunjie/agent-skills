@@ -17,27 +17,11 @@ claude plugin install setup-agent@bjj-agent-skills
 claude plugin install setup-git@bjj-agent-skills
 claude plugin install setup-tools@bjj-agent-skills
 claude plugin install setup-knowledge@bjj-agent-skills
-claude plugin install setup-user@bjj-agent-skills
 
 # 3. 重启 Claude Code
 ```
 
-> 不要用 `claude plugin marketplace add <本地路径>` 指向工作副本——那样 skill 会强依赖该目录，一旦移动或删除全部失效。详见 [AGENTS.md](AGENTS.md)。
-
-### Claude Code 更新
-
-```bash
-claude plugin marketplace update
-claude plugin update dev@bjj-agent-skills
-claude plugin update create@bjj-agent-skills
-claude plugin update setup-agent@bjj-agent-skills
-claude plugin update setup-git@bjj-agent-skills
-claude plugin update setup-tools@bjj-agent-skills
-claude plugin update setup-knowledge@bjj-agent-skills
-claude plugin update setup-user@bjj-agent-skills
-```
-
-维护者发布 plugin 内容改动时，需同步提升该 plugin 的三份 manifest 版本并 `git push`；具体要求见 [AGENTS.md](AGENTS.md)「发布改动」。
+> 必须用 GitHub 源安装，不要用 `claude plugin marketplace add <本地路径>`：本地源会让 marketplace 直接指向该目录，目录一旦移动或删除，所有 skill 都会报 `failed to load: cache-miss`。
 
 ### Codex
 
@@ -52,121 +36,136 @@ codex plugin add setup-agent@bjj-agent-skills
 codex plugin add setup-git@bjj-agent-skills
 codex plugin add setup-tools@bjj-agent-skills
 codex plugin add setup-knowledge@bjj-agent-skills
-codex plugin add setup-user@bjj-agent-skills
 
 # 3. 开启新会话
 ```
 
-`setup-user` 是用户级 scope 的双宿主 plugin；其中的 `codex-bridge` 目标宿主是 Codex，用于安装 Claude 配置预检能力。Codex plugin 不适用于 IDE extension；在 IDE 中可使用 `skill-installer` 或安装独立 skill。
+Codex plugin 不适用于 IDE extension；在 IDE 中可使用 `skill-installer` 或安装独立 skill。
 
-### Codex 更新
+## 更新
+
+### Claude Code
+
+```bash
+# 1. 刷新 marketplace
+claude plugin marketplace update
+
+# 2. 更新需要的 plugin
+claude plugin update dev@bjj-agent-skills
+claude plugin update create@bjj-agent-skills
+claude plugin update setup-agent@bjj-agent-skills
+claude plugin update setup-git@bjj-agent-skills
+claude plugin update setup-tools@bjj-agent-skills
+claude plugin update setup-knowledge@bjj-agent-skills
+
+# 3. 重启 Claude Code
+```
+
+若为不同场景设置了多个 `CLAUDE_CONFIG_DIR`，每个都是独立的用户级安装环境，要对每个分别刷新 marketplace 和更新 plugin。
+
+### Codex
 
 ```bash
 # 1. 刷新 marketplace
 codex plugin marketplace upgrade bjj-agent-skills
 
-# 2. 对需要更新的 plugin 重新执行安装命令
+# 2. 对需要更新的 plugin 重新执行安装命令（也可在 Codex CLI 的 /plugins 中完成）
 codex plugin add dev@bjj-agent-skills
 codex plugin add create@bjj-agent-skills
 codex plugin add setup-agent@bjj-agent-skills
 codex plugin add setup-git@bjj-agent-skills
 codex plugin add setup-tools@bjj-agent-skills
 codex plugin add setup-knowledge@bjj-agent-skills
-codex plugin add setup-user@bjj-agent-skills
 
 # 3. 开启新会话
 ```
+
+### 已装进项目或用户级的内容
+
+`setup-*` 安装器可重复运行：plugin 更新后，对已装过的项目（或用户级配置）再运行一次对应的安装器，就按新模板重装。
+`plugin update` 只更新安装器本身，不会改动已装进项目或用户级的内容。
+重装时，安装时填写的定制位置（如默认的 PR 目标分支、文档目录、项目专属的检查项）会保留（能从项目现状重新确定的按现状更新），装出的文件与指令文件标记范围内的其它手改会被覆盖。
 
 ## 可用 Skills
 
 下表的 `plugin:skill` 是 skill 标识；显式调用时，Claude Code 使用 `/plugin:skill`，Codex 使用 `$plugin:skill`。
 
+> **触发方式**：「手动」只能显式调用（Claude Code `/plugin:skill`，Codex `$plugin:skill`），不会被模型自动触发；「自动」在语境相关时也会被调用。
+>
+> **作用域**：「项目级」只装进当前项目、随仓库提交；「项目级（默认）+ 用户级」默认装进当前项目，明确要求时改装进用户级配置、对当前用户的所有项目生效；「用户级」只装进当前用户的配置。
+
 ### `dev` — 开发流程
 
-典型链路：`dev:discuss` → `dev:plan-write` → `dev:plan-exec` → `dev:optimize`。
-
-Bug 链路：`dev:bug-report` → `dev:bug-fix`；口头描述的缺陷可以直接用 `dev:bug-fix`。
+典型链路：`dev:discuss` → `dev:optimize`。
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
 | `dev:discuss` | 问题讨论：只补上下文、给方案，不写代码 | 手动 |
-| `dev:plan-write` | 编写开发计划文档：把讨论结论按里程碑拆分写进 `docs/plans/`，只写设计不写实现 | 手动 |
-| `dev:plan-exec` | 按开发计划文档编号顺序执行开发，边做边勾 checkbox；里程碑收尾把内容固化进产品文档后删除计划文档 | 手动 |
 | `dev:optimize` | 优化代码：复查逻辑遗漏、冗余代码、可优化点 | 手动 |
 | `dev:todo` | 检查 TODO：逐条查证前提与阻塞，分成已过时 / 可以处理 / 还不能处理 / 无法判定列表，再问用户是否清理、是否开工 | 手动 |
-| `dev:bug-report` | 创建 bug 工单：把缺陷整理成 `docs/bugs/` 下的规范工单，只写查证过的事实；工单一次性，修完即删 | 手动 |
-| `dev:bug-fix` | 修复 bug：指定工单或自己挑一个，先复现再定位根因；只改代码不改产品文档，要改产品设计先问用户，验证通过即删工单 | 手动 |
 
 ### `create` — 创建规范
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `create:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本 | 手动 / 自动 |
+| `create:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本 | 自动 |
 
 ### `setup-agent` — 安装 agent 的开发工作方式
 
-一次性执行，把 agent 的开发工作方式（核心规则、收尾自检、项目记忆等）落地成**随仓库提交的项目配置**。
-默认全都装进当前项目；`change-check`、`report-style` 与 `core` 另带「用户级安装」一节，
-用户明确要求安装到当前用户环境时才走那条路。安装器名不带 `agent` 前缀，装出的 skill 统一加 `agent-` 前缀。
-**六个各自独立，装任意一个都能单独工作**——带子代理的那几个各装各的，谁都不依赖谁。
+把 agent 的开发工作方式（子代理分派、输出风格、项目工作流、改动检查、单元测试、项目文档、开发计划与 bug 工单）装进项目或用户级配置。
+八个安装器各自独立安装；`workflow` 只编排已装进项目的专职 skill（`docs`、`unit-test`、`change-check` 装出的），宜最后装，增删这些 skill 后需重跑。
 
-| Skill | 说明 | 触发方式 |
-|-------|------|----------|
-| `setup-agent:change-check` | 安装 `agent-change-check` skill 加 `change-checker` 子代理：收尾时派子代理审查本次改动，只给意见不改文件；项目安装时可补本项目的检查项，可选安装到用户级配置 | 手动 |
-| `setup-agent:core` | 安装 agent 核心规则（注释规范、提交信息、分派子代理、交付前自检）加四个通用子代理，不装 skill；可选安装到用户级配置 | 手动 |
-| `setup-agent:docs` | 安装项目级 `agent-docs` skill 加 `map-writer`、`product-writer`、`memory-writer` 子代理：开工前读总索引、项目地图与相关的产品文档、开发记忆，收尾时按需派子代理维护、主 agent 更新总索引 | 手动 |
-| `setup-agent:report-style` | 输出规范 `Concise+`，不装 skill：Claude Code 使用自定义 output style，Codex 将等价规则写入 `AGENTS.md`；可选安装到用户级配置 | 手动 |
-| `setup-agent:unit-test` | 安装项目级 `agent-unit-test` skill 加 `test-writer` 子代理：沿用项目的单元测试框架（没有就问用户并协助安装），测试放独立目录镜像源码结构，收尾时为改动文件补测试、只跑受影响的测试 | 手动 |
+| Skill | 说明 | 作用域 | 触发方式 |
+|-------|------|--------|----------|
+| `setup-agent:bug` | 安装 `agent-bug-report` 与 `agent-bug-fix` skill：把缺陷记成 `docs/bugs/` 下只写事实的一次性工单；修复时先复现、定位根因，只改代码不改产品文档，验证通过即删工单。装出的 skill 会被自动触发，不装子代理、不挂指令文件 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:change-check` | 安装 `agent-change-check` skill 加 `change-checker` 子代理：派子代理审查本次改动，只给意见不改文件；项目级安装时可补本项目的检查项，不挂指令文件 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:docs` | 安装 `agent-docs` skill 加 `map-writer`、`product-writer`、`memory-writer` 子代理：开工前读总索引、项目地图与相关的产品文档、开发记忆，收尾时按需派子代理维护、主 agent 更新总索引，并规定代码注释怎么写、能引用哪些文档；不挂指令文件 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:plan` | 安装 `agent-plan-write` 与 `agent-plan-exec` skill：把讨论定下的方案按里程碑写成 `docs/plans/` 下的开发计划文档，并按编号顺序执行、边做边勾，里程碑收尾固化进产品文档。装出的 skill 会被自动触发，不装子代理、不挂指令文件 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:report-style` | 输出风格 `Concise+`，不装 skill：Claude Code 使用自定义 output style，Codex 将等价规则写入 `AGENTS.md` | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:subagents` | 安装分派子代理的规则（何时派、怎么交代、按难度选档）加 `mechanical`、`implement`、`investigate`、`architect` 四个通用子代理；规则写进指令文件，不装 skill | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:unit-test` | 安装 `agent-unit-test` skill 加 `test-writer` 子代理：沿用项目的单元测试框架（没有就问用户并协助安装），测试默认放独立目录，为改动文件补测试、只跑受影响的测试；不挂指令文件 | 项目级 | 手动 |
+| `setup-agent:workflow` | 在项目指令文件里写入「工作流」一节：按已装进项目的 `agent-docs`、`agent-unit-test`、`agent-change-check` 写明开工前先了解项目上下文、交付前按补单元测试、静态检查、改动检查、文档更新的顺序自检，没装的步骤不写；并装上规范以后怎么改这一节的 skill。不装子代理 | 项目级 | 手动 |
 
 ### `setup-git` — 安装 Git 规范与流程
 
-一次性执行，把 Git 相关的规范与流程装进配置。
-默认装进当前项目随仓库提交；`commit`、`find-issues` 也可选安装到用户级配置。四个各自独立。安装器名不带 `git` 前缀，装出的 skill 统一加 `git-` 前缀。
+把 Git 相关的规范与流程装进项目或用户级配置，四个安装器各自独立。
 
-| Skill | 说明 | 触发方式 |
-|-------|------|----------|
-| `setup-git:commit` | 安装 `git-commit` skill：按 Conventional Commits 规范生成提交；默认装进项目随仓库提交，可选用户级 | 手动 |
-| `setup-git:find-issues` | 安装 `git-find-issues` skill：在指定仓库中搜索相关 Issue 和 PR；默认装进项目随仓库提交，可选用户级 | 手动 |
-| `setup-git:pr` | 安装项目级 `git-pr` skill：压平本地提交、推送并提 PR，建好后清理本地分支与 worktree；安装时确定默认的 PR 目标分支（查不到就问用户），调用时可另行指定 | 手动 |
-| `setup-git:worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」这套流程写成项目规则，让 worktree 目录不进版本库，并装上拦截「合并时撤销目标分支已有改动」的回退闸门 | 手动 |
+| Skill | 说明 | 作用域 | 触发方式 |
+|-------|------|--------|----------|
+| `setup-git:commit` | 安装 `git-commit` skill：按 Conventional Commits 规范生成提交 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-git:find-issues` | 安装 `git-find-issues` skill：在指定仓库中搜索相关 Issue 和 PR | 项目级（默认）+ 用户级 | 手动 |
+| `setup-git:pr` | 安装 `git-pr` skill：压平本地提交、推送并提 PR，建好后清理本地分支与 worktree；安装时确定默认的 PR 目标分支（查不到就问用户），调用时可另行指定 | 项目级 | 手动 |
+| `setup-git:worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」这套流程写进指令文件，让 worktree 目录不进版本库，并装上拦截「合并时撤销目标分支已有改动」的回退闸门；常驻守护分支列表 `.githooks/branches` 随仓库提交；本地合并前先对齐远程目标分支 | 项目级 | 手动 |
 
-### `setup-tools` — 安装项目开发辅助脚本
+### `setup-tools` — 安装开发辅助工具
 
-一次性执行，给当前项目装上**随仓库提交的开发辅助脚本**。目前只有一个。
+装上开发辅助工具，两个安装器各自独立。
 
-| Skill | 说明 | 触发方式 |
-|-------|------|----------|
-| `setup-tools:cron` | 项目级 crontab 定时任务安装器：任务清单加安装 / 卸载脚本，改任务不用手写 crontab | 手动 |
+| Skill | 说明 | 作用域 | 触发方式 |
+|-------|------|--------|----------|
+| `setup-tools:codex-bridge` | 给 Codex 装上读取 Claude 规范的 `claude` skill：开工前盘点用户级与项目级的 Claude 配置，照 Claude 这套工具链继续开发 | 用户级 | 手动 |
+| `setup-tools:cron` | 项目级 crontab 定时任务安装器：任务清单加安装 / 卸载脚本，改任务不用手写 crontab；指令文件里挂一行怎么改任务的说明 | 项目级 | 手动 |
 
 ### `setup-knowledge` — 安装知识类规范
 
-一次性执行，给当前项目装上**随仓库提交的知识类规范 skill**（装出的 skill 带 `knowledge-` 前缀）。目前只有一个。
+装上知识类规范 skill。
 
-| Skill | 说明 | 触发方式 |
-|-------|------|----------|
-| `setup-knowledge:i18n-copy` | 安装 `knowledge-i18n-copy` skill：多语言 App 界面文案规范（各语言语体、破坏性操作与确认框、进行态、报错、括号空格、iOS / Android / Web 大小写、术语统一与多端同步）；默认装进项目随仓库提交，并在末尾补「本项目」一节（语种、资源位置、术语表等），可选用户级 | 手动 |
+| Skill | 说明 | 作用域 | 触发方式 |
+|-------|------|--------|----------|
+| `setup-knowledge:i18n-copy` | 安装 `knowledge-i18n-copy` skill：多语言 App 界面文案规范（各语言语体、破坏性操作与确认框、进行态、报错、括号空格、iOS / Android / Web 大小写、术语统一与多端同步）；项目级安装时在末尾补「本项目」一节（语种、资源位置、术语表等） | 项目级（默认）+ 用户级 | 手动 |
 
-### `setup-user` — 用户级初始化
+## 排查
 
-只放**安装到当前用户配置、装进仓库没有意义**的事。
-其余初始化 skill 按领域分在各个 `setup-*` plugin 里（如 `setup-agent`、`setup-git`、`setup-tools`、`setup-knowledge`）；只给当前用户安装时，由它们各自的「用户级安装」一节负责。
+### Claude Code
 
-| Skill | 说明 | 触发方式 |
-|-------|------|----------|
-| `setup-user:codex-bridge` | 给 Codex 装上读取 Claude 规范的 `claude` skill：开工前盘点用户级与项目级的 Claude 配置，照 Claude 这套工具链继续开发 | 手动 |
-
-> **触发方式**说明：标「手动」的 skill 设置了 `disable-model-invocation: true`。进入 Codex marketplace 的 skill 会在 `agents/openai.yaml` 中映射为 `allow_implicit_invocation: false`；它们不会被模型自动触发——这类 skill 是流程编排或一次性初始化指令，自动触发会造成干扰。其余 skill 在语境相关时也会被自动调用。
-
-## 仓库结构
-
-```
-.claude-plugin/marketplace.json     # Claude Code marketplace 定义，保留全部 plugin
-.agents/plugins/marketplace.json     # Codex marketplace 定义，保留全部 plugin
-plugins/<plugin>/                    # 同时分发到 Claude Code 与 Codex
-├── plugin.json                       # Codex plugin 元信息
-├── .codex-plugin/plugin.json         # Codex plugin 安装清单
-├── .claude-plugin/plugin.json        # Claude Code plugin 元信息
-└── skills/<skill>/SKILL.md           # skill 本体
+```bash
+claude plugin details <plugin>    # 查看已加载的 skill 清单与 token 开销
+claude plugin marketplace list    # 确认 marketplace 已注册
 ```
 
-新增 skill 的步骤见 [AGENTS.md](AGENTS.md)。
+### Codex
+
+```bash
+codex plugin marketplace list     # 确认 Codex marketplace 已注册
+codex plugin list                 # 查看已安装的 plugin
+```

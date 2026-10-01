@@ -1,0 +1,6 @@
+interface:
+  display_name: "Bug Setup"
+  short_description: "安装 bug 工单创建与修复 skill"
+  default_prompt: "Use $setup-agent:bug to add the bug ticket workflow."
+policy:
+  allow_implicit_invocation: false

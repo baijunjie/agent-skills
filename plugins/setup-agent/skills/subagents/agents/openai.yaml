@@ -1,0 +1,6 @@
+interface:
+  display_name: "Subagents Setup"
+  short_description: "安装分派子代理的规则与四个通用子代理"
+  default_prompt: "Use $setup-agent:subagents to install subagent dispatch rules and general-purpose subagents."
+policy:
+  allow_implicit_invocation: false

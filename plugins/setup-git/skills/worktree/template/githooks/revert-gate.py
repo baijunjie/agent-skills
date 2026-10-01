@@ -4,14 +4,22 @@
 典型成因是压平时换了基点却没合内容（如 `git reset --soft <目标分支>` 后提交），
 旧代码被当成新改动压进去。`git merge --ff-only` 只校验祖先关系，照样快进成功，
 所以在受守护的分支移动时按内容检查。受守护的是各 worktree 分支记录的目标分支
-（`git config branch.<分支>.worktreeTarget`），外加 `git config revert-gate.branch` 常驻守护的分支
+（`git config branch.<分支>.worktreeTarget`），外加 `git config revert-gate.branch` 记录的常驻守护分支
 （可多值，通常是主分支）。只看记录、不看主工作副本当前在哪个分支，是为了不把人在自己的特性分支上
-rebase、amend 也拦下来；没记录的目标分支因此不受守护。这份判定在 hook.sh 里有一份同样的 shell 版本，
-两边要一起改：
+rebase、amend 也拦下来；没记录的目标分支因此不受守护。受守护分支 = 所有 `branch.*.worktreeTarget`
+的值加 `revert-gate.branch` 的值：
 
-1. 非快进只在被丢下的提交都没发布过时才可能放行（`pull --rebase`、改写还没推送的本地提交），
+1. 非快进只在被丢下的提交都没发布过时才可能放行（`pull --rebase`、`git rebase <分支>@{u}`
+   把本地未推送的提交垫到远端最新提交之上、改写还没推送的本地提交），
    且同样要过第 2 条的内容检查——同一个 clone 里没推送的提交也可能是别人刚合并的。
-   与远端跟踪分支对齐、且不丢下本地未推送提交的移动直接放行（已发布的历史本地拦不回来）。
+   与远端跟踪分支对齐、且不丢下本地未推送提交的移动直接放行（已发布的历史本地拦不回来）；
+   被移动的分支没有在任何 worktree 里被检出、也没有正在被 rebase 时，被丢下的未推送提交
+   仍在别的本地分支上的不算丢下（先 `git switch -c` 到新分支承载本地提交，再 `git branch -f`
+   把它退回远端——git 不许 `branch -f` 动被检出的分支）。
+   被检出或正在 rebase 时不认这条：此时在分支上 reset、rebase，或在别的 worktree 里 update-ref 它，
+   另一个分支指着这些提交多半只是暂时的（临时分支、已快进合并而即将删除的特性分支），删掉它提交就丢了。
+   已知边界：先 `switch -c` 一个临时分支、`branch -f` 退回、再切回来删掉临时分支，与上面的合法流程
+   形态相同，闸门分辨不出，照样放行。
 2. 移动前该分支上最近的非 merge 提交里，有被这次移动撤销的就拒绝，判据见 find_reverts。查多远：
    至少最近 WINDOW 个；这次移动能对应到某个特性分支、且它记录了切出点
    （`git config branch.<分支>.worktreeBase`）时，延伸到切出点之后的全部提交。
@@ -26,10 +34,18 @@ rebase、amend 也拦下来；没记录的目标分支因此不受守护。这�
   revert-gate.py reference-transaction <state>   由 hook.sh 调用，stdin 为 ref 更新列表
   revert-gate.py pre-push <remote> <url>         由 hook.sh 调用
   revert-gate.py check <目标分支> <分支>         手动检查把目标分支移到该分支；命中退出码 1，检查出错退出码 2
+                                                 （非快进时只提示先 rebase）。目标分支落后或分叉于
+                                                 其上游时同样退出码 1；没有上游时以远端唯一的同名分支
+                                                 代替，没有同名分支就不查。以最近一次 fetch 为准，不联网
 
-hook 模式下拒绝时退出码为 3，hook.sh 只把 3 当作拒绝（两边分开更新，这个约定不能改）：
+pre-push 模式下，受守护分支的远端提交（git 推送时从远端拿到的实时值）本地没有时直接拒绝：
+判断不了内容，而 `push --force` 不会被远端拒绝，放过去就会覆盖别人刚推的提交。
+
+hook 模式下拒绝时退出码为 3，调用它的 hook 入口只把 3 当作拒绝；入口装进各 clone 后不随仓库更新，
+这个约定不能改：
 闸门自身出错（含脚本跑不起来）时放行，宁可漏检一次，也不能让它卡死所有 ref 更新。
-设置环境变量 REVERT_GATE_SKIP=1 可临时跳过，仅供人确认过的场合使用。依赖 git 2.28+。
+设置环境变量 REVERT_GATE_SKIP=1 可临时跳过，仅供人确认过的场合使用。
+reference-transaction 模式依赖 git 2.28+（这个 hook 从 2.28 起才有），pre-push 与 check 模式不依赖。
 """
 
 import os
@@ -312,32 +328,105 @@ def report(branch, old, new, findings, merge_hint):
               "被拦的是 rebase 时用 `git rebase --abort` 退出。\n", file=sys.stderr)
 
 
+def busy_branches():
+    """在任一 worktree 里被检出、或正在被 rebase 的分支名。rebase 期间 HEAD 是分离的，
+    worktree 列表里看不到它在哪个分支上，要从各 worktree 的 rebase 状态目录里读。"""
+    names = set()
+    for line in text(git("worktree", "list", "--porcelain").stdout).split("\n"):
+        if line.startswith("branch refs/heads/"):
+            names.add(line[len("branch refs/heads/"):])
+    common = os.path.abspath(text(git("rev-parse", "--git-common-dir").stdout).strip())
+    linked = os.path.join(common, "worktrees")
+    gitdirs = [common] + ([os.path.join(linked, d) for d in os.listdir(linked)] if os.path.isdir(linked) else [])
+    for gitdir in gitdirs:
+        for state in ("rebase-merge", "rebase-apply"):
+            try:
+                with open(os.path.join(gitdir, state, "head-name"), encoding="utf-8", errors="surrogateescape") as f:
+                    ref = f.read().strip()
+            except OSError:
+                continue
+            if ref.startswith("refs/heads/"):
+                names.add(ref[len("refs/heads/"):])
+    return names
+
+
+def remote_refs(branch):
+    return text(git("for-each-ref", "--format=%(refname)", f"refs/remotes/*/{branch}").stdout).split()
+
+
 def remote_tips(branch):
     return text(git("for-each-ref", "--format=%(objectname)", f"refs/remotes/*/{branch}").stdout).split()
 
 
-def check_move(branch, old, new, local, merge_hint=False, forks=()):
-    """检查受守护的分支 branch 从 old 到 new 的一次移动，放行返回 True。local 表示移动的是本地分支。"""
+def upstream_ok(branch):
+    """check 模式专用：branch 落后或分叉于其上游时提示并返回 False。没有上游（或上游 ref 不存在）时
+    以远端唯一的同名分支代替；没有同名分支就不查，有多个时无从判断以哪个为准，提示后不查。
+    hook 模式不做这项：落后于远端并不会让一次移动撤销已有改动，拦下它只会妨碍正常的本地操作。"""
+    upstream = text(git("for-each-ref", "--format=%(upstream)", f"refs/heads/{branch}").stdout).strip()
+    shown = f"{branch}@{{u}}"
+    if not upstream or git("rev-parse", "--verify", "-q", upstream, check=False).returncode != 0:
+        refs = remote_refs(branch)
+        if len(refs) > 1:
+            print(f"\n[revert-gate] {branch} 没有上游，远端有多个同名分支，没有查它是否落后于远程；"
+                  f"用 `git branch -u <远端>/{branch} {branch}` 设好上游后重跑。\n", file=sys.stderr)
+        if len(refs) != 1:
+            return True
+        upstream = refs[0]
+        shown = upstream[len("refs/remotes/"):]
+    behind = rev_count(f"refs/heads/{branch}..{upstream}")
+    if not behind:
+        return True
+    ahead = rev_count(f"{upstream}..refs/heads/{branch}")
+    if ahead:
+        print(f"\n[revert-gate] {branch} 与远程分叉（本地多 {ahead} 个、远程多 {behind} 个提交）：先 `git fetch`，"
+              f"在主工作副本里（须在 {branch} 上）`git rebase {shown}`，验证后再重新 rebase 分支。\n",
+              file=sys.stderr)
+    else:
+        print(f"\n[revert-gate] {branch} 落后远程 {behind} 个提交：先 `git fetch`，"
+              f"在主工作副本里（须在 {branch} 上）`git merge --ff-only {shown}` 更新，再重新 rebase。\n",
+              file=sys.stderr)
+    return False
+
+
+def check_move(branch, old, new, mode, forks=(), source=None):
+    """检查受守护的分支 branch 从 old 到 new 的一次移动，放行返回 True。
+    mode 是闸门的运行模式；check 模式下 source 是要合进来的分支名，只用于提示。"""
     if is_null(old) or is_null(new) or old == new:
         return True
+    local = mode == "reference-transaction"
     # 被丢下、且不在任何远端跟踪分支上的提交数：同一个 clone 里没推送的提交也可能是别人刚合并的。
     unpushed = rev_count(old, f"^{new}", "--not", "--remotes")
-    if local and not unpushed and new in remote_tips(branch):
+    # 其中也不在别的本地分支上的才真正丢了，但只对没被检出、也没在 rebase 的分支这样认，见文件说明第 1 条。
+    # 要排除分支自身——prepared 阶段它仍指向 old。分支名不能含 glob 字符，可以直接当 --exclude 的模式。
+    stranded = unpushed
+    if unpushed and local and branch not in busy_branches():
+        stranded = rev_count(old, f"^{new}", "--not", "--remotes", f"--exclude={branch}", "--branches")
+    if local and not stranded and new in remote_tips(branch):
         return True
     if not is_ancestor(old, new):
+        if mode == "check":
+            # 预检时目标分支不是 source 的祖先，几乎总是 source 还没 rebase 到目标分支的最新提交。
+            print(f"\n[revert-gate] {source} 还没 rebase 到最新的 {branch}，先 `git rebase {branch}`。\n",
+                  file=sys.stderr)
+            return False
         # 被丢下的提交里只要有一个已在远端跟踪分支上，就是在改写已发布的历史。
         published = rev_count(old, f"^{new}") - unpushed
-        if not local or published:
+        if not local:
+            print(f"\n[revert-gate] 拒绝把远程 {branch} 从 {old[:10]} 改写成 {new[:10]}：不是快进，"
+                  f"会丢掉远程已有的提交。不要强推；先 `git fetch`，在主工作副本里（须在 {branch} 上）"
+                  f"`git rebase {branch}@{{u}}` 把本地未推送的提交垫到远程之上，验证后再推。\n", file=sys.stderr)
+            return False
+        if published:
             print(f"\n[revert-gate] 拒绝把 {branch} 从 {old[:10]} 移到 {new[:10]}：不是快进，"
                   f"会丢掉已发布的提交，{branch} 不许改写已发布的历史。\n"
-                  f"被拦的是 rebase 时先 `git rebase --abort`；要与远端对齐用 "
-                  f"`git reset --hard <远端>/{branch}`，再把本地提交重新接上去——它同样会丢掉本地没推送的提交，"
-                  f"包括别人刚合并进来的，先确认过再做。\n", file=sys.stderr)
+                  f"被拦的是 rebase 时先 `git rebase --abort`；要与远端对齐，先 `git fetch`，"
+                  f"在主工作副本里（须在 {branch} 上）`git rebase {branch}@{{u}}` 把本地未推送的提交垫到远程之上。\n",
+                  file=sys.stderr)
             return False
     # find_reverts 不要求 old 是 new 的祖先：非快进时同样以 old 为参照，丢下的本地提交也在检查之列。
     findings = find_reverts(old, new, forks)
     if findings:
-        report(branch, old, new, findings, merge_hint)
+        report(branch, old, new, findings, merge_hint=local)
         return False
     return True
 
@@ -361,7 +450,7 @@ def reference_transaction(state):
         if not OID.match(old or "") or not OID.match(new):
             continue  # 符号引用的值（ref:...）不是提交
         forks = recorded_forks(b for b in branches_at(new) if b != branch)
-        if not check_move(branch, old, new, local=True, merge_hint=True, forks=forks):
+        if not check_move(branch, old, new, "reference-transaction", forks=forks):
             return REJECTED
     return 0
 
@@ -375,10 +464,16 @@ def pre_push():
             continue
         branch = parts[2][len("refs/heads/"):]
         local, remote = parts[1], parts[3]
-        # 远端提交本地没有时判断不了内容，交给远端拒绝非快进。
-        if branch not in guarded or is_null(remote) or is_null(local) or not has_commit(remote):
+        if branch not in guarded or is_null(remote) or is_null(local):
             continue
-        ok = check_move(branch, remote, local, local=False) and ok
+        if not has_commit(remote):
+            # 不联网：remote 是 git 推送时拿到的远端实时值，本地没有它就说明远程有本地还没取到的提交。
+            print(f"\n[revert-gate] 拒绝推送 {branch}：远程 {branch} 有本地没有的提交。"
+                  f"先 `git fetch`，再在主工作副本里（须在 {branch} 上）`git rebase {branch}@{{u}}`，"
+                  f"验证后再推。\n", file=sys.stderr)
+            ok = False
+            continue
+        ok = check_move(branch, remote, local, "pre-push") and ok
     return 0 if ok else REJECTED
 
 
@@ -395,7 +490,9 @@ def main(argv):
             old = text(git("rev-parse", "--verify", f"refs/heads/{argv[2]}^{{commit}}").stdout).strip()
             new = text(git("rev-parse", "--verify", f"{argv[3]}^{{commit}}").stdout).strip()
             forks = recorded_forks({argv[3], *branches_at(new)} - {argv[2]})
-            return 0 if check_move(argv[2], old, new, local=False, forks=forks) else 1
+            if not upstream_ok(argv[2]):
+                return 1
+            return 0 if check_move(argv[2], old, new, "check", forks=forks, source=argv[3]) else 1
     except Exception as e:  # noqa: BLE001 —— 任何意外都按文件说明里的出错策略处理
         print(f"[revert-gate] 检查出错{'' if mode == 'check' else '，已放行'}：{e!r}", file=sys.stderr)
         return 2 if mode == "check" else 0

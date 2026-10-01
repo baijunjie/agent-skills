@@ -4,8 +4,8 @@
 #
 # 只替换本项目的标记区块，crontab 里的其它内容原样保留；重复执行即为更新。
 #
-#   sh scripts/cron/install.sh             安装 / 更新
-#   sh scripts/cron/install.sh --dry-run   只打印将要写入的区块，不动 crontab
+#   sh <本目录>/install.sh             安装 / 更新
+#   sh <本目录>/install.sh --dry-run   只打印将要写入的区块，不动 crontab（找得到 crontab 时仍检查标记撞车）
 #
 set -eu
 
@@ -105,19 +105,25 @@ list_tasks() {
   done < "$TASKS_FILE"
 }
 
-require_crontab
 [ -f "$TASKS_FILE" ] || die "找不到任务清单: $TASKS_FILE"
 
 block=$(generate_block)
 
 if [ "$DRY_RUN" -eq 1 ]; then
+  # 只读不写；没有 crontab 命令的机器上也要能预览，所以找不到时不查撞车。
+  if command -v crontab >/dev/null 2>&1; then
+    check_tag_owner "$(read_crontab)"
+  fi
   printf '%s\n' "$block"
   exit 0
 fi
 
+require_crontab
+current=$(read_crontab)
+check_tag_owner "$current"
 mkdir -p "$LOG_DIR"
 
-kept=$(read_crontab | strip_block)
+kept=$(printf '%s\n' "$current" | strip_block)
 if [ -n "$kept" ]; then
   write_crontab "$kept
 

@@ -1,15 +1,15 @@
 #!/bin/sh
-# revert-gate hook entry —— install.sh 靠这一行认出自己装的入口，改动时保留。
+# revert-gate hook entry —— 这一行是闸门入口的识别标志，改动时保留。
 #
 # 回退闸门的 hook 入口。用法：以 reference-transaction / pre-push 的名字放进 hooks 目录，
 # 或由别的 hook 体系调用 `sh .githooks/hook.sh <reference-transaction|pre-push> "$@"`。
 #
 # 执行的是受守护分支上已提交的那份闸门脚本，而不是工作树里的文件：merge 先写工作树、最后才移动 ref，
-# 读工作树就等于让待合并的分支自己决定闸门怎么判。常驻守护的分支（通常是主分支）优先，
+# 读工作树就等于让待合并的分支自己决定闸门怎么判。常驻守护分支（通常是主分支）优先，
 # 免得哪个旧分支上的旧脚本或改过的脚本成了所有分支的规则。
 # reference-transaction 在每个 ref 事务的每个阶段都会调用，rebase、fetch、每次提交都会触发，
-# 所以先在 shell 里筛到「动了受守护分支」才启动 Python。受守护分支的判定与 revert-gate.py 的
-# guarded_branches 相同，两边要一起改。
+# 所以先在 shell 里筛到「动了受守护分支」才启动 Python。受守护分支 = 所有 branch.*.worktreeTarget
+# 的值加 revert-gate.branch 的值。
 # 找不到 python3 或脚本时放行——hook 失败会让所有 ref 更新都失败。
 
 case "$1" in

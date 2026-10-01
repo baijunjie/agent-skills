@@ -37,12 +37,6 @@
       "source": { "source": "local", "path": "./plugins/setup-knowledge" },
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
       "category": "Productivity"
-    },
-    {
-      "name": "setup-user",
-      "source": { "source": "local", "path": "./plugins/setup-user" },
-      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
-      "category": "Productivity"
     }
   ]
 }

@@ -3,7 +3,7 @@
 # 从当前用户的 crontab 中移除本项目的定时任务。
 # 只删标记区块，crontab 里的其它内容原样保留。
 #
-#   sh scripts/cron/uninstall.sh
+#   sh <本目录>/uninstall.sh
 #
 set -eu
 
@@ -19,6 +19,7 @@ case "$current" in
     printf '未找到本项目的 crontab 区块（标记 %s），无需卸载\n' "$CRON_TAG"
     exit 0 ;;
 esac
+check_tag_owner "$current"
 
 write_crontab "$(printf '%s\n' "$current" | strip_block)"
 

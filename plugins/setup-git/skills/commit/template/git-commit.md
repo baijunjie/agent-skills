@@ -5,18 +5,15 @@ description: 按 Conventional Commits 规范生成 Git 提交。用于提交代�
 
 # Git Commit
 
-按 Conventional Commits 规范生成提交。
-
 ## 单次提交
 
 **一次调用只产生一个 commit，不拆分。** 即使改动跨了多个 type，也全部归入这一个提交：
 
 - type 取**主要改动**；为它服务的前置配置、依赖、文档与测试都是配套产物，不单独成 commit
 - 改动点多时靠 body 逐条说明，不靠拆 commit
+- 提交范围：暂存区有内容时只提交暂存区；暂存区为空时提交全部改动（含新文件）。密钥、本地配置、构建产物这类不该入库的文件，先问用户，不要自己决定提交或排除
 
 ## Type 选择
-
-根据变更内容选择对应前缀，**不要凭直觉混用**：
 
 | type       | 使用场景                                                                 |
 |------------|--------------------------------------------------------------------------|
@@ -40,7 +37,6 @@ description: 按 Conventional Commits 规范生成 Git 提交。用于提交代�
 - 改文档里的代码示例 → `docs`
 - 升级依赖导致的代码适配 → `build`
 - 配置项新增（影响运行行为）→ `feat`；仅工具配置 → `chore`
-- 说明本次改动的文档 → 跟随该改动的 type；独立的文档整理才是 `docs`
 
 ## Scope 选择
 
@@ -51,13 +47,21 @@ description: 按 Conventional Commits 规范生成 Git 提交。用于提交代�
 ## 严格格式
 
 ```
-<type>(<scope>): <subject>
+<type>[(<scope>)][!]: <subject>
 
 [optional body]
+
+[optional footer]
 ```
 
-- subject：祈使句、首字母小写、≤ 72 字符、句末不加标点；概括整体意图，细节留给 body
+- subject：≤ 72 字符、句末不加标点；英文 subject 用祈使句、首字母小写；概括整体意图，细节留给 body
 - body 在 subject 说不清"为什么"、或改动点需分别交代时写，每行 ≤ 72 字符
 - 多个改动点用 `- ` 逐条列出，一条一件事，按重要性排序
+- 不兼容改动在 type / scope 后加 `!`，并在 footer 写 `BREAKING CHANGE: <说明>`
 - 提交信息语言与仓库历史保持一致
 - 通过 HEREDOC 传递 message，保留换行
+
+## 撰写身份
+
+- 不要在 commit 消息里留下任何 AI 痕迹：不写 `Co-Authored-By`、不写「Generated with …」、不提 AI 协助。
+- 以人类开发者的口吻撰写，不作关于自己是 AI 的声明。

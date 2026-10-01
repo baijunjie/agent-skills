@@ -1,56 +1,75 @@
 ---
 name: find-issues
-description: 装上（或更新）在指定仓库搜索相关 Issue 与 PR 的 git-find-issues skill。默认装进当前项目，随仓库提交、团队共用，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"装 git-find-issues skill""装查 issue 的 skill""让项目能搜上游 Issue / PR""新电脑装 git-find-issues"等场景。
+description: 装上（或更新）在指定 GitHub 仓库搜索相关 Issue 与 PR 的 git-find-issues skill。默认装进当前项目随仓库提交，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"装 git-find-issues skill""装查 issue 的 skill""让项目能搜上游 Issue / PR""新电脑装 git-find-issues"等场景。
 disable-model-invocation: true
 ---
 
 # 安装 git-find-issues skill
 
-只装 `git-find-issues` skill 本体，不装子代理，也不改指令文件。装好后就能独立工作。
+装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
 
 ## 跨宿主约定
 
-只执行当前宿主对应的分支。模板资源先用 `$PLUGIN_ROOT`，为空再用 `$CLAUDE_PLUGIN_ROOT`；
-两者都为空时，先把 `SKILL_DIR` 设为**当前已加载的这个 `SKILL.md` 的绝对父目录**（不是项目工作目录），
-再按相对路径定位。执行写入前先确定：
+只执行当前宿主对应的分支。
+
+模板资源先用 `$PLUGIN_ROOT`，为空再用 `$CLAUDE_PLUGIN_ROOT`；两者都为空时，先把 `SKILL_DIR`
+设为**当前已加载的这个 `SKILL.md` 的绝对父目录**（不是项目工作目录），再按相对路径定位。
+下面的变量定义要和后续命令放在同一次 shell 调用里，分开执行就每次重新定义：
 
 ```bash
 if [ -n "${PLUGIN_ROOT:-}" ]; then
-  TEMPLATE_DIR="$PLUGIN_ROOT/skills/find-issues/template"
+  SETUP_ROOT="$PLUGIN_ROOT"
 elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
-  TEMPLATE_DIR="$CLAUDE_PLUGIN_ROOT/skills/find-issues/template"
+  SETUP_ROOT="$CLAUDE_PLUGIN_ROOT"
 else
-  TEMPLATE_DIR="${SKILL_DIR:?先将 SKILL_DIR 设为当前 SKILL.md 的绝对父目录}/template"
+  SETUP_ROOT="${SKILL_DIR:?先将 SKILL_DIR 设为当前 SKILL.md 的绝对父目录}/../.."
 fi
+TEMPLATE_DIR="$SETUP_ROOT/skills/find-issues/template"
 ```
 
 ## 选作用域
 
-**默认装进当前项目**，随仓库提交，团队共用。用户明确说了「全局 / 用户级 / 所有项目 / 新电脑」，
-或当前目录不是 git 仓库时，才装进用户级配置目录。
+**默认装进当前项目**，随仓库提交，团队共用。用户明确说了「全局 / 用户级 / 所有项目 / 新电脑」时，才装进用户级配置目录。
+当前目录不是 git 仓库时，先告诉用户，确认改装用户级后再装，不要直接写进用户级配置。
 
-两层可以同时装：同名 skill 以项目级为准，所以项目要定制时装一份项目级的，
-不要去改用户级那份。
+Claude Code 中同名 skill 是**用户级优先于项目级**，与「就近优先」的直觉相反。
+所以要按项目定制的 skill，不要在用户级再装一份同名的。写入前发现另一层也有同名 skill 时，告诉用户两份都在，Claude Code 实际生效的是用户级那份。
 
-## 通用步骤
+## 写入前检查
 
-写入前先看目标 `SKILL.md` 在不在；已在就转「已存在时」，不要执行 `cp`——它会直接覆盖改过的那份。
-各宿主、各作用域的区别只在目标路径，见后面各节。
+首次安装与重装都要做。这一节做完之前只读取，不写入、不删除任何文件。
 
-## Claude Code 项目安装（默认）
+- **查软链**：逐个确认将要写入或删除的路径本身——本安装器独占的目录（如装出的 skill 目录），要写入、整份替换或删除的文件——都不是软链（`[ -L <路径> ]`，路径末尾不带 `/`）。
+  配置目录（`.claude/`、`.agents/`、`.codex/`、用户级配置目录）、其下多个安装器共用的 `skills/`、`agents/` 等目录，以及它们的上层目录是软链属正常布局，不查。
+  要查的路径是软链，或有别的不符合预期的情况，按「现状与预期不符时」处理。
+- **查冲突**：本安装器装出的是安装步骤里约定路径上做同一件事的 skill、子代理、脚本等文件（内容与模板差多少都算），照常重装、不问；其它安装器装出的内容各管各的，也不算。
+  除此之外，要写入的位置已有与要写入的内容重叠或冲突的东西就是冲突：已有管同一件事的规则或流程；约定路径上的同名文件明显是另一样东西（用途不同）；已有的同一配置项取值与要写入的不同（定制值除外）。
+  这几项各安装器都要查，本安装器另外要查的写在本节末尾。
+  有冲突就**停下来问用户**是「完全覆盖」还是「融入现有内容」，用户选定前这一处不动手；安装步骤里说的「已有的直接 / 整份覆盖」只指本安装器装出的，冲突的那部分照用户的选择处理。
+  - 问的时候写清冲突的是哪个文件、哪一段，以及两个选项各会改成什么样：完全覆盖是去掉现有的那部分、装本安装器的；
+    融入是按用户的指示把要装的内容并进现有内容。两种做法的具体改法都先说给用户，不擅自定。
+  - 两种结果都落进本安装器装出的内容，以后重装才界定得出：融入后与要写入内容重叠的部分落进本安装器装出的文件，
+    落不进的，询问时说明下次重装还会再问。
+  - 落进本安装器装出内容的部分以后照常重装，只有定制值所在的位置（见「重装」）会保留，所以融入的内容优先放进这些位置；
+    这次安装的作用域下没有定制值的，询问时直说「融入只对这一次有效，下次重装会被覆盖」，建议选完全覆盖。
+
+本安装器另外要查的冲突：无。
+
+## Claude Code 项目级安装（默认）
 
 ```bash
+cd "$(git rev-parse --show-toplevel)" || exit 1
 mkdir -p .claude/skills/git-find-issues
 cp "$TEMPLATE_DIR/git-find-issues.md" .claude/skills/git-find-issues/SKILL.md
 ```
 
 **告知用户**：`.claude/skills/git-find-issues/` 要提交进版本库才随仓库生效；
-`.gitignore` 整体忽略了 `.claude/` 的项目要为它加例外。装好后可用 `/git-find-issues` 调用，也会按描述自动触发。
+`.gitignore` 整体忽略了 `.claude/` 的项目要为它加例外。装好后可用 `/git-find-issues` 调用，也会按描述自动触发；
+如未生效，重启 Claude Code。
 
 ## Claude Code 用户级安装
 
-装进**当前会话的用户级配置目录**，由 `CLAUDE_CONFIG_DIR` 决定，没设就是 `~/.claude`；
-下面用 `C` 指代它，不要写死路径。
+装进**当前会话的用户级配置目录**，不要写死路径。
 
 ```bash
 C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
@@ -58,42 +77,63 @@ mkdir -p "$C/skills/git-find-issues"
 cp "$TEMPLATE_DIR/git-find-issues.md" "$C/skills/git-find-issues/SKILL.md"
 ```
 
-**告知用户**：装到了哪个用户级配置目录要说清楚（用户可能开着多个）；重启 Claude Code 后生效。
+**告知用户**：装到了哪个用户级配置目录要说清楚（用户可能开着多个）；如未生效，重启 Claude Code。
 
-## Codex 项目安装（默认）
+## Codex 项目级安装（默认）
 
 ```bash
+cd "$(git rev-parse --show-toplevel)" || exit 1
 mkdir -p .agents/skills/git-find-issues
 cp "$TEMPLATE_DIR/git-find-issues.md" .agents/skills/git-find-issues/SKILL.md
 ```
 
-**告知用户**：`.agents/skills/git-find-issues/` 要提交进版本库才随仓库生效。开启新会话后生效。
+**告知用户**：`.agents/skills/git-find-issues/` 要提交进版本库才随仓库生效；
+`.gitignore` 整体忽略了 `.agents/` 的项目要为它加例外。开启新会话后生效。
 
 ## Codex 用户级安装
 
-使用 `CODEX_HOME`；未设置时回退到 `$HOME/.codex`。`$HOME/.agents/skills/git-find-issues` 已经有一份时
-就地更新它，否则装到 `$X/skills/git-find-issues`：
-
 ```bash
 X=${CODEX_HOME:-$HOME/.codex}
-if [ -d "$HOME/.agents/skills/git-find-issues" ]; then
-  D="$HOME/.agents/skills/git-find-issues"
-else
-  D="$X/skills/git-find-issues"
-fi
+# 每个 skill 各自决定写入位置：$HOME/.agents/skills/<名> 已有就原地更新它，否则装到 $X/skills/<名>。
+# 别两处各放一份同名 skill：两处都已存在时函数报错，停下来问用户，不自行删除其中一份。
+codex_skill_dir() {
+  if [ ! -d "$HOME/.agents/skills/$1" ]; then
+    echo "$X/skills/$1"
+  elif [ -d "$X/skills/$1" ]; then
+    echo "$1：$HOME/.agents/skills 与 $X/skills 下都有，停下来问用户保留哪一份" >&2
+    return 1
+  else
+    echo "$HOME/.agents/skills/$1"
+  fi
+}
+D=$(codex_skill_dir git-find-issues) || exit 1
 mkdir -p "$D"
 cp "$TEMPLATE_DIR/git-find-issues.md" "$D/SKILL.md"
 ```
 
-**告知用户**：说明实际写入的用户级配置目录；重启 Codex 后生效。
+**告知用户**：说明实际写入的用户级配置目录；开启新会话后生效。
 
-## 已存在时
+## 重装
 
-已有同名 skill 时不要覆盖：与模板逐节比对，补齐模板有而它没有的规则，
-保留项目或用户自己加的内容。不要修改已安装 plugin 内的模板。
-要动的地方超过补充规则的范围时，先把打算怎么改告诉用户。
+每次运行都按当前模板重装，不判断版本，也不与模板比对。目标里已有本安装器装过的内容时，依次做下面四件事：
+
+- **读定制值**：从旧文件里读出本安装器的定制值，作为这次填写这些位置的依据。定制值只限安装过程本来就要
+  填写的位置，逐项写在本节末尾，写「无」的不读。能从项目现状重新确定的以现状为准，旧值只在现状确定不了、
+  或本来就由用户填写时沿用。
+- **清理**：只清理这一次要写的位置——整份替换的文件由安装步骤的写入命令直接覆盖；模板里没有的文件不管，
+  同一目录里的其它内容不碰；安装步骤另有清理约定的照做。用户对冲突做了选择的那部分照他的选择处理。
+- **装新的**：按安装步骤写入。
+- **填回**：把读出的定制值填回新文件的对应位置。
+
+**告知用户**时说明：定制值以外的手改，重装时都会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
+不要修改已安装 plugin 内的模板。
+
+本安装器的定制值：无。
 
 ## 现状与预期不符时
 
-要写入的路径不是普通文件 / 目录时**停下来问用户**，不要照写。最常见的是软链：
-`cp` 会写到它指向的地方，而 `mkdir -p` 在软链上仍然静默成功，表面看不出异常。
+下列情况，以及各节指明要按本节处理的情形，**停下来问用户**，不要照写、照删，也不要自行修复：
+
+- 要写入、替换或删除的路径不是普通文件 / 目录。最常见的是软链：写入会写穿到它指向的地方，删掉或整份替换的
+  只是链接本身、原来链向的那份从此脱钩，而且这几种情况表面上都不报错。
+- 安装步骤里的命令报错退出、拒绝写入。

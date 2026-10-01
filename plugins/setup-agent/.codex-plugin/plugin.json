@@ -1,17 +1,17 @@
 {
   "name": "setup-agent",
-  "version": "0.4.0",
-  "description": "为 Claude Code 或 Codex 安装 agent 的开发工作方式：核心规则、输出风格与收尾子代理，支持可选的用户级安装",
+  "version": "0.5.0",
+  "description": "为 Claude Code 或 Codex 安装 agent 的开发工作方式：子代理分派规则与通用子代理、输出风格、项目工作流、改动检查、单元测试、项目文档、开发计划与 bug 工单流程；项目工作流与单元测试只装进项目，其余默认装进项目、可选用户级",
   "author": { "name": "BaiJunjie" },
   "repository": "https://github.com/baijunjie/agent-skills",
   "skills": "./skills/",
   "interface": {
     "displayName": "Agent Setup",
     "shortDescription": "安装 agent 的开发工作方式",
-    "longDescription": "安装 agent 核心规则、输出规范，以及代码审查、项目文档、单元测试、开发记忆等收尾子代理。",
+    "longDescription": "安装子代理分派规则与通用子代理、输出风格，写进项目指令文件的开工前与交付前工作流，改动检查、单元测试、项目文档等专职 skill 与子代理，以及开发计划与 bug 工单流程 skill；项目工作流与单元测试只装进项目，其余默认装进项目、可选用户级。",
     "developerName": "BaiJunjie",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],
-    "defaultPrompt": ["为当前项目安装 agent 核心规则。"]
+    "defaultPrompt": ["为当前项目安装分派子代理的规则与通用子代理。", "为当前项目写入开发工作流，规定开工前与交付前的流程。"]
   }
 }
