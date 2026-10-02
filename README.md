@@ -93,6 +93,8 @@ codex plugin add setup-knowledge@bjj-agent-skills
 > **触发方式**：「手动」只能显式调用（Claude Code `/plugin:skill`，Codex `$plugin:skill`），不会被模型自动触发；「自动」在语境相关时也会被调用。
 >
 > **作用域**：「项目级」只装进当前项目、随仓库提交；「项目级（默认）+ 用户级」默认装进当前项目，明确要求时改装进用户级配置、对当前用户的所有项目生效；「用户级」只装进当前用户的配置。
+>
+> **说明**：只概括装什么、解决什么问题；安装器会改指令文件（`CLAUDE.md` / `AGENTS.md`）或装子代理的，说明里会点出，没点出的就不做这两件事。
 
 ### `dev` — 开发流程
 
@@ -101,14 +103,14 @@ codex plugin add setup-knowledge@bjj-agent-skills
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
 | `dev:discuss` | 问题讨论：只补上下文、给方案，不写代码 | 手动 |
-| `dev:optimize` | 优化代码：复查逻辑遗漏、冗余代码、可优化点 | 手动 |
-| `dev:todo` | 检查 TODO：逐条查证前提与阻塞，分成已过时 / 可以处理 / 还不能处理 / 无法判定列表，再问用户是否清理、是否开工 | 手动 |
+| `dev:optimize` | 优化代码：复查逻辑遗漏、冗余代码与可优化点 | 手动 |
+| `dev:todo` | 逐条查证代码里的 TODO 是否过时、能否处理，再问用户是否清理、是否开工 | 手动 |
 
 ### `create` — 创建规范
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `create:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本 | 自动 |
+| `create:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，给判断标准而非操作脚本 | 自动 |
 
 ### `setup-agent` — 安装 agent 的开发工作方式
 
@@ -117,14 +119,14 @@ codex plugin add setup-knowledge@bjj-agent-skills
 
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
-| `setup-agent:bug` | 安装 `agent-bug-report` 与 `agent-bug-fix` skill：把缺陷记成 `docs/bugs/` 下只写事实的一次性工单；修复时先复现、定位根因，只改代码不改产品文档，验证通过即删工单。装出的 skill 会被自动触发，不装子代理、不挂指令文件 | 项目级（默认）+ 用户级 | 手动 |
-| `setup-agent:change-check` | 安装 `agent-change-check` skill 加 `change-checker` 子代理：派子代理审查本次改动，只给意见不改文件；项目级安装时可补本项目的检查项，不挂指令文件 | 项目级（默认）+ 用户级 | 手动 |
-| `setup-agent:docs` | 安装 `agent-docs` skill 加 `map-writer`、`product-writer`、`memory-writer` 子代理：开工前读总索引、项目地图与相关的产品文档、开发记忆，收尾时按需派子代理维护、主 agent 更新总索引，并规定代码注释怎么写、能引用哪些文档；不挂指令文件 | 项目级（默认）+ 用户级 | 手动 |
-| `setup-agent:plan` | 安装 `agent-plan-write` 与 `agent-plan-exec` skill：把讨论定下的方案按里程碑写成 `docs/plans/` 下的开发计划文档，并按编号顺序执行、边做边勾，里程碑收尾固化进产品文档。装出的 skill 会被自动触发，不装子代理、不挂指令文件 | 项目级（默认）+ 用户级 | 手动 |
-| `setup-agent:report-style` | 输出风格 `Concise+`，不装 skill：Claude Code 使用自定义 output style，Codex 将等价规则写入 `AGENTS.md` | 项目级（默认）+ 用户级 | 手动 |
-| `setup-agent:subagents` | 安装分派子代理的规则（何时派、怎么交代、按难度选档）加 `mechanical`、`implement`、`investigate`、`architect` 四个通用子代理；规则写进指令文件，不装 skill | 项目级（默认）+ 用户级 | 手动 |
-| `setup-agent:unit-test` | 安装 `agent-unit-test` skill 加 `test-writer` 子代理：沿用项目的单元测试框架（没有就问用户并协助安装），测试默认放独立目录，为改动文件补测试、只跑受影响的测试；不挂指令文件 | 项目级 | 手动 |
-| `setup-agent:workflow` | 在项目指令文件里写入「工作流」一节：按已装进项目的 `agent-docs`、`agent-unit-test`、`agent-change-check` 写明开工前先了解项目上下文、交付前按补单元测试、静态检查、改动检查、文档更新的顺序自检，没装的步骤不写；并装上规范以后怎么改这一节的 skill。不装子代理 | 项目级 | 手动 |
+| `setup-agent:bug` | 把缺陷记成只写事实的一次性工单，修复时先复现、定位根因再改 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:change-check` | 交付前派子代理审查本次改动、只给意见不改文件；装 `change-checker` 子代理 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:docs` | 开工前读、收尾时维护项目地图、产品文档与开发记忆，并规范代码注释；装三个文档写作子代理 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:plan` | 把方案按里程碑写成开发计划文档并按序执行 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:report-style` | 简洁的回答风格 `Concise+`：Claude Code 装成输出风格，Codex 写进 `AGENTS.md` | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:subagents` | 把何时、如何分派子代理的规则写进指令文件，并装四个按难度分档的通用子代理 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:unit-test` | 沿用项目现有的测试框架为改动补单元测试、只跑受影响的测试；装 `test-writer` 子代理 | 项目级 | 手动 |
+| `setup-agent:workflow` | 在指令文件里写入「工作流」一节，按已装的专职 skill 编排开工前与交付前的步骤 | 项目级 | 手动 |
 
 ### `setup-git` — 安装 Git 规范与流程
 
@@ -132,10 +134,10 @@ codex plugin add setup-knowledge@bjj-agent-skills
 
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
-| `setup-git:commit` | 安装 `git-commit` skill：按 Conventional Commits 规范生成提交 | 项目级（默认）+ 用户级 | 手动 |
-| `setup-git:find-issues` | 安装 `git-find-issues` skill：在指定仓库中搜索相关 Issue 和 PR | 项目级（默认）+ 用户级 | 手动 |
-| `setup-git:pr` | 安装 `git-pr` skill：压平本地提交、推送并提 PR，建好后清理本地分支与 worktree；安装时确定默认的 PR 目标分支（查不到就问用户），调用时可另行指定 | 项目级 | 手动 |
-| `setup-git:worktree` | 把「代码变更必须在独立 worktree + 独立分支上开发」这套流程写进指令文件，让 worktree 目录不进版本库，并装上拦截「合并时撤销目标分支已有改动」的回退闸门；常驻守护分支列表 `.githooks/branches` 随仓库提交；本地合并前先对齐远程目标分支 | 项目级 | 手动 |
+| `setup-git:commit` | 按 Conventional Commits 规范生成提交 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-git:find-issues` | 在指定仓库中搜索与问题相关的 Issue 和 PR | 项目级（默认）+ 用户级 | 手动 |
+| `setup-git:pr` | 压平本地提交、推送并提 PR，建好后清理本地分支与 worktree | 项目级 | 手动 |
+| `setup-git:worktree` | 把「开发在独立 worktree 加独立分支上完成」写成项目规则，并装上拦截改写已发布历史、撤销已有改动的回退闸门 | 项目级 | 手动 |
 
 ### `setup-tools` — 安装开发辅助工具
 
@@ -143,8 +145,8 @@ codex plugin add setup-knowledge@bjj-agent-skills
 
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
-| `setup-tools:codex-bridge` | 给 Codex 装上读取 Claude 规范的 `claude` skill：开工前盘点用户级与项目级的 Claude 配置，照 Claude 这套工具链继续开发 | 用户级 | 手动 |
-| `setup-tools:cron` | 项目级 crontab 定时任务安装器：任务清单加安装 / 卸载脚本，改任务不用手写 crontab；指令文件里挂一行怎么改任务的说明 | 项目级 | 手动 |
+| `setup-tools:codex-bridge` | 让 Codex 开工前读取 Claude 的用户级与项目级配置，照 Claude 那套工具链继续开发 | 用户级 | 手动 |
+| `setup-tools:cron` | 用一份任务清单加安装 / 卸载脚本管理项目的 crontab 定时任务；指令文件里挂一行说明 | 项目级 | 手动 |
 
 ### `setup-knowledge` — 安装知识类规范
 
@@ -152,7 +154,7 @@ codex plugin add setup-knowledge@bjj-agent-skills
 
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
-| `setup-knowledge:i18n-copy` | 安装 `knowledge-i18n-copy` skill：多语言 App 界面文案规范（各语言语体、破坏性操作与确认框、进行态、报错、括号空格、iOS / Android / Web 大小写、术语统一与多端同步）；项目级安装时在末尾补「本项目」一节（语种、资源位置、术语表等） | 项目级（默认）+ 用户级 | 手动 |
+| `setup-knowledge:i18n-copy` | 多语言 App 界面文案规范 | 项目级（默认）+ 用户级 | 手动 |
 
 ## 排查
 

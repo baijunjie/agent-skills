@@ -29,7 +29,7 @@ RENDER_STYLE="$SETUP_ROOT/scripts/render-report-style.py"
 ## 选作用域
 
 **默认装进当前项目**，随仓库提交，团队共用。用户明确说了「全局 / 用户级 / 所有项目 / 新电脑」时，才装进用户级配置目录。
-当前目录不是 git 仓库时，先告诉用户，确认改装用户级后再装，不要直接写进用户级配置。
+当前目录不是 git 仓库时，先告知用户，确认改装用户级后再装，不要直接写进用户级配置。
 
 ## 指令文件里的标记
 
@@ -49,7 +49,7 @@ RENDER_STYLE="$SETUP_ROOT/scripts/render-report-style.py"
 - **重装**：指令文件里清理的是本安装器的标记范围，同一指令文件里的其它内容不碰。
 - **异常**：下列情况按「现状与预期不符时」**停下来问用户**，不要照写，也不要自行修复；软链要在「写入前检查」里一并查。
   - 指令文件里本安装器的标记不成对：只出现一个、出现多对，或先后颠倒。
-  - 要写的指令文件本身是软链。
+  - 要写的指令文件本身是软链。链向另一宿主的指令文件时，按下面「共用的指令文件」处理。
 - **共用的指令文件**：另一宿主的指令文件是指向要写的这份的软链（如 `CLAUDE.md` → `AGENTS.md`）时，两个宿主读的是同一份。
   写入前**停下来问用户**：说明这一点，问是否写进这份共用的文件；写进去后，按宿主渲染的内容只会保留最后写入的那个宿主的版本。
   这个软链同样在「写入前检查」里一并查。
@@ -78,21 +78,24 @@ RENDER_STYLE="$SETUP_ROOT/scripts/render-report-style.py"
   所以只问改不改：改成 `Concise+`（完全覆盖），或保留原值、只写入风格文件不启用；不提供融入。
 - Claude Code：这次作用域的 `CLAUDE.md`（项目级看项目根目录的，用户级看用户级配置目录下的）里已有管回答风格、
   报告写法的规则。Claude Code 分支不往 `CLAUDE.md` 写标记：选完全覆盖就删掉那段；选融入就并进风格文件，
-  并说明下次重装会被覆盖。
-- Claude Code：另一层（用户级或项目里）也有一份同名风格时，内容一致没有影响；不一致就告诉用户两份都在、
+  并说明下次重装会被覆盖。这一条不适用「指令文件里的标记」里的「冲突的处理结果」，Claude Code 分支的结果落进风格文件。
+- Claude Code：另一层（用户级或项目级）也有一份同名风格时，内容一致没有影响；不一致就告知用户两份都在、
   内容差在哪，留哪份交给用户定。
 - Codex：`AGENTS.md` 标记范围之外已有管回答风格、报告写法的规则。
+- Codex：`CLAUDE.md` 是指向 `AGENTS.md` 的软链时，Claude Code 也会读到这一节，与它的 output style 重复；问用户时说明这一点。
+- **这一项不按冲突问**：项目级安装时用户级指令文件里已有回答风格、报告写法的规则的，不改它，告知用户两份都会生效、内容差在哪。
 
 Claude Code 还要看优先级高于要写的那份、本安装器不写的设置文件：项目级安装看 `.claude/settings.local.json`，
 用户级安装看当前项目的 `.claude/settings.json` 与 `.claude/settings.local.json`。其中 `"outputStyle"` 已设成
-`Concise+` 以外的风格时，这几份不改，告诉用户它会盖过本次设置。
+`Concise+` 以外的风格时，这几份不改，告知用户它会盖过本次设置。
 
 ## Claude Code 项目级安装（默认）
 
-1. **写入风格文件**：已有的同名文件直接覆盖。
+1. **写入风格文件**：已有的整份覆盖。
 
    ```bash
-   cd "$(git rev-parse --show-toplevel)" || exit 1
+   top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+   : "${TEMPLATE_DIR:?}"
    mkdir -p .claude/output-styles
    cp "$TEMPLATE_DIR/output-styles/concise-plus.md" .claude/output-styles/
    ```
@@ -106,9 +109,10 @@ Claude Code 还要看优先级高于要写的那份、本安装器不写的设�
 
 装进**当前会话的用户级配置目录**，不要写死路径。
 
-1. **写入风格文件**：已有的同名文件直接覆盖。
+1. **写入风格文件**：已有的整份覆盖。
 
    ```bash
+   : "${TEMPLATE_DIR:?}"
    C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
    mkdir -p "$C/output-styles"
    cp "$TEMPLATE_DIR/output-styles/concise-plus.md" "$C/output-styles/"
@@ -127,11 +131,10 @@ Claude Code 还要看优先级高于要写的那份、本安装器不写的设�
 
 ## Codex 项目级安装（默认）
 
-1. **写规则**：目标是项目根目录的 `AGENTS.md`，没有就新建。命令把输出风格文件渲染成 `AGENTS.md` 里的一节，
-   并带上本安装器的标记，追加还是替换按「指令文件里的标记」处理：
+1. **写规则**：目标是项目根目录的 `AGENTS.md`，没有就新建。命令把输出风格文件渲染成 `AGENTS.md` 里的一节：
 
    ```bash
-   cd "$(git rev-parse --show-toplevel)" || exit 1
+   top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
    : "${RENDER_STYLE:?}" "${TEMPLATE_DIR:?}"
    rules=$(python3 "$RENDER_STYLE" "$TEMPLATE_DIR/output-styles/concise-plus.md") &&
      printf '\n<!-- setup-agent:report-style:begin -->\n\n%s\n\n<!-- setup-agent:report-style:end -->\n' "$rules" >> AGENTS.md
@@ -165,7 +168,7 @@ rules=$(python3 "$RENDER_STYLE" "$TEMPLATE_DIR/output-styles/concise-plus.md") &
 - **装新的**：按安装步骤写入。
 - **填回**：把读出的定制值填回新文件的对应位置。
 
-**告知用户**时说明：定制值以外的手改，重装时都会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
+**告知用户**时说明：本安装器装出的内容里，定制值以外的手改，重装时会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
 不要修改已安装 plugin 内的模板。
 
 本安装器的定制值：无。

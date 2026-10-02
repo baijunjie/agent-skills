@@ -15,7 +15,8 @@ from pathlib import Path
 SECTION_LEVEL = 2
 SECTION_TITLE = "输出风格：{name}"
 
-HEADING = re.compile(r"^(#{1,6})(?= )")
+# 行首缩进 0–3 个空格、# 之后跟空格或制表符的才是 ATX 标题，下移时保留原有缩进。
+HEADING = re.compile(r"^( {0,3})(#{1,6})(?=[ \t])")
 # 围栏：开头那行定下符号（` 或 ~）与长度，只有同一符号、不短于它、其后只有空白的行才收尾，
 # 所以 ``` 块里的 ~~~ 行（反之亦然）不会提前结束代码块。缩进不限，列表项里的代码块也算。
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})(.*)$")
@@ -42,7 +43,10 @@ def split_frontmatter(source: Path, text: str) -> tuple[str, str]:
 
 
 def demote(source: Path, body: str) -> str:
-    """正文标题下移到节标题之下；代码块里以 # 开头的行不是标题，不动。"""
+    """正文标题下移到节标题之下；代码块里以 # 开头的行不是标题，不动。
+
+    结尾仍有未闭合的围栏时报错：否则其后的标题全被当成代码块，静默地不下移。
+    """
     out = []
     opener = ""
     for line in body.split("\n"):
@@ -52,11 +56,13 @@ def demote(source: Path, body: str) -> str:
         elif fence := FENCE.match(line):
             opener = fence.group(1)
         elif m := HEADING.match(line):
-            level = len(m.group(1)) + SECTION_LEVEL
-            if level > 6:
+            indent, hashes = m.groups()
+            if len(hashes) + SECTION_LEVEL > 6:
                 raise ValueError(f"{source}：标题下移后超过六级：{line}")
-            line = "#" * SECTION_LEVEL + line
+            line = indent + "#" * SECTION_LEVEL + line[len(indent) :]
         out.append(line)
+    if opener:
+        raise ValueError(f"{source}：代码块围栏 {opener} 到结尾都没有闭合")
     return "\n".join(out)
 
 

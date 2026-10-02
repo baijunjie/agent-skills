@@ -26,8 +26,8 @@ disable-model-invocation: true
 ## 通用步骤
 
 1. **写入 skill**：执行所在宿主安装节里的 `cp`，已有的整份覆盖。
-2. **装子代理**：已有的同名文件整份替换；Codex 用渲染脚本的 `--replace` 替换同名旧 `.toml`，目标是软链时它会
-   整批拒绝写入。项目级安装时，旧子代理「检查项」一节里有「本项目」表的，先把它读出来再替换
+2. **装子代理**：已有的整份覆盖；Codex 用渲染脚本的 `--replace` 替换同名旧 `.toml`，目标是软链时它会
+   整批拒绝写入。项目级安装时，旧子代理「检查项」一节里有「本项目」表的，先把它读出来再覆盖
    （见「重装」；Codex 在旧 `.toml` 的 `developer_instructions` 里）。
 3. **对齐项目**：只在项目级安装时做。项目有审查时必须知道、与通用检查项不同的约定——编码规范文档在哪、
    哪类改动必须额外盯的风险点——就在装好的子代理「检查项」一节加一张「本项目」表写进去
@@ -51,6 +51,7 @@ disable-model-invocation: true
 
 ```bash
 {{include: project-root}}
+: "${TEMPLATE_DIR:?}"
 mkdir -p .claude/skills/agent-change-check .claude/agents
 cp "$TEMPLATE_DIR/agent-change-check.md" .claude/skills/agent-change-check/SKILL.md
 cp "$TEMPLATE_DIR/agents/change-checker.md" .claude/agents/
@@ -65,6 +66,7 @@ cp "$TEMPLATE_DIR/agents/change-checker.md" .claude/agents/
 装进**当前会话的用户级配置目录**，不要写死路径。
 
 ```bash
+: "${TEMPLATE_DIR:?}"
 C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 mkdir -p "$C/skills/agent-change-check" "$C/agents"
 cp "$TEMPLATE_DIR/agent-change-check.md" "$C/skills/agent-change-check/SKILL.md"
@@ -90,9 +92,9 @@ python3 "$RENDER_AGENT" --replace --output-dir .codex/agents "$TEMPLATE_DIR/agen
 ## Codex 用户级安装
 
 ```bash
-{{include: codex-user-skill-dir}}
-D=$(codex_skill_dir agent-change-check) || exit 1
 : "${RENDER_AGENT:?}" "${TEMPLATE_DIR:?}"
+D="$HOME/.agents/skills/agent-change-check"
+X=${CODEX_HOME:-$HOME/.codex}
 mkdir -p "$D" "$X/agents"
 cp "$TEMPLATE_DIR/agent-change-check.md" "$D/SKILL.md"
 python3 "$RENDER_AGENT" --replace --output-dir "$X/agents" "$TEMPLATE_DIR/agents/change-checker.md"
@@ -104,7 +106,7 @@ python3 "$RENDER_AGENT" --replace --output-dir "$X/agents" "$TEMPLATE_DIR/agents
 
 本安装器的定制值：
 
-- 子代理「检查项」一节里的「本项目」表（项目级安装）：第 2 步替换前读出，第 3 步对照项目重新核对——
+- 子代理「检查项」一节里的「本项目」表（项目级安装）：第 2 步覆盖前读出，第 3 步对照项目重新核对——
   出处是规范文档的，文档还在、约定还成立的沿用，已不存在的去掉；出处为「用户交代」的原样沿用。
 - 用户级安装：无。
 

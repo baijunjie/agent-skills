@@ -32,11 +32,11 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
 ## 选作用域
 
 **默认装进当前项目**，随仓库提交，团队共用。用户明确说了「全局 / 用户级 / 所有项目 / 新电脑」时，才装进用户级配置目录。
-当前目录不是 git 仓库时，先告诉用户，确认改装用户级后再装，不要直接写进用户级配置。
+当前目录不是 git 仓库时，先告知用户，确认改装用户级后再装，不要直接写进用户级配置。
 
 Claude Code 中同名 skill 是**用户级优先于项目级**，与「就近优先」的直觉相反。
-所以要按项目定制的 skill，不要在用户级再装一份同名的。写入前发现另一层也有同名 skill 时，告诉用户两份都在，Claude Code 实际生效的是用户级那份。
-Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户级**；写入前发现另一层也有同名子代理时，告诉用户两份都在、实际生效的是项目级那份。
+所以要按项目定制的 skill，不要在用户级再装一份同名的。写入前发现另一层也有同名 skill 时，告知用户两份都在，Claude Code 实际生效的是用户级那份。
+Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户级**；写入前发现另一层也有同名子代理时，告知用户两份都在、实际生效的是项目级那份。
 
 ## 写入前检查
 
@@ -61,8 +61,8 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 ## 通用步骤
 
 1. **写入 skill**：执行所在宿主安装节里的 `cp`，已有的整份覆盖。
-2. **装子代理**：已有的同名文件整份替换；Codex 用渲染脚本的 `--replace` 替换同名旧 `.toml`，目标是软链时它会
-   整批拒绝写入。项目级安装时，旧子代理「检查项」一节里有「本项目」表的，先把它读出来再替换
+2. **装子代理**：已有的整份覆盖；Codex 用渲染脚本的 `--replace` 替换同名旧 `.toml`，目标是软链时它会
+   整批拒绝写入。项目级安装时，旧子代理「检查项」一节里有「本项目」表的，先把它读出来再覆盖
    （见「重装」；Codex 在旧 `.toml` 的 `developer_instructions` 里）。
 3. **对齐项目**：只在项目级安装时做。项目有审查时必须知道、与通用检查项不同的约定——编码规范文档在哪、
    哪类改动必须额外盯的风险点——就在装好的子代理「检查项」一节加一张「本项目」表写进去
@@ -85,7 +85,8 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 ## Claude Code 项目级安装（默认）
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+: "${TEMPLATE_DIR:?}"
 mkdir -p .claude/skills/agent-change-check .claude/agents
 cp "$TEMPLATE_DIR/agent-change-check.md" .claude/skills/agent-change-check/SKILL.md
 cp "$TEMPLATE_DIR/agents/change-checker.md" .claude/agents/
@@ -100,6 +101,7 @@ cp "$TEMPLATE_DIR/agents/change-checker.md" .claude/agents/
 装进**当前会话的用户级配置目录**，不要写死路径。
 
 ```bash
+: "${TEMPLATE_DIR:?}"
 C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 mkdir -p "$C/skills/agent-change-check" "$C/agents"
 cp "$TEMPLATE_DIR/agent-change-check.md" "$C/skills/agent-change-check/SKILL.md"
@@ -111,7 +113,7 @@ cp "$TEMPLATE_DIR/agents/change-checker.md" "$C/agents/"
 ## Codex 项目级安装（默认）
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
 : "${RENDER_AGENT:?}" "${TEMPLATE_DIR:?}"
 mkdir -p .agents/skills/agent-change-check .codex/agents
 cp "$TEMPLATE_DIR/agent-change-check.md" .agents/skills/agent-change-check/SKILL.md
@@ -125,21 +127,9 @@ python3 "$RENDER_AGENT" --replace --output-dir .codex/agents "$TEMPLATE_DIR/agen
 ## Codex 用户级安装
 
 ```bash
-X=${CODEX_HOME:-$HOME/.codex}
-# 每个 skill 各自决定写入位置：$HOME/.agents/skills/<名> 已有就原地更新它，否则装到 $X/skills/<名>。
-# 别两处各放一份同名 skill：两处都已存在时函数报错，停下来问用户，不自行删除其中一份。
-codex_skill_dir() {
-  if [ ! -d "$HOME/.agents/skills/$1" ]; then
-    echo "$X/skills/$1"
-  elif [ -d "$X/skills/$1" ]; then
-    echo "$1：$HOME/.agents/skills 与 $X/skills 下都有，停下来问用户保留哪一份" >&2
-    return 1
-  else
-    echo "$HOME/.agents/skills/$1"
-  fi
-}
-D=$(codex_skill_dir agent-change-check) || exit 1
 : "${RENDER_AGENT:?}" "${TEMPLATE_DIR:?}"
+D="$HOME/.agents/skills/agent-change-check"
+X=${CODEX_HOME:-$HOME/.codex}
 mkdir -p "$D" "$X/agents"
 cp "$TEMPLATE_DIR/agent-change-check.md" "$D/SKILL.md"
 python3 "$RENDER_AGENT" --replace --output-dir "$X/agents" "$TEMPLATE_DIR/agents/change-checker.md"
@@ -159,12 +149,12 @@ python3 "$RENDER_AGENT" --replace --output-dir "$X/agents" "$TEMPLATE_DIR/agents
 - **装新的**：按安装步骤写入。
 - **填回**：把读出的定制值填回新文件的对应位置。
 
-**告知用户**时说明：定制值以外的手改，重装时都会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
+**告知用户**时说明：本安装器装出的内容里，定制值以外的手改，重装时会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
 不要修改已安装 plugin 内的模板。
 
 本安装器的定制值：
 
-- 子代理「检查项」一节里的「本项目」表（项目级安装）：第 2 步替换前读出，第 3 步对照项目重新核对——
+- 子代理「检查项」一节里的「本项目」表（项目级安装）：第 2 步覆盖前读出，第 3 步对照项目重新核对——
   出处是规范文档的，文档还在、约定还成立的沿用，已不存在的去掉；出处为「用户交代」的原样沿用。
 - 用户级安装：无。
 

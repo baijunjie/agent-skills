@@ -1,28 +1,128 @@
 #!/usr/bin/env python3
 """把安装器源文件展开成 plugins/setup-<领域>/skills/<skill>/SKILL.md。
 
-源文件是 sources/<领域>-<skill>.md，公共片段是 fragments/<片段名>.md。语法只有两样：
+源文件是 sources/<领域>-<skill>.md，公共片段是 fragments/<片段名>.md。语法只有两样，不支持条件与循环：
   {{include: 片段名}}   独占一行，替换为该片段内容；行首有缩进时片段每一行都补上同样的缩进，
                         以便放进列表项里的代码块；片段里也可以再 include 别的片段
-  {{变量}}              替换为变量值
+  {{变量}}              替换为变量值；多行的变量值不补缩进，只能用在行首不缩进的行里
+
+片段文件开头可以有一段只给维护者看的说明（首行恰为 <!--，到恰为 --> 的行为止），读入时去掉，不进生成物。
 
 变量有四个来源：
   DEFAULTS    各安装器没声明时的回退值，INSTALLERS 可以覆盖
   按文件名推导 skill（skill 目录名）、name（源文件名；skill-targets 用它作装出的 skill 名和模板文件名）、
               marker（`setup-<领域>:<skill>`，指令文件里本安装器那对标记的名字）
   SCOPES      作用域决定的 description 措辞 scope_lead / scope_tail
-  INSTALLERS  各安装器声明的变量；不得声明推导出的与作用域决定的变量，声明了就报错
+  INSTALLERS  以源文件名为键，值为 (作用域, 变量)，只声明各安装器有差异的变量；
+              不得声明推导出的与作用域决定的变量。正文要原样输出 {{…}} 占位符时，也经这里声明的变量输出
 
-include 先于变量展开，所以片段里也能用变量。经 fragment() 读进变量值的片段同样展开其中的变量，
-但不能再 include，也不能引用另一个经 fragment() 注入的变量。
-
-构建时校验的完整清单只在仓库根目录 AGENTS.md「校验」节维护。写出前先渲染并校验全部安装器，
-任一报错就一个文件都不写。
+include 先于变量展开，所以片段里也能用变量。变量值要用 fragments/ 里的文案时经 fragment() 读进来，
+这种值同样展开其中的变量，但不能再 include，也不能引用另一个经 fragment() 注入的变量。
 
 用法：
   build.py           写出全部生成物
   build.py --check   生成物与源文件不一致时非零退出
 """
+# 构建时的校验清单，按类别分组；任一项不过就报错退出。新增或修改校验时同步改这里与 tools/tests/build/。
+#
+# 展开
+#   - include 的片段不存在、循环 include；fragment() 引用的片段不存在，或 lead 不是空白
+#   - 未声明的变量；行首有缩进的行里引用了多行的变量值；去掉变量引用后行里仍有 {{ 或 }}。
+#     报错指出出自源文件还是片段及其行号；经 fragment() 注入的片段同样逐行检查
+#   - 经 fragment() 注入的片段里有 {{include: …}}，或引用了另一个经 fragment() 注入的变量
+#   - 片段开头的说明块没有独占一行的 -->
+#
+# 登记与命名
+#   - sources/ 下有没在 INSTALLERS 登记的源文件，或登记的源文件不存在
+#   - plugins/setup-*/skills/ 下有不对应登记源文件的目录（含只剩 template/ 的残留目录），
+#     或散落的普通文件（名为 .DS_Store 的跳过）
+#   - 源文件名不是 <领域>-<skill>
+#   - fragments/ 下有没被任何源文件 include、也没经 fragment() 引用的片段（全部安装器渲染完后查）
+#
+# INSTALLERS 声明
+#   - scope 不是 SCOPES 里的作用域；声明了推导出的或作用域决定的变量
+#   - 声明的变量在展开后的正文与注入的片段里都没被引用（DEFAULTS 有回退值也不豁免）
+#   - template_sub 不匹配 TEMPLATE_SUB（须带前导 /、不带末尾 /，各段不能是 . 或 ..）
+#   - extra_env 非空却不以换行开头，或有不是 <变量>="<值>" 的行；正文用到的 $RENDER_*（含 ${RENDER_…}）
+#     没在 extra_env 里定义，或 extra_env 定义的变量在正文里没用到
+#
+# 模板
+#   - TEMPLATE_DIR（template/ 加 template_sub）不存在
+#   - include 了 skill-targets，template/<name>.md 却不存在
+#
+# frontmatter
+#   - 源文件或生成物首行不是 ---，或其后没有独占一行的结尾 ---；顶层键出现不止一次
+#   - 源文件缺少 description；description 不以 {{scope_lead}} 开头，或 {{scope_tail}} 引用次数不是一次；
+#     {{scope_tail}} 之后不是紧接末尾的「用于……等场景。」这一句（写成 {{scope_tail}}用于，其后到结尾的
+#     「等场景。」之间不能再有「。」）
+#   - 源文件没有 disable-model-invocation: true
+#   - 生成物的 description 含「: 」「 #」、以「:」结尾，或以 YAML 指示字符（YAML_INDICATORS）开头
+#   - 生成物的 name 与所在目录名不一致
+#   - agents/openai.yaml 不存在或有用制表符缩进的行；顶层 policy: 块的直接子键里没有
+#     allow_implicit_invocation: false，或这个直接子键出现了不止一次（别的块下或更深一层的不算）
+#
+# 作用域
+#   - project-user 的源文件没有 include scope-select（按展开结果计，手写「## 选作用域」不算），
+#     或别的作用域的源文件 include 了它
+#   - 代码块之外提到「项目级」「用户级」的 ## / ### 标题（行首缩进 0–3 个空格也算）不是整行合乎
+#     PROJECT_SECTION / USER_SECTION 的写法
+#   - 代码块之外的二级标题在生成物里重复（去掉行首缩进与末尾闭合的 # 后比较）
+#   - 正文缺少该作用域必需的「## 选作用域」/ 项目级安装节 / 用户级安装节，或含不该有的
+#   - 源文件或生成物结尾有未闭合的代码块围栏（围栏配对规则见 FENCE）
+#
+# 片段放法
+#   - host-conventions、pre-write、reinstall、state-mismatch 没有在源文件顶层（不缩进）各直接 include 恰好一次
+#   - 除 REPEATABLE 外，任一片段在一个安装器的展开结果里出现不止一次（直接、缩进、经别的片段，
+#     还是经 fragment() 注入都算）
+#   - setup-tools 的源文件（tools-*）include 了 skill-targets
+#   - host-conventions 所在的节（其前最近的代码块之外的「## 」标题）不是「## 跨宿主约定」
+#   - 顶层直接 include 的 markers 在 pre-write 之后
+#   - pre-write / reinstall 之后的第一个非空行不以 FOLLOWED_BY 规定的开头起头
+#
+# 标记
+#   - 源文件里手写了形似 setup 标记的文字（正文里的标记须写 {{marker}}）
+#   - 生成物或该 skill 的 template/ 下的文件里有形似 setup 标记（LOOSE_MARKER）却不合 MARKER 格式的，
+#     或标记名不等于 marker
+#   - template/ 下某个文件的标记不是 begin、end 各一个且 begin 在前，也不是都没有（生成物不查成对：
+#     那里的标记出现在命令里）
+#   - 写指令文件（源文件含 {{marker}}，或 template/ 里有本安装器的标记）却没有在顶层 include markers，
+#     或 include 了 markers 却不写指令文件
+#
+# 步骤引用
+#   - 生成物里「第 N 步」「第 N–M 步」「第 N、M 步」中的任一数字大于代码块之外编号列表项的最大序号。
+#     只是最大步号检查：抓得出指向不存在步骤的引用，不保证指向的是正确的那一步
+#
+# 替换表（表头整行为「| 位置 | 原文 | 改成 |」，被改写的模板是 TEMPLATE_DIR 下的 <name>.md）
+#   - 有替换表，被改写的模板却不存在
+#   - 某行不是三列，或「位置」里没有「」
+#   - 「位置」里每段「」在模板里不是恰好一个列表项（「- 」开头的行）以它开头
+#   - 「原文」里每段「」在模板里不是恰好出现一次，或「位置」只有一段时不落在那一项里
+#     （该项算到下一个缩进不深于它的非空行为止）。「改成」不查
+#
+# 命令块
+#   - 生成物里用到 $TEMPLATE_DIR（含 ${TEMPLATE_DIR…}）的 bash 代码块，在第一次用到之前没有
+#     `: "${TEMPLATE_DIR:?}"` 守卫（以「: 」开头、含 "${TEMPLATE_DIR:?…}" 的行，可与别的变量合写一行，不含 # 之后的注释，守卫之前的部分也不能含 #（包括 ${A#x} 这类展开）；内联在 cp 等命令里的 :? 不算守卫，须单独成行）；
+#     报错指出生成物里该块的起始行。只查围栏信息串恰为 bash 的块（生成物里只有 bash 与 markdown 两种），正文里提到的 $TEMPLATE_DIR 不查
+#   - 生成物里出现 Codex 用户级 skill 的旧位置（CODEX_SKILL_DIR：$X/skills、$CODEX_HOME/skills、.codex/skills 等）；
+#     用户级 skill 固定写 $HOME/.agents/skills/<名>，项目级的 .agents/skills 与 .codex/agents 不受影响
+#
+# 文案
+#   - sources/ 与 fragments/ 的文件里出现 BANNED_WORDS 里的说法（如「告诉用户」，见 docs/decisions.md「固定用语」）；
+#     templates 里的不查
+#
+# 写出
+#   - 写出前先渲染并校验全部安装器，任一报错就一个生成物都不写
+#   - --check 按字节比较生成物（只是换行被改成 CRLF 也算不一致）；源文件与片段读入时 CRLF 与单独的 CR 都归一成 LF
+#
+# 不校验、靠维护者自觉：
+#   - host-conventions、markers 以外各片段的放置位置与适用的源文件（见各片段文件开头的说明）；
+#     pre-write / reinstall 之后只查第一个非空行的开头
+#   - subagent_rule 只声明给装子代理的安装器；subagent-rule 直接 include 只用于装子代理的源文件
+#   - description 里 {{scope_tail}} 以外只写本安装器独有的内容
+#   - reinstall 之后的定制值逐项写明从哪读、何时填回；装出的模板里待填位置写明记录什么、来自哪里
+#   - #### 及更深的标题不参与作用域检查；「## 步骤」这类不提「项目级」「用户级」的标题不报错，只是不算安装节
+#   - 用户级安装节是否 Claude Code、Codex 两个宿主都写了
+#   - project-root 是否真放在要在仓库根目录执行的命令块里
 import re
 import sys
 from collections import Counter
@@ -41,6 +141,25 @@ class Fragment(str):
 
     name: str
     lead: str
+    offset: int
+
+
+def read_fragment(path: Path) -> tuple[str, int]:
+    """片段原文去掉开头的说明块，连同被去掉的行数（报错时据此指回片段文件里的原始行号）。
+
+    说明块只给维护者看：首行恰为 `<!--`，到第一个恰为 `-->` 的行为止，其后紧跟的一个空行一并去掉，
+    都不进生成物。只认独占一行的 `<!--`，片段正文以带内容的 HTML 注释（如 setup 标记）开头时不受影响。
+    """
+    text = path.read_text(encoding="utf-8")
+    lines = text.split("\n")
+    if lines[0] != "<!--":
+        return text, 0
+    if "-->" not in lines[1:]:
+        sys.exit(f"build.py: fragments/{path.name} 开头的说明块没有独占一行的 -->")
+    skip = lines.index("-->", 1) + 1
+    if skip < len(lines) and lines[skip] == "":
+        skip += 1
+    return "\n".join(lines[skip:]), skip
 
 
 def fragment(name: str, lead: str = "") -> Fragment:
@@ -55,9 +174,11 @@ def fragment(name: str, lead: str = "") -> Fragment:
     if lead.strip():
         sys.exit(f"build.py: fragment({name}) 的 lead 只能是空白")
     USED_FRAGMENTS.add(name)
-    value = Fragment(path.read_text(encoding="utf-8").strip("\n"))
+    text, offset = read_fragment(path)
+    value = Fragment(text.strip("\n"))
     value.name = name
     value.lead = lead
+    value.offset = offset
     return value
 
 
@@ -91,22 +212,27 @@ SCOPES = {
 }
 SCOPE_VARS = ("scope_lead", "scope_tail")
 
-SCOPE_SELECT = re.compile(r"^## 选作用域$")
+SCOPE_SELECT = re.compile(r"^ {0,3}## 选作用域$")
 # 安装节标题只认 `## [Claude Code |Codex ]项目级安装[（默认）]` 与对应的用户级，不按子串匹配。
-# 提到「项目级安装」「用户级安装」的二级、三级标题都须整行合乎这两种写法，否则报错：换个写法
-# （「## 项目级安装（可选）」「### 项目级安装」）就能把安装节藏过作用域检查，「## 不做项目级安装」
-# 之类的标题也会被误当成安装节的意思。
+# 提到「项目级」「用户级」的二级、三级标题都须整行合乎这两种写法，否则报错：换个写法
+# （「## 项目级安装（可选）」「### 项目级安装」「## 用户级配置安装」）就能把安装节藏过作用域检查，
+# 「## 不做项目级安装」之类的标题也会被误当成安装节的意思。
 PROJECT_SECTION = re.compile(r"^## (?:Claude Code |Codex )?项目级安装(?:（默认）)?$")
 USER_SECTION = re.compile(r"^## (?:Claude Code |Codex )?用户级安装$")
-SECTION_WORDS = ("项目级安装", "用户级安装")
-SECTION_HEADING = re.compile(r"^###? ")
+SECTION_WORDS = ("项目级", "用户级")
+# 行首缩进 0–3 个空格仍是 Markdown 标题；缩进的安装节标题不合上面两种写法，会被当成写法不对报错。
+SECTION_HEADING = re.compile(r"^ {0,3}###?[ \t]")
+LEVEL2_HEADING = re.compile(r"^ {0,3}##[ \t]")
 # 代码块围栏：开头那行定下符号（` 或 ~）与长度，只有同一符号、不短于它、其后只有空白的行才收尾。
 # 缩进不限，列表项里的代码块也算。
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})(.*)$")
-TEMPLATE_SUB = re.compile(r"^(/[\w.-]+)+$")
-# extra_env 里每一行都是一条变量定义；正文用 $RENDER_X 或 ${RENDER_X…} 引用。
-ENV_DEFINITION = re.compile(r"^(\w+)=")
+# 每一段都不能是 . 或 ..：TEMPLATE_DIR 不得跳出 template/。
+TEMPLATE_SUB = re.compile(r"^(/(?!\.\.?(/|$))[\w.-]+)+$")
+# extra_env 里每一行都是一条变量定义，值写成双引号字符串；正文用 $RENDER_X 或 ${RENDER_X…} 引用。
+ENV_DEFINITION = re.compile(r'^(\w+)="[^"\n]*"$')
 RENDER_USE = re.compile(r"\$\{?(RENDER_\w+)")
+# 不加引号的 YAML 标量不能以这些字符开头。
+YAML_INDICATORS = set("-?:,[]{}#&*!|>'\"%@`")
 
 # 源文件名 -> (作用域, 变量)。生成物路径、skill、name、marker 都由源文件名推导，这里只写各安装器真正不同的。
 INSTALLERS = {
@@ -145,8 +271,8 @@ INCLUDE = re.compile(r"^([ \t]*)\{\{include:\s*([\w-]+)\s*\}\}[ \t]*$")
 
 # 每个源文件都要直接 include 的片段；markers 只有往指令文件写内容的才 include。
 REQUIRED_INCLUDES = ("host-conventions", "pre-write", "reinstall", "state-mismatch")
-# 至多 include 一次的片段（不论直接还是经别的片段）。
-AT_MOST_ONCE = ("scope-select",)
+# 在一个安装器的展开结果里可以出现多次的片段；其余片段不论直接还是经别的片段 include，都至多一次。
+REPEATABLE = ("project-root",)
 # 这两个片段之后的第一段必须是源文件补充的本安装器专属内容。
 FOLLOWED_BY = {"pre-write": "本安装器另外要查的冲突：", "reinstall": "本安装器的定制值："}
 VARIABLE = re.compile(r"\{\{(\w+)\}\}")
@@ -154,6 +280,22 @@ MARKER = re.compile(r"<!-- (setup-[\w-]+:[\w-]+):(begin|end) -->")
 # 宽松匹配：凡是像 setup 标记开头的都要能按 MARKER 严格匹配，以抓出少空格、大小写不对、
 # 连字符写成冒号或下划线、拼错 begin/end 之类的坏标记。
 LOOSE_MARKER = re.compile(r"<!--\s*setup[-:_]", re.I)
+# 正文里的步骤引用：「第 3 步」「第 2–4 步」「第 5、6 步」，取其中全部数字。
+STEP_REF = re.compile(r"第 ?\d+(?: ?[–、] ?\d+)* ?步")
+NUMBERED_ITEM = re.compile(r"^[ \t]*(\d+)\.[ \t]")
+# 替换表：表头整行是「| 位置 | 原文 | 改成 |」的 Markdown 表格，可以缩进放进列表项。
+TABLE_ROW = re.compile(r"^[ \t]*\|(.*)\|[ \t]*$")
+REPLACEMENT_HEADER = ["位置", "原文", "改成"]
+LIST_ITEM = re.compile(r"^([ \t]*)- ")
+# bash 代码块里对 TEMPLATE_DIR 的使用与守卫。守卫行本身也含 ${TEMPLATE_DIR:?}，须先按守卫认。
+TEMPLATE_DIR_USE = re.compile(r"\$(?:TEMPLATE_DIR\b|\{TEMPLATE_DIR\b)")
+TEMPLATE_DIR_GUARD = re.compile(r'^[ \t]*: [^#]*"\$\{TEMPLATE_DIR:\?[^}]*\}"')
+# Codex 用户级 skill 不在 $CODEX_HOME（缺省 ~/.codex）下：凡是这个目录下的 skills 都是旧位置。
+# 「.codex}」是 ${CODEX_HOME:-$HOME/.codex}/skills 的写法。
+# 变量后可带 :-默认值 / :?提示，也可带引号：${X:?}/skills、"$X"/skills、"$HOME/.codex"/skills。
+CODEX_SKILL_DIR = re.compile(r'(?:\$\{?(?:X|CODEX_HOME)(?::?[-?=+][^}]*)?\}?|\.codex\}?)"?/skills\b')
+# 已禁用的说法 -> 改用什么。固定用语见 docs/decisions.md「固定用语」。
+BANNED_WORDS = {"告诉用户": "按停不停改成「汇报」「告知用户」或「交给用户定」"}
 
 
 def locate(name: str) -> tuple[str, str]:
@@ -169,70 +311,146 @@ def target_of(name: str) -> Path:
     return REPO / "plugins" / plugin / "skills" / skill / "SKILL.md"
 
 
+def frontmatter(name: str, text: str, where: str) -> str:
+    """首行 --- 与其后第一个独占一行的 --- 之间的内容。
+
+    没有闭合的 --- 时报错：否则 frontmatter 会一直延伸到正文，正文里碰巧写的 name: / description:
+    也会被当成 frontmatter 的键。
+    """
+    lines = text.split("\n")
+    if lines[0] != "---":
+        sys.exit(f"{name}: {where}首行必须是 ---")
+    try:
+        closing = lines.index("---", 1)
+    except ValueError:
+        sys.exit(f"{name}: {where}的 frontmatter 没有独占一行的结尾 ---")
+    return "\n".join(lines[1:closing])
+
+
+def check_keys(name: str, front: str, where: str) -> None:
+    """frontmatter 的顶层键各恰好出现一次。
+
+    YAML 对重复键取最后一个值且多数解析器不报错：后面再写一行 disable-model-invocation: false
+    就会悄悄打开隐式调用，而只找「有没有 true 那一行」的检查照样通过。
+    """
+    keys = Counter(m.group(1) for m in re.finditer(r"^([\w-]+):(?=\s|$)", front, re.M))
+    for key, count in sorted(keys.items()):
+        if count > 1:
+            sys.exit(f"{name}: {where}的 frontmatter 里 {key} 出现了 {count} 次，每个键只能写一次")
+
+
+def check_plain_scalar(name: str, front: str) -> None:
+    """生成物的 description 须是合法的 YAML 不加引号的标量。
+
+    值里有「: 」会被当成嵌套映射、「 #」之后会被当成注释截掉，以指示字符开头的会被解析成别的结构或直接报错；
+    宿主解析失败时整个 skill 加载不了。只查不加引号的写法：源文件的 description 须以 {{scope_lead}} 开头，
+    加不了引号。
+    """
+    m = re.search(r"^description: (.*)$", front, re.M)
+    value = m.group(1) if m else ""
+    if ": " in value or " #" in value or value.endswith(":"):
+        sys.exit(f"{name}: 生成物的 description 含「: 」「 #」或以「:」结尾，YAML 会解析错，改写成不含它们（中文冒号「：」可以）")
+    if value[:1] in YAML_INDICATORS:
+        sys.exit(f"{name}: 生成物的 description 以 YAML 指示字符 {value[0]} 开头，改写开头")
+
+
 def check_frontmatter(name: str, text: str) -> None:
-    """源文件的 frontmatter：作用域措辞不手抄、安装器禁止隐式调用。"""
-    front = text.split("\n---\n", 1)[0]
+    """源文件的 frontmatter：键不重复、作用域措辞不手抄、安装器禁止隐式调用。"""
+    front = frontmatter(name, text, "源文件")
+    check_keys(name, front, "源文件")
     m = re.search(r"^description: (.*)$", front, re.M)
     if not m:
         sys.exit(f"{name}: 源文件缺少 description")
     desc = m.group(1)
     if not desc.startswith("{{scope_lead}}") or desc.count("{{scope_tail}}") != 1:
         sys.exit(f"{name}: description 须以 {{{{scope_lead}}}} 开头并引用一次 {{{{scope_tail}}}}")
-    if "{{scope_tail}}用于" not in desc or not desc.endswith("等场景。"):
-        sys.exit(f"{name}: description 的 {{{{scope_tail}}}} 须紧接末尾的「用于……等场景。」，写成 {{{{scope_tail}}}}用于……")
+    # scope_tail 本身以「。」收尾，之后只能是最后一句「用于……等场景。」，不能再接别的句子
+    _, _, tail = desc.partition("{{scope_tail}}用于")
+    if not tail.endswith("等场景。") or "。" in tail[:-1]:
+        sys.exit(f"{name}: description 的 {{{{scope_tail}}}} 须紧接末尾的「用于……等场景。」这一句，写成 {{{{scope_tail}}}}用于……")
     if not re.search(r"^disable-model-invocation: true$", front, re.M):
         sys.exit(f"{name}: 源文件 frontmatter 须有 disable-model-invocation: true")
     openai = target_of(name).parent / "agents" / "openai.yaml"
     if not openai.is_file():
         sys.exit(f"{name}: 缺少 {openai.relative_to(REPO)}")
-    if not policy_disables_implicit(openai.read_text(encoding="utf-8")):
+    values = policy_implicit_values(name, openai.relative_to(REPO), openai.read_text(encoding="utf-8"))
+    if len(values) > 1:
+        sys.exit(f"{name}: {openai.relative_to(REPO)} 的 policy: 块里 allow_implicit_invocation 出现了不止一次")
+    if values != ["false"]:
         sys.exit(f"{name}: {openai.relative_to(REPO)} 须设 policy.allow_implicit_invocation: false")
 
 
-def policy_disables_implicit(yaml: str) -> bool:
-    """顶层 policy: 块（其后缩进的行）里有 allow_implicit_invocation: false；别的块里的同名键不算。"""
+def policy_implicit_values(name: str, where: Path, yaml: str) -> list[str]:
+    """顶层 policy: 块的直接子键 allow_implicit_invocation 的取值，按出现顺序。
+
+    直接子键指缩进等于块内最小缩进的行；别的块里、或更深一层的同名键都不算，否则写在
+    interface: 下或嵌套在别的键里也能蒙混过关。取最小缩进而不是第一行的缩进：第一行缩进更深时
+    YAML 会直接报错，不能让它把后面真正的直接子键当成更深一层放过去。
+    """
+    block: list[str] = []
     in_policy = False
-    for line in yaml.split("\n"):
+    for lineno, line in enumerate(yaml.split("\n"), 1):
+        if "\t" in line[: len(line) - len(line.lstrip())]:
+            sys.exit(f"{name}: {where} 第 {lineno} 行用制表符缩进，YAML 只允许空格缩进")
         if not line.strip() or line.lstrip().startswith("#"):
             continue
         if not line[0].isspace():
             in_policy = re.match(r"^policy:\s*(#.*)?$", line) is not None
-        elif in_policy and re.match(r"^\s+allow_implicit_invocation:\s*false\s*(#.*)?$", line):
-            return True
-    return False
+            continue
+        if in_policy:
+            block.append(line)
+    if not block:
+        return []
+    child = min(len(line) - len(line.lstrip()) for line in block)
+    return [
+        m.group(1)
+        for line in block
+        if len(line) - len(line.lstrip()) == child
+        and (m := re.match(r"^\s+allow_implicit_invocation:\s*(\S*?)\s*(#.*)?$", line))
+    ]
 
 
-def outside_fences(lines: list[str]) -> list[int]:
-    """不在代码块里的行的下标；围栏行本身也算在代码块里。"""
-    out, opener = [], ""
+def outside_fences(name: str, lines: list[str], where: str) -> list[int]:
+    """不在代码块里的行的下标；围栏行本身也算在代码块里。
+
+    结尾仍有未闭合的围栏时报错：否则其后的内容全被当成代码块，标题检查就看不到它们。
+    """
+    out, opener, opened_at = [], "", 0
     for index, line in enumerate(lines):
         m = FENCE.match(line)
         if opener:
             if m and m.group(1)[0] == opener[0] and len(m.group(1)) >= len(opener) and not m.group(2).strip():
                 opener = ""
         elif m:
-            opener = m.group(1)
+            opener, opened_at = m.group(1), index
         else:
             out.append(index)
+    if opener:
+        sys.exit(f"{name}: {where}第 {opened_at + 1} 行的代码块围栏 {opener} 到结尾都没有闭合")
     return out
 
 
-def headings(text: str) -> list[str]:
+def headings(name: str, text: str) -> list[str]:
     """代码块之外的二级、三级标题行。"""
     lines = text.split("\n")
-    return [lines[i].rstrip() for i in outside_fences(lines) if SECTION_HEADING.match(lines[i])]
+    return [lines[i].rstrip() for i in outside_fences(name, lines, "生成物") if SECTION_HEADING.match(lines[i])]
 
 
 def check_scope(name: str, scope: str, text: str) -> None:
     """正文的节须与作用域一一对应：该有的安装节必须有，不该有的不能有。"""
     expected = SCOPES[scope][2:]
-    found = headings(text)
+    found = headings(name, text)
     for h in found:
         if any(word in h for word in SECTION_WORDS) and not (PROJECT_SECTION.match(h) or USER_SECTION.match(h)):
             sys.exit(
-                f"{name}: 标题 {h} 提到了安装节，须整行写成 ## [Claude Code |Codex ]项目级安装[（默认）]"
+                f"{name}: 标题 {h} 提到了项目级或用户级，须整行写成 ## [Claude Code |Codex ]项目级安装[（默认）]"
                 " 或 ## [Claude Code |Codex ]用户级安装"
             )
+    # 按 Markdown 的标题文字比较：去掉行首缩进与末尾可选的闭合 #，「  ## X」「## X ##」都算「## X」
+    level2 = [re.sub(r"[ \t]+#+$", "", h.strip()) for h in found if LEVEL2_HEADING.match(h)]
+    for h, count in Counter(level2).items():
+        if count > 1:
+            sys.exit(f"{name}: 代码块之外的二级标题 {h} 出现了 {count} 次")
     actual = tuple(any(p.match(h) for h in found) for p in (SCOPE_SELECT, PROJECT_SECTION, USER_SECTION))
     labels = ("「## 选作用域」", "项目级安装节", "用户级安装节")
     for label, want, has in zip(labels, expected, actual):
@@ -252,7 +470,7 @@ def check_extra_env(name: str, extra_env: str, text: str) -> None:
     for line in extra_env.split("\n")[1:]:
         m = ENV_DEFINITION.match(line)
         if not m:
-            sys.exit(f"{name}: extra_env 里每一行都须是 <变量>=<值> 的定义，现在有：{line}")
+            sys.exit(f'{name}: extra_env 里每一行都须是 <变量>="<值>" 的定义，现在有：{line}')
         defined.add(m.group(1))
     used = set(RENDER_USE.findall(text))
     for var in sorted(used - defined):
@@ -282,6 +500,144 @@ def check_markers(name: str, marker: str, text: str, where: str, paired: bool) -
     return bool(kinds)
 
 
+def check_step_refs(name: str, text: str) -> None:
+    """「第 N 步」里的 N 不能超过正文中编号列表项的最大序号。
+
+    步骤重排或删减后旧引用最常见的失效方式是指向不存在的步骤，按最大序号查就能抓住，又不必判断
+    引用属于哪个列表（一个安装器常有多个编号列表）。指向存在但不对的步骤查不出来。
+    """
+    lines = text.split("\n")
+    top = max(
+        (int(m.group(1)) for i in outside_fences(name, lines, "生成物") if (m := NUMBERED_ITEM.match(lines[i]))),
+        default=0,
+    )
+    for m in STEP_REF.finditer(text):
+        if max(int(n) for n in re.findall(r"\d+", m.group(0))) > top:
+            line = text.count("\n", 0, m.start()) + 1
+            sys.exit(f"{name}: 生成物第 {line} 行引用了「{m.group(0)}」，正文编号列表最大只到第 {top} 步")
+
+
+def quoted(cell: str) -> list[str]:
+    """单元格里最外层「」括起的文字；允许嵌套，内层的「」算作文字的一部分。"""
+    out, depth, start = [], 0, 0
+    for i, ch in enumerate(cell):
+        if ch == "「":
+            if depth == 0:
+                start = i + 1
+            depth += 1
+        elif ch == "」" and depth:
+            depth -= 1
+            if depth == 0:
+                out.append(cell[start:i])
+    return out
+
+
+def item_spans(template: str) -> list[tuple[str, int, int]]:
+    """模板里每个列表项的 (去掉「- 」后的首行, 起点, 终点)，终点前是该项连同其下更深缩进的行与空行。"""
+    lines = template.split("\n")
+    offsets = [0]
+    for line in lines:
+        offsets.append(offsets[-1] + len(line) + 1)
+    spans = []
+    for i, line in enumerate(lines):
+        m = LIST_ITEM.match(line)
+        if not m:
+            continue
+        indent = len(m.group(1))
+        end = i + 1
+        while end < len(lines) and (not lines[end].strip() or len(lines[end]) - len(lines[end].lstrip()) > indent):
+            end += 1
+        spans.append((line[m.end() :], offsets[i], offsets[end]))
+    return spans
+
+
+def check_replacements(name: str, text: str, template_path: Path) -> None:
+    """替换表里引用的模板原文必须真实存在：装出时照表改模板，原文对不上就会悄悄漏改。
+
+    「位置」列里每段「」是列表项的开头，模板里须恰好有一个列表项以它开头；「原文」列里每段「」须在模板里
+    恰好出现一次，「位置」只有一段时还须落在那一项里。「改成」列不查。
+    """
+    lines = text.split("\n")
+    rows, in_table = [], False
+    for i in outside_fences(name, lines, "生成物"):
+        m = TABLE_ROW.match(lines[i])
+        cells = [c.strip() for c in m.group(1).split("|")] if m else []
+        if cells == REPLACEMENT_HEADER:
+            in_table = True
+        elif not m:
+            in_table = False
+        elif in_table and not set("".join(cells)) <= set("-: "):
+            rows.append((i + 1, cells))
+    if not rows:
+        return
+    if not template_path.is_file():
+        sys.exit(f"{name}: 正文有替换表，替换的模板 {template_path.relative_to(REPO)} 却不存在")
+    template = template_path.read_text(encoding="utf-8")
+    spans = item_spans(template)
+    where = template_path.relative_to(REPO)
+    for lineno, cells in rows:
+        if len(cells) != 3:
+            sys.exit(f"{name}: 生成物第 {lineno} 行的替换表行须有 位置 / 原文 / 改成 三列")
+        anchors = quoted(cells[0])
+        if not anchors:
+            sys.exit(f"{name}: 生成物第 {lineno} 行替换表的「位置」须用「」写出所在列表项的开头")
+        items = []
+        for anchor in anchors:
+            found = [span for span in spans if span[0].startswith(anchor)]
+            if len(found) != 1:
+                sys.exit(f"{name}: 生成物第 {lineno} 行替换表的位置「{anchor}」在 {where} 里有 {len(found)} 个列表项以它开头，须恰好一个")
+            items.append(found[0])
+        for original in quoted(cells[1]):
+            count = template.count(original)
+            if count != 1:
+                sys.exit(f"{name}: 生成物第 {lineno} 行替换表的原文「{original}」在 {where} 里出现了 {count} 次，须恰好一次")
+            at = template.index(original)
+            if len(items) == 1 and not items[0][1] <= at < items[0][2]:
+                sys.exit(f"{name}: 生成物第 {lineno} 行替换表的原文「{original}」不在以「{anchors[0]}」开头的那一项里")
+
+
+def check_template_dir_guard(name: str, text: str) -> None:
+    """用到 $TEMPLATE_DIR 的 bash 代码块须在第一次用到之前先 `: "${TEMPLATE_DIR:?}"`。
+
+    TEMPLATE_DIR 只在 host-conventions 那一块里定义，命令块分开执行时它是空的，cp "$TEMPLATE_DIR/x" 会去读根目录下的
+    /x，渲染脚本也会读错文件，都不一定报错；守卫让它在空时立刻失败。
+    """
+    lines = text.split("\n")
+    opener, start, guarded, is_bash = "", 0, False, False
+    for index, line in enumerate(lines):
+        m = FENCE.match(line)
+        if opener:
+            if m and m.group(1)[0] == opener[0] and len(m.group(1)) >= len(opener) and not m.group(2).strip():
+                opener = ""
+            elif is_bash and not guarded:
+                if TEMPLATE_DIR_GUARD.match(line):
+                    guarded = True
+                elif TEMPLATE_DIR_USE.search(line):
+                    sys.exit(
+                        f'{name}: 生成物第 {start + 1} 行起的 bash 代码块在第 {index + 1} 行用到 $TEMPLATE_DIR 之前'
+                        f'没有 : "${{TEMPLATE_DIR:?}}" 守卫'
+                    )
+        elif m:
+            opener, start, guarded = m.group(1), index, False
+            is_bash = m.group(2).strip() == "bash"
+
+
+def check_codex_skill_dir(name: str, text: str) -> None:
+    """Codex 用户级 skill 固定装到 $HOME/.agents/skills，见 docs/decisions.md。"""
+    for m in CODEX_SKILL_DIR.finditer(text):
+        line = text.count("\n", 0, m.start()) + 1
+        sys.exit(f"{name}: 生成物第 {line} 行写了 {m.group(0)}，Codex 用户级 skill 固定装到 $HOME/.agents/skills/<名>")
+
+
+def check_banned_words() -> None:
+    """sources/ 与 fragments/ 里不得出现已禁用的说法。"""
+    for path in sorted((HERE / "sources").glob("*.md")) + sorted((HERE / "fragments").glob("*.md")):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            for word, fix in BANNED_WORDS.items():
+                if word in line:
+                    sys.exit(f"{path.relative_to(HERE)} 第 {lineno} 行用了「{word}」，{fix}（见 docs/decisions.md「固定用语」）")
+
+
 def check_contract(name: str, text: str) -> set[str]:
     """源文件里公共片段的放法：必需的片段各直接 include 一次，位置与紧随其后的专属段落合乎约定。
 
@@ -301,7 +657,7 @@ def check_contract(name: str, text: str) -> set[str]:
             sys.exit(f"{name}: 源文件第 {index} 行手写了 setup 标记，正文里的标记须写 <!-- {{{{marker}}}}:begin|end -->")
     at = {frag: found[0] for frag, found in positions.items()}
 
-    unfenced = outside_fences(lines)
+    unfenced = outside_fences(name, lines, "源文件")
     heading = next(
         (lines[i] for i in reversed(unfenced) if i < at["host-conventions"] and lines[i].startswith("## ")), None
     )
@@ -323,22 +679,32 @@ def substitute(name: str, lines: list[tuple[str, str]], variables: dict) -> str:
         for key in VARIABLE.findall(line):
             if key not in variables:
                 sys.exit(f"{name}: 未声明的变量 {key}，{origin}：{line.strip()}")
+            # 替换只是字符串替换，多行值的后续行不会补上这一行的缩进，放进列表项会跑出列表
+            if line[:1].isspace() and "\n" in variables[key]:
+                sys.exit(f"{name}: 缩进的行里不能引用多行的变量 {key}，{origin}：{line.strip()}")
         if "{{" in VARIABLE.sub("", line) or "}}" in VARIABLE.sub("", line):
             sys.exit(f"{name}: 残留 {{{{ 或 }}}}，{origin}：{line.strip()}")
     return "\n".join(VARIABLE.sub(lambda m: variables[m.group(1)], line) for line, _ in lines)
 
 
-def expand(name: str, rel: str, via: str, stack: tuple) -> list[tuple[str, str]]:
-    """展开 include，返回 (行, 出处) 列表；出处用于报错时指回源文件或片段的原始行。"""
+def expand(name: str, rel: str, via: str, stack: tuple, includes: Counter) -> list[tuple[str, str]]:
+    """展开 include，返回 (行, 出处) 列表；出处用于报错时指回源文件或片段的原始行。
+
+    includes 累计每个片段被 include 的次数，不论直接还是经别的片段。
+    """
     path = HERE / rel
     if not path.is_file():
         sys.exit(f"{name}: 片段不存在 {Path(rel).stem}（{via}）")
     if rel in stack:
         sys.exit(f"{name}: 循环 include {' -> '.join(stack + (rel,))}")
-    text = path.read_text(encoding="utf-8")
-    lines = text.rstrip("\n").split("\n") if rel.startswith("fragments/") else text.split("\n")
+    if rel.startswith("fragments/"):
+        text, offset = read_fragment(path)
+        lines = text.rstrip("\n").split("\n")
+    else:
+        offset = 0
+        lines = path.read_text(encoding="utf-8").split("\n")
     out = []
-    for lineno, line in enumerate(lines, 1):
+    for lineno, line in enumerate(lines, 1 + offset):
         origin = f"{rel} 第 {lineno} 行" + (f"（{via}引入）" if via else "")
         m = INCLUDE.match(line)
         if not m:
@@ -346,7 +712,8 @@ def expand(name: str, rel: str, via: str, stack: tuple) -> list[tuple[str, str]]
             continue
         indent, frag = m.groups()
         USED_FRAGMENTS.add(frag)
-        for sub, sub_origin in expand(name, f"fragments/{frag}.md", f"{rel} 第 {lineno} 行", stack + (rel,)):
+        includes[frag] += 1
+        for sub, sub_origin in expand(name, f"fragments/{frag}.md", f"{rel} 第 {lineno} 行", stack + (rel,), includes):
             out.append((indent + sub if sub else sub, sub_origin))
     return out
 
@@ -358,23 +725,29 @@ def render(name: str, scope: str, declared: dict) -> str:
         if key in SCOPE_VARS or key in DERIVED:
             sys.exit(f"{name}: {key} 由作用域或源文件名决定，不能在 INSTALLERS 里声明")
     if "template_sub" in declared and not TEMPLATE_SUB.match(declared["template_sub"]):
-        sys.exit(f"{name}: template_sub 须形如 /<目录>[/<目录>…]，带前导 /、不带末尾 /，现在是 {declared['template_sub']!r}")
+        sys.exit(f"{name}: template_sub 须形如 /<目录>[/<目录>…]，带前导 /、不带末尾 /，各段不能是 . 或 ..，现在是 {declared['template_sub']!r}")
     rel = f"sources/{name}.md"
     source = (HERE / rel).read_text(encoding="utf-8")
     check_frontmatter(name, source)
     included = check_contract(name, source)
-    lines = expand(name, rel, "", ())
-    # 片段每被 include 一次（不论经由哪个片段），展开结果里就有一行出自它的第 1 行
-    includes = Counter(m.group(1) for _, origin in lines if (m := re.match(r"(\S+) 第 1 行", origin)))
-    for frag in AT_MOST_ONCE:
-        if includes[f"fragments/{frag}.md"] > 1:
-            sys.exit(f"{name}: {frag} 只能 include 一次")
-    if name.startswith("tools-") and includes["fragments/skill-targets.md"]:
+    includes: Counter = Counter()
+    lines = expand(name, rel, "", (), includes)
+    injected = {key: value for key, value in declared.items() if isinstance(value, Fragment)}
+    # 经 fragment() 注入的片段同样落进正文，与直接 include 一起计数，免得同一段文字出现两遍
+    for value in injected.values():
+        includes[value.name] += 1
+    for frag, count in sorted(includes.items()):
+        if count > 1 and frag not in REPEATABLE:
+            sys.exit(f"{name}: {frag} 在展开结果里被 include 了 {count} 次，只能一次")
+    if scope == "project-user" and not includes["scope-select"]:
+        sys.exit(f"{name}: 作用域为 project-user，须 include scope-select")
+    if scope != "project-user" and includes["scope-select"]:
+        sys.exit(f"{name}: 作用域为 {scope}，不得 include scope-select")
+    if name.startswith("tools-") and includes["skill-targets"]:
         sys.exit(f"{name}: setup-tools 装出的 skill 不带领域前缀，不能 include skill-targets")
 
-    injected = {key: value for key, value in declared.items() if isinstance(value, Fragment)}
     for key, value in injected.items():
-        for lineno, line in enumerate(value.split("\n"), 1):
+        for lineno, line in enumerate(value.split("\n"), 1 + value.offset):
             if INCLUDE.match(line):
                 sys.exit(f"{name}: 经 fragment() 注入的片段不能 include，fragments/{value.name}.md 第 {lineno} 行（变量 {key}）")
             for ref in VARIABLE.findall(line):
@@ -398,15 +771,15 @@ def render(name: str, scope: str, declared: dict) -> str:
     for key, value in injected.items():
         origins = [
             (line, f"fragments/{value.name}.md 第 {lineno} 行（经变量 {key} 注入）")
-            for lineno, line in enumerate(value.split("\n"), 1)
+            for lineno, line in enumerate(value.split("\n"), 1 + value.offset)
         ]
         variables[key] = value.lead + substitute(name, origins, plain)
     text = substitute(name, lines, variables)
     check_extra_env(name, variables["extra_env"], text)
 
-    if not text.startswith("---\n"):
-        sys.exit(f"{name}: 生成物第一行必须是 ---")
-    front = text.split("\n---\n", 1)[0]
+    front = frontmatter(name, text, "生成物")
+    check_keys(name, front, "生成物")
+    check_plain_scalar(name, front)
     m = re.search(r"^name: (.*)$", front, re.M)
     if not m or m.group(1).strip() != skill:
         sys.exit(f"{name}: frontmatter 的 name 须为所在目录名 {skill}")
@@ -419,11 +792,16 @@ def render(name: str, scope: str, declared: dict) -> str:
     template_dir = Path(f"{template}{variables['template_sub']}")
     if not template_dir.is_dir():
         sys.exit(f"{name}: TEMPLATE_DIR 指向的目录不存在 {template_dir.relative_to(REPO)}")
-    if includes["fragments/skill-targets.md"]:
+    check_step_refs(name, text)
+    check_template_dir_guard(name, text)
+    check_codex_skill_dir(name, text)
+    check_replacements(name, text, template_dir / f"{name}.md")
+    if includes["skill-targets"]:
         if not (template / f"{name}.md").is_file():
             sys.exit(f"{name}: include 了 skill-targets，模板 {(template / f'{name}.md').relative_to(REPO)} 却不存在")
     for f in sorted(template.rglob("*")):
-        if f.is_file():
+        # .DS_Store 由 Finder 自动生成、不进版本库，不按模板检查
+        if f.is_file() and f.name != ".DS_Store":
             where = f"{f.relative_to(REPO)} "
             text_f = f.read_text(encoding="utf-8", errors="ignore")
             writes_instruction_file |= check_markers(name, marker, text_f, where, paired=True)
@@ -463,13 +841,15 @@ def main() -> int:
         print(__doc__, file=sys.stderr)
         return 2
     check_registry()
+    check_banned_words()
     # 全部渲染、校验通过后才写，免得后面的安装器报错时留下一半已更新的生成物
     outputs = [(target_of(name), render(name, scope, declared)) for name, (scope, declared) in INSTALLERS.items()]
     check_orphans()
     stale = []
     for path, content in outputs:
         if check:
-            if not path.is_file() or path.read_text(encoding="utf-8") != content:
+            # 按字节比：read_text 会把 CRLF 归一成 LF，被改成 CRLF 的生成物就比不出来
+            if not path.is_file() or path.read_bytes() != content.encode("utf-8"):
                 stale.append(path.relative_to(REPO))
         else:
             path.parent.mkdir(parents=True, exist_ok=True)

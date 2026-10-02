@@ -3,12 +3,12 @@
 
 name、description 取自模板的 frontmatter，frontmatter 之后的正文原样成为 developer_instructions；
 Codex 的 model、model_reasoning_effort 等配置只在本脚本的 CODEX_AGENT_CONFIGURATION 里维护。
-输出目录须已存在，可以是指向目录的软链（配置目录链到 dotfiles 很常见）。全部渲染成功后才写，
-不留下半批：
+输出目录须已存在，可以是指向目录的软链（配置目录链到 dotfiles 很常见）。全部渲染成功后才写：
   默认         任一目标已存在（包括目标本身是软链）就整批拒绝，不覆盖；写到一半失败时删掉本次已建的文件。
   --replace    已存在的普通文件整份替换，不存在的新建；任一目标是软链（含悬空软链）或其它非普通文件就整批拒绝，
                免得写穿到链接指向的文件，或把链接换成普通文件、与原来链向的那份脱钩。先把全部内容写进同目录的
-               临时文件，都写成功后再逐个原子改名到目标；写临时文件时失败就删掉临时文件，目标一个都不动。
+               临时文件，写临时文件时失败就删掉临时文件，目标一个都不动；都写成功后再逐个原子改名到目标。
+               改名阶段某一个失败时，已改名替换的目标不回滚，尚未改名的临时文件全部删掉，然后报错。
 """
 
 import argparse
@@ -165,8 +165,15 @@ def replace_agents(outputs: list[tuple[Path, str]]) -> None:
             temporary.unlink(missing_ok=True)
         raise
     # os.replace 作用于路径本身：即使改名前目标被换成了软链，被替换的也只是链接，不会写穿到它指向的文件
-    for temporary, target in staged:
-        os.replace(temporary, target)
+    renamed = 0
+    try:
+        for temporary, target in staged:
+            os.replace(temporary, target)
+            renamed += 1
+    except BaseException:
+        for temporary, _ in staged[renamed:]:
+            temporary.unlink(missing_ok=True)
+        raise
 
 
 def render_all(sources: list[Path], output_dir: Path, replace: bool) -> None:

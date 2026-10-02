@@ -1,6 +1,6 @@
 {
   "name": "create",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "创建类规范：agent skill 编写（只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本）",
   "author": {
     "name": "BaiJunjie"

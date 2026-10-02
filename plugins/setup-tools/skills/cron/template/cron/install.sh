@@ -32,10 +32,10 @@ emit_task() {
   _offsets=$3
   _cmd=$4
 
-  # crontab 把未转义的 % 当作换行符，命令里的 % 必须转义
-  _cmd=$(printf '%s' "$_cmd" | sed 's/%/\\%/g')
   # 命令整体套一层 { } 再重定向，否则命令里若有管道，日志只收得到最后一段的输出
   _body="cd \"$PROJECT_ROOT\" && { $_cmd ; } >> \"$LOG_FILE\" 2>&1"
+  # crontab 把命令字段里未转义的 % 当作换行符，命令、项目根与日志路径里的 % 都必须转义
+  _body=$(printf '%s' "$_body" | sed 's/%/\\%/g')
 
   printf '# %s\n' "$_name"
 

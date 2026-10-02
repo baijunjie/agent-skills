@@ -23,15 +23,19 @@ disable-model-invocation: true
 已有的同名文件直接覆盖，目录里别的文件不动。
 
 ```bash
-{{include: codex-user-skill-dir}}
-D=$(codex_skill_dir claude) || exit 1
 : "${TEMPLATE_DIR:?}"
+D="$HOME/.agents/skills/claude"
 mkdir -p "$D/agents"
 cp "$TEMPLATE_DIR/SKILL.template.md" "$D/SKILL.md"
 cp "$TEMPLATE_DIR/agents/openai.yaml" "$D/agents/"
 ```
 
-**告知用户**：说明实际写入的用户级配置目录；Codex 开启新会话后生效，也可在 Codex 里用 `$claude` 显式触发。
+**告知用户**：
+
+- 说明实际写入的用户级配置目录；Codex 开启新会话后生效，也可在 Codex 里用 `$claude` 显式触发。
+- 装出的 skill 从 `CLAUDE_CONFIG_DIR` 读 Claude 的用户级配置，没设时读 `~/.claude`，而 Codex 的环境里通常没设这个变量。
+  检查当前环境的 `CLAUDE_CONFIG_DIR`：已设置且不是 `~/.claude` 时，提示用户在启动 Codex 的环境里导出同一个值
+  （如写进 shell 配置文件），否则读到的是 `~/.claude`；没设置时说明会读 `~/.claude`，Claude Code 用的是别的配置目录时同样要导出。
 
 {{include: reinstall}}
 

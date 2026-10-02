@@ -22,16 +22,20 @@ disable-model-invocation: true
 
 {{include: pre-write}}
 
-本安装器另外要查的冲突：指令文件标记范围之外已有分派子代理的规则（什么时候派、派给谁、怎么交代）。
-标记之外只有「# 全局规则」标题、底下没有这类规则的不算冲突。
+本安装器另外要查的冲突：
 
-下面各分支写规则的命令已经带上本安装器的标记，追加还是替换按「指令文件里的标记」处理。
+- 指令文件标记范围之外已有分派子代理的规则（什么时候派、派给谁、怎么交代）。
+  标记之外只有「# 全局规则」标题、底下没有这类规则的不算冲突。
+- 用户级、文件里还没有本安装器标记、且标记之外已有「# 全局规则」时：它不是文件里最后一个一级标题的
+  （追加到末尾的规则会挂到别的标题下），按「现状与预期不符时」问用户。
+- **这一项不按冲突问**：项目级安装时，当前宿主用户级指令文件里已有同类规则（分派子代理规则）的，不改它，告知用户两份都会生效、内容差在哪；用户级的是本安装器装的且内容一致时，只说一句两处都装了。
+
+## 写入的规则内容
+
 写入的是命令渲染出的内容，不要直接拷 `rules.md`（原文带用户级标题与 `{{host_agent_token}}` 占位符）。
 
-用户级安装改用 `--scope project` 渲染时：
-- 文件里还没有本安装器的标记、要追加到末尾时，「# 全局规则」不是文件里最后一个一级标题，规则就会挂到别的标题下——
-  按「现状与预期不符时」问用户。
-- 告知用户：这样渲染出的规则不含「与项目自己的指令文件冲突时，以项目的为准」这一句，请用户确认已有的「# 全局规则」下有没有同样的约定。
+用户级安装改用 `--scope project` 渲染时，告知用户：这样渲染出的规则不含「与项目自己的指令文件冲突时，以项目的为准」这一句，
+请用户确认已有的「# 全局规则」下有没有同样的约定。
 
 ## Claude Code 项目级安装（默认）
 
@@ -44,7 +48,7 @@ disable-model-invocation: true
      printf '\n<!-- {{marker}}:begin -->\n\n%s\n\n<!-- {{marker}}:end -->\n' "$rules" >> CLAUDE.md
    ```
 
-2. **装子代理**：已有的同名文件直接覆盖。
+2. **装子代理**：已有的整份覆盖。
 
    ```bash
    {{include: project-root}}
@@ -56,7 +60,6 @@ disable-model-invocation: true
 3. **告知用户**：`CLAUDE.md` 与 `.claude/agents/` 的改动要提交进版本库才随仓库生效；
    `.gitignore` 整体忽略了 `.claude/` 的项目要为 `.claude/agents/` 加例外，否则子代理提交不进去。
    `CLAUDE.md` 与子代理都在会话开始时读取，重启 Claude Code 后生效。
-   用户级 `CLAUDE.md` 也有同一套规则且内容不一致时，告诉用户两份都会加载。
 
 ## Claude Code 用户级安装
 
@@ -72,11 +75,12 @@ disable-model-invocation: true
    mkdir -p "$C"
    S=user
    if [ -f "$F" ] && awk '/^<!-- {{marker}}:begin -->$/{s=1} !s{print} /^<!-- {{marker}}:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then S=project; fi
+   echo "渲染作用域：$S"
    rules=$(python3 "$RENDER_RULES" --host claude --scope "$S" "$TEMPLATE_DIR/rules.md") &&
      printf '\n<!-- {{marker}}:begin -->\n\n%s\n\n<!-- {{marker}}:end -->\n' "$rules" >> "$F"
    ```
 
-2. **装子代理**：已有的同名文件直接覆盖。
+2. **装子代理**：已有的整份覆盖。
 
    ```bash
    C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
@@ -124,6 +128,7 @@ disable-model-invocation: true
    mkdir -p "$X"
    S=user
    if [ -f "$F" ] && awk '/^<!-- {{marker}}:begin -->$/{s=1} !s{print} /^<!-- {{marker}}:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then S=project; fi
+   echo "渲染作用域：$S"
    rules=$(python3 "$RENDER_RULES" --host codex --scope "$S" "$TEMPLATE_DIR/rules.md") &&
      printf '\n<!-- {{marker}}:begin -->\n\n%s\n\n<!-- {{marker}}:end -->\n' "$rules" >> "$F"
    ```

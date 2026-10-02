@@ -30,10 +30,10 @@ TEMPLATE_DIR="$SETUP_ROOT/skills/find-issues/template"
 ## 选作用域
 
 **默认装进当前项目**，随仓库提交，团队共用。用户明确说了「全局 / 用户级 / 所有项目 / 新电脑」时，才装进用户级配置目录。
-当前目录不是 git 仓库时，先告诉用户，确认改装用户级后再装，不要直接写进用户级配置。
+当前目录不是 git 仓库时，先告知用户，确认改装用户级后再装，不要直接写进用户级配置。
 
 Claude Code 中同名 skill 是**用户级优先于项目级**，与「就近优先」的直觉相反。
-所以要按项目定制的 skill，不要在用户级再装一份同名的。写入前发现另一层也有同名 skill 时，告诉用户两份都在，Claude Code 实际生效的是用户级那份。
+所以要按项目定制的 skill，不要在用户级再装一份同名的。写入前发现另一层也有同名 skill 时，告知用户两份都在，Claude Code 实际生效的是用户级那份。
 
 ## 写入前检查
 
@@ -58,7 +58,8 @@ Claude Code 中同名 skill 是**用户级优先于项目级**，与「就近优
 ## Claude Code 项目级安装（默认）
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+: "${TEMPLATE_DIR:?}"
 mkdir -p .claude/skills/git-find-issues
 cp "$TEMPLATE_DIR/git-find-issues.md" .claude/skills/git-find-issues/SKILL.md
 ```
@@ -72,6 +73,7 @@ cp "$TEMPLATE_DIR/git-find-issues.md" .claude/skills/git-find-issues/SKILL.md
 装进**当前会话的用户级配置目录**，不要写死路径。
 
 ```bash
+: "${TEMPLATE_DIR:?}"
 C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 mkdir -p "$C/skills/git-find-issues"
 cp "$TEMPLATE_DIR/git-find-issues.md" "$C/skills/git-find-issues/SKILL.md"
@@ -82,7 +84,8 @@ cp "$TEMPLATE_DIR/git-find-issues.md" "$C/skills/git-find-issues/SKILL.md"
 ## Codex 项目级安装（默认）
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+: "${TEMPLATE_DIR:?}"
 mkdir -p .agents/skills/git-find-issues
 cp "$TEMPLATE_DIR/git-find-issues.md" .agents/skills/git-find-issues/SKILL.md
 ```
@@ -93,20 +96,8 @@ cp "$TEMPLATE_DIR/git-find-issues.md" .agents/skills/git-find-issues/SKILL.md
 ## Codex 用户级安装
 
 ```bash
-X=${CODEX_HOME:-$HOME/.codex}
-# 每个 skill 各自决定写入位置：$HOME/.agents/skills/<名> 已有就原地更新它，否则装到 $X/skills/<名>。
-# 别两处各放一份同名 skill：两处都已存在时函数报错，停下来问用户，不自行删除其中一份。
-codex_skill_dir() {
-  if [ ! -d "$HOME/.agents/skills/$1" ]; then
-    echo "$X/skills/$1"
-  elif [ -d "$X/skills/$1" ]; then
-    echo "$1：$HOME/.agents/skills 与 $X/skills 下都有，停下来问用户保留哪一份" >&2
-    return 1
-  else
-    echo "$HOME/.agents/skills/$1"
-  fi
-}
-D=$(codex_skill_dir git-find-issues) || exit 1
+: "${TEMPLATE_DIR:?}"
+D="$HOME/.agents/skills/git-find-issues"
 mkdir -p "$D"
 cp "$TEMPLATE_DIR/git-find-issues.md" "$D/SKILL.md"
 ```
@@ -125,7 +116,7 @@ cp "$TEMPLATE_DIR/git-find-issues.md" "$D/SKILL.md"
 - **装新的**：按安装步骤写入。
 - **填回**：把读出的定制值填回新文件的对应位置。
 
-**告知用户**时说明：定制值以外的手改，重装时都会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
+**告知用户**时说明：本安装器装出的内容里，定制值以外的手改，重装时会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
 不要修改已安装 plugin 内的模板。
 
 本安装器的定制值：无。

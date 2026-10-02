@@ -30,11 +30,11 @@ RENDER_RULES="$SETUP_ROOT/scripts/render-subagent-rules.py"
 ## 选作用域
 
 **默认装进当前项目**，随仓库提交，团队共用。用户明确说了「全局 / 用户级 / 所有项目 / 新电脑」时，才装进用户级配置目录。
-当前目录不是 git 仓库时，先告诉用户，确认改装用户级后再装，不要直接写进用户级配置。
+当前目录不是 git 仓库时，先告知用户，确认改装用户级后再装，不要直接写进用户级配置。
 
 **整份装齐**，不要因为「用户级可能已经装过」而缩水。
 
-Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户级**；写入前发现另一层也有同名子代理时，告诉用户两份都在、实际生效的是项目级那份。
+Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户级**；写入前发现另一层也有同名子代理时，告知用户两份都在、实际生效的是项目级那份。
 
 ## 指令文件里的标记
 
@@ -54,7 +54,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 - **重装**：指令文件里清理的是本安装器的标记范围，同一指令文件里的其它内容不碰。
 - **异常**：下列情况按「现状与预期不符时」**停下来问用户**，不要照写，也不要自行修复；软链要在「写入前检查」里一并查。
   - 指令文件里本安装器的标记不成对：只出现一个、出现多对，或先后颠倒。
-  - 要写的指令文件本身是软链。
+  - 要写的指令文件本身是软链。链向另一宿主的指令文件时，按下面「共用的指令文件」处理。
 - **共用的指令文件**：另一宿主的指令文件是指向要写的这份的软链（如 `CLAUDE.md` → `AGENTS.md`）时，两个宿主读的是同一份。
   写入前**停下来问用户**：说明这一点，问是否写进这份共用的文件；写进去后，按宿主渲染的内容只会保留最后写入的那个宿主的版本。
   这个软链同样在「写入前检查」里一并查。
@@ -77,32 +77,36 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
   - 落进本安装器装出内容的部分以后照常重装，只有定制值所在的位置（见「重装」）会保留，所以融入的内容优先放进这些位置；
     这次安装的作用域下没有定制值的，询问时直说「融入只对这一次有效，下次重装会被覆盖」，建议选完全覆盖。
 
-本安装器另外要查的冲突：指令文件标记范围之外已有分派子代理的规则（什么时候派、派给谁、怎么交代）。
-标记之外只有「# 全局规则」标题、底下没有这类规则的不算冲突。
+本安装器另外要查的冲突：
 
-下面各分支写规则的命令已经带上本安装器的标记，追加还是替换按「指令文件里的标记」处理。
+- 指令文件标记范围之外已有分派子代理的规则（什么时候派、派给谁、怎么交代）。
+  标记之外只有「# 全局规则」标题、底下没有这类规则的不算冲突。
+- 用户级、文件里还没有本安装器标记、且标记之外已有「# 全局规则」时：它不是文件里最后一个一级标题的
+  （追加到末尾的规则会挂到别的标题下），按「现状与预期不符时」问用户。
+- **这一项不按冲突问**：项目级安装时，当前宿主用户级指令文件里已有同类规则（分派子代理规则）的，不改它，告知用户两份都会生效、内容差在哪；用户级的是本安装器装的且内容一致时，只说一句两处都装了。
+
+## 写入的规则内容
+
 写入的是命令渲染出的内容，不要直接拷 `rules.md`（原文带用户级标题与 `{{HOST_AGENT_CONFIGURATION}}` 占位符）。
 
-用户级安装改用 `--scope project` 渲染时：
-- 文件里还没有本安装器的标记、要追加到末尾时，「# 全局规则」不是文件里最后一个一级标题，规则就会挂到别的标题下——
-  按「现状与预期不符时」问用户。
-- 告知用户：这样渲染出的规则不含「与项目自己的指令文件冲突时，以项目的为准」这一句，请用户确认已有的「# 全局规则」下有没有同样的约定。
+用户级安装改用 `--scope project` 渲染时，告知用户：这样渲染出的规则不含「与项目自己的指令文件冲突时，以项目的为准」这一句，
+请用户确认已有的「# 全局规则」下有没有同样的约定。
 
 ## Claude Code 项目级安装（默认）
 
 1. **写规则**：目标是项目根目录的 `CLAUDE.md`，没有就新建。
 
    ```bash
-   cd "$(git rev-parse --show-toplevel)" || exit 1
+   top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
    : "${RENDER_RULES:?}" "${TEMPLATE_DIR:?}"
    rules=$(python3 "$RENDER_RULES" --host claude --scope project "$TEMPLATE_DIR/rules.md") &&
      printf '\n<!-- setup-agent:subagents:begin -->\n\n%s\n\n<!-- setup-agent:subagents:end -->\n' "$rules" >> CLAUDE.md
    ```
 
-2. **装子代理**：已有的同名文件直接覆盖。
+2. **装子代理**：已有的整份覆盖。
 
    ```bash
-   cd "$(git rev-parse --show-toplevel)" || exit 1
+   top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
    : "${TEMPLATE_DIR:?}"
    mkdir -p .claude/agents
    cp "$TEMPLATE_DIR/agents/"*.md .claude/agents/
@@ -111,7 +115,6 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 3. **告知用户**：`CLAUDE.md` 与 `.claude/agents/` 的改动要提交进版本库才随仓库生效；
    `.gitignore` 整体忽略了 `.claude/` 的项目要为 `.claude/agents/` 加例外，否则子代理提交不进去。
    `CLAUDE.md` 与子代理都在会话开始时读取，重启 Claude Code 后生效。
-   用户级 `CLAUDE.md` 也有同一套规则且内容不一致时，告诉用户两份都会加载。
 
 ## Claude Code 用户级安装
 
@@ -127,11 +130,12 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
    mkdir -p "$C"
    S=user
    if [ -f "$F" ] && awk '/^<!-- setup-agent:subagents:begin -->$/{s=1} !s{print} /^<!-- setup-agent:subagents:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then S=project; fi
+   echo "渲染作用域：$S"
    rules=$(python3 "$RENDER_RULES" --host claude --scope "$S" "$TEMPLATE_DIR/rules.md") &&
      printf '\n<!-- setup-agent:subagents:begin -->\n\n%s\n\n<!-- setup-agent:subagents:end -->\n' "$rules" >> "$F"
    ```
 
-2. **装子代理**：已有的同名文件直接覆盖。
+2. **装子代理**：已有的整份覆盖。
 
    ```bash
    C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
@@ -148,7 +152,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 1. **写规则**：目标是项目根目录的 `AGENTS.md`，没有就新建。
 
    ```bash
-   cd "$(git rev-parse --show-toplevel)" || exit 1
+   top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
    : "${RENDER_RULES:?}" "${TEMPLATE_DIR:?}"
    rules=$(python3 "$RENDER_RULES" --host codex --scope project "$TEMPLATE_DIR/rules.md") &&
      printf '\n<!-- setup-agent:subagents:begin -->\n\n%s\n\n<!-- setup-agent:subagents:end -->\n' "$rules" >> AGENTS.md
@@ -157,7 +161,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 2. **装子代理**：用渲染脚本的 `--replace` 替换与模板同名的旧 `.toml`（只动这几个），目标是软链时它会整批拒绝写入：
 
    ```bash
-   cd "$(git rev-parse --show-toplevel)" || exit 1
+   top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
    : "${RENDER_AGENT:?}" "${TEMPLATE_DIR:?}"
    mkdir -p .codex/agents
    python3 "$RENDER_AGENT" --replace --output-dir .codex/agents "$TEMPLATE_DIR/agents/"*.md
@@ -179,6 +183,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
    mkdir -p "$X"
    S=user
    if [ -f "$F" ] && awk '/^<!-- setup-agent:subagents:begin -->$/{s=1} !s{print} /^<!-- setup-agent:subagents:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then S=project; fi
+   echo "渲染作用域：$S"
    rules=$(python3 "$RENDER_RULES" --host codex --scope "$S" "$TEMPLATE_DIR/rules.md") &&
      printf '\n<!-- setup-agent:subagents:begin -->\n\n%s\n\n<!-- setup-agent:subagents:end -->\n' "$rules" >> "$F"
    ```
@@ -206,7 +211,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 - **装新的**：按安装步骤写入。
 - **填回**：把读出的定制值填回新文件的对应位置。
 
-**告知用户**时说明：定制值以外的手改，重装时都会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
+**告知用户**时说明：本安装器装出的内容里，定制值以外的手改，重装时会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
 不要修改已安装 plugin 内的模板。
 
 本安装器的定制值：无。

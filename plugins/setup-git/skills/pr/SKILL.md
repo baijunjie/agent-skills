@@ -9,7 +9,7 @@ disable-model-invocation: true
 装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
 
 只做项目级安装：默认的 PR 目标分支因项目而异，要在安装时写进 skill，装进用户级就没法对所有项目都成立。
-当前目录不是 git 仓库时停下来告诉用户。
+当前目录不是 git 仓库时停下来汇报。
 
 ## 跨宿主约定
 
@@ -30,7 +30,7 @@ fi
 TEMPLATE_DIR="$SETUP_ROOT/skills/pr/template"
 ```
 
-Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现 Claude Code 用户级配置目录里也有本安装器要装的同名 skill 时，告诉用户项目级这份在 Claude Code 中不会生效。
+Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现 Claude Code 用户级配置目录里也有本安装器要装的同名 skill 时，告知用户项目级这份在 Claude Code 中不会生效。
 
 ## 写入前检查
 
@@ -66,13 +66,13 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
 
 | 情况 | 做法 |
 |---|---|
-| 依据一致指向同一分支 | 直接采用，装完告诉用户用的是哪个、依据是什么 |
-| 只查到远端默认分支，且远端没有别的集成分支 | 采用默认分支，同样告诉用户 |
+| 依据一致指向同一分支 | 直接采用，装完告知用户用的是哪个、依据是什么 |
+| 只查到远端默认分支，且远端没有别的集成分支 | 采用默认分支，同样告知用户 |
 | 依据互相矛盾，或只剩远端默认分支而远端还有别的集成分支 | 列出候选和各自的依据，问用户 |
 | 什么都查不到 | 问用户 |
 
 已装过的，旧 skill 里「没指定就提到 `<分支>`」那句的分支是上次定下的，可能是用户选的，先读出来：
-表里直接采用的两种情况以依据为准，与旧值不同要告诉用户；要问用户的两种情况改为沿用旧值，不再问。
+表里直接采用的两种情况以依据为准，与旧值不同要告知用户；要问用户的两种情况改为沿用旧值，不再问。
 
 ## 通用步骤
 
@@ -83,7 +83,7 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
 ## Claude Code 项目级安装
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
 : "${TEMPLATE_DIR:?}" "${BASE:?}"
 mkdir -p .claude/skills/git-pr
 sed "s|{{PR_BASE}}|$BASE|g" "$TEMPLATE_DIR/git-pr.md" > .claude/skills/git-pr/SKILL.md
@@ -96,7 +96,7 @@ sed "s|{{PR_BASE}}|$BASE|g" "$TEMPLATE_DIR/git-pr.md" > .claude/skills/git-pr/SK
 ## Codex 项目级安装
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
 : "${TEMPLATE_DIR:?}" "${BASE:?}"
 mkdir -p .agents/skills/git-pr
 sed "s|{{PR_BASE}}|$BASE|g" "$TEMPLATE_DIR/git-pr.md" > .agents/skills/git-pr/SKILL.md
@@ -117,7 +117,7 @@ sed "s|{{PR_BASE}}|$BASE|g" "$TEMPLATE_DIR/git-pr.md" > .agents/skills/git-pr/SK
 - **装新的**：按安装步骤写入。
 - **填回**：把读出的定制值填回新文件的对应位置。
 
-**告知用户**时说明：定制值以外的手改，重装时都会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
+**告知用户**时说明：本安装器装出的内容里，定制值以外的手改，重装时会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
 不要修改已安装 plugin 内的模板。
 
 本安装器的定制值：

@@ -4,7 +4,7 @@ description: 装上（或更新）agent-docs skill 与 map-writer、product-writ
 disable-model-invocation: true
 ---
 
-# 安装 agent-docs skill
+# 安装项目文档规范
 
 装两样东西：`agent-docs` skill（读写规则与注释规范）与 `map-writer`、`product-writer`、`memory-writer`
 三个子代理。装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
@@ -32,11 +32,11 @@ RENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"
 ## 选作用域
 
 **默认装进当前项目**，随仓库提交，团队共用。用户明确说了「全局 / 用户级 / 所有项目 / 新电脑」时，才装进用户级配置目录。
-当前目录不是 git 仓库时，先告诉用户，确认改装用户级后再装，不要直接写进用户级配置。
+当前目录不是 git 仓库时，先告知用户，确认改装用户级后再装，不要直接写进用户级配置。
 
 Claude Code 中同名 skill 是**用户级优先于项目级**，与「就近优先」的直觉相反。
-所以要按项目定制的 skill，不要在用户级再装一份同名的。写入前发现另一层也有同名 skill 时，告诉用户两份都在，Claude Code 实际生效的是用户级那份。
-Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户级**；写入前发现另一层也有同名子代理时，告诉用户两份都在、实际生效的是项目级那份。
+所以要按项目定制的 skill，不要在用户级再装一份同名的。写入前发现另一层也有同名 skill 时，告知用户两份都在，Claude Code 实际生效的是用户级那份。
+Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户级**；写入前发现另一层也有同名子代理时，告知用户两份都在、实际生效的是项目级那份。
 
 ## 写入前检查
 
@@ -56,7 +56,9 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
   - 落进本安装器装出内容的部分以后照常重装，只有定制值所在的位置（见「重装」）会保留，所以融入的内容优先放进这些位置；
     这次安装的作用域下没有定制值的，询问时直说「融入只对这一次有效，下次重装会被覆盖」，建议选完全覆盖。
 
-本安装器另外要查的冲突：无。
+本安装器另外要查的冲突：
+
+- **这一项不按冲突问**：当前宿主用户级指令文件（项目级安装时），或这次作用域的指令文件（项目级是项目根目录的 `CLAUDE.md` / `AGENTS.md`，用户级是用户级配置目录下的）里已有同类规则（注释规范或文档读写规则）的，不改它，告知用户两份都会生效、内容差在哪。
 
 ## 通用步骤
 
@@ -65,13 +67,13 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
    `docs/README.md`（总索引）、`docs/project-map.md`、`docs/product/`、`docs/memory/`。
 2. **写入 skill**：执行所在宿主安装节里的 `cp`，已有的整份覆盖。项目级安装时，旧 skill 末尾有「本项目」一节的，
    先把它读出来再覆盖（见「重装」）。
-3. **装子代理**：三个都装，已有的同名文件整份替换；Codex 用渲染脚本的 `--replace` 替换同名旧 `.toml`，
+3. **装子代理**：三个都装，已有的整份覆盖；Codex 用渲染脚本的 `--replace` 替换同名旧 `.toml`，
    目标是软链时它会整批拒绝写入。
 4. **建骨架**：只在项目级安装时做。缺总索引就建一个只有一行标题（如 `# 总索引`）的骨架。其它目录与文档有内容再建，
    不要预建空目录或占位文档。项目已有散落的文档时，按类归位是另一件事，要不要一起做交给用户定。
 5. **对齐项目**：只在项目级安装时做。
-   - 文档位置与默认不同时，把 skill 与三个子代理定义里四处默认位置（`docs/README.md`、`docs/project-map.md`、
-     `docs/product/`、`docs/memory/`）出现的地方改成第 1 步定下的位置，包括 frontmatter 的 `description`（Codex 改生成的 `.toml` 里的 `description` 与 `developer_instructions`）。
+   - 四处文档位置（`docs/README.md`、`docs/project-map.md`、`docs/product/`、`docs/memory/`）里与默认不同的那几处，
+     把 skill 与三个子代理定义里它们的默认位置出现的地方改成第 1 步定下的位置，与默认相同的不动；包括 frontmatter 的 `description`（Codex 改生成的 `.toml` 里的 `description` 与 `developer_instructions`）。
      `docs/` 作为文档目录根出现时（如「`docs/` 下的其它文档」），改成总索引所在的目录。
      skill 里「表中位置是默认值，项目对文档目录已有自己的约定时按项目的。」这一句随之改成
      「表中位置是本项目的文档位置。」。
@@ -87,7 +89,8 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 ## Claude Code 项目级安装（默认）
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+: "${TEMPLATE_DIR:?}"
 mkdir -p .claude/skills/agent-docs .claude/agents
 cp "$TEMPLATE_DIR/agent-docs.md" .claude/skills/agent-docs/SKILL.md
 cp "$TEMPLATE_DIR/agents/map-writer.md" "$TEMPLATE_DIR/agents/product-writer.md" \
@@ -96,7 +99,7 @@ cp "$TEMPLATE_DIR/agents/map-writer.md" "$TEMPLATE_DIR/agents/product-writer.md"
 
 **告知用户**：`.claude/skills/agent-docs/` 与 `.claude/agents/` 下的三个子代理要提交进版本库才随仓库生效；
 `.gitignore` 整体忽略了 `.claude/` 的项目要为这两处加例外。
-开发记忆（第 1 步定下的目录）按随仓库提交设计；用户不打算提交的，告诉他这样队友读不到，不主动改 `.gitignore`。
+开发记忆（第 1 步定下的目录）按随仓库提交设计；用户不打算提交的，告知用户这样队友读不到，不主动改 `.gitignore`。
 装好后可用 `/agent-docs` 调用，也会按描述自动触发；重启 Claude Code 后生效。
 
 ## Claude Code 用户级安装
@@ -104,6 +107,7 @@ cp "$TEMPLATE_DIR/agents/map-writer.md" "$TEMPLATE_DIR/agents/product-writer.md"
 装进**当前会话的用户级配置目录**，不要写死路径。
 
 ```bash
+: "${TEMPLATE_DIR:?}"
 C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 mkdir -p "$C/skills/agent-docs" "$C/agents"
 cp "$TEMPLATE_DIR/agent-docs.md" "$C/skills/agent-docs/SKILL.md"
@@ -117,7 +121,7 @@ cp "$TEMPLATE_DIR/agents/map-writer.md" "$TEMPLATE_DIR/agents/product-writer.md"
 ## Codex 项目级安装（默认）
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
 : "${RENDER_AGENT:?}" "${TEMPLATE_DIR:?}"
 mkdir -p .agents/skills/agent-docs .codex/agents
 cp "$TEMPLATE_DIR/agent-docs.md" .agents/skills/agent-docs/SKILL.md
@@ -127,27 +131,15 @@ python3 "$RENDER_AGENT" --replace --output-dir .codex/agents "$TEMPLATE_DIR/agen
 
 **告知用户**：`.agents/skills/agent-docs/` 与 `.codex/agents/` 下的三个 `.toml` 要提交进版本库才随仓库生效；
 `.gitignore` 整体忽略了 `.agents/` 或 `.codex/` 的项目要为这两处加例外。
-开发记忆（第 1 步定下的目录）按随仓库提交设计；用户不打算提交的，告诉他这样队友读不到，不主动改 `.gitignore`。
+开发记忆（第 1 步定下的目录）按随仓库提交设计；用户不打算提交的，告知用户这样队友读不到，不主动改 `.gitignore`。
 装好后可用 `$agent-docs` 调用，也会按描述自动触发；开启新会话后生效。
 
 ## Codex 用户级安装
 
 ```bash
-X=${CODEX_HOME:-$HOME/.codex}
-# 每个 skill 各自决定写入位置：$HOME/.agents/skills/<名> 已有就原地更新它，否则装到 $X/skills/<名>。
-# 别两处各放一份同名 skill：两处都已存在时函数报错，停下来问用户，不自行删除其中一份。
-codex_skill_dir() {
-  if [ ! -d "$HOME/.agents/skills/$1" ]; then
-    echo "$X/skills/$1"
-  elif [ -d "$X/skills/$1" ]; then
-    echo "$1：$HOME/.agents/skills 与 $X/skills 下都有，停下来问用户保留哪一份" >&2
-    return 1
-  else
-    echo "$HOME/.agents/skills/$1"
-  fi
-}
-D=$(codex_skill_dir agent-docs) || exit 1
 : "${RENDER_AGENT:?}" "${TEMPLATE_DIR:?}"
+D="$HOME/.agents/skills/agent-docs"
+X=${CODEX_HOME:-$HOME/.codex}
 mkdir -p "$D" "$X/agents"
 cp "$TEMPLATE_DIR/agent-docs.md" "$D/SKILL.md"
 python3 "$RENDER_AGENT" --replace --output-dir "$X/agents" "$TEMPLATE_DIR/agents/map-writer.md" \
@@ -169,7 +161,7 @@ python3 "$RENDER_AGENT" --replace --output-dir "$X/agents" "$TEMPLATE_DIR/agents
 - **装新的**：按安装步骤写入。
 - **填回**：把读出的定制值填回新文件的对应位置。
 
-**告知用户**时说明：定制值以外的手改，重装时都会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
+**告知用户**时说明：本安装器装出的内容里，定制值以外的手改，重装时会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
 不要修改已安装 plugin 内的模板。
 
 本安装器的定制值：

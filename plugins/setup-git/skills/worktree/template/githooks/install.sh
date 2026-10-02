@@ -80,8 +80,14 @@ if [ "${hooks_too}" = 1 ]; then
 else
   echo "已写入常驻守护分支：$*（未装 hook，由现有 hook 体系调用 .githooks/hook.sh）。"
 fi
+# 闸门预检只从第一个常驻守护分支的本地分支读脚本，新 clone 里它可能只在远端。
+first=$1
 for branch in "$@"; do
-  git rev-parse --verify -q "refs/heads/${branch}" >/dev/null || continue
+  if ! git rev-parse --verify -q "refs/heads/${branch}" >/dev/null; then
+    [ "${branch}" != "${first}" ] ||
+      echo "注意：本 clone 没有本地分支 ${branch}，闸门预检要从它读脚本；先 git branch ${branch} <远端>/${branch} 建本地分支。" >&2
+    continue
+  fi
   git cat-file -e "refs/heads/${branch}:.githooks/revert-gate.py" 2>/dev/null ||
     echo "注意：${branch} 上还没有 .githooks/revert-gate.py，提交进去之后闸门才开始检查。" >&2
 done

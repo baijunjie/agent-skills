@@ -54,8 +54,8 @@ description: 按 Conventional Commits 规范生成 Git 提交。用于提交代�
 [optional footer]
 ```
 
-- subject：≤ 72 字符、句末不加标点；英文 subject 用祈使句、首字母小写；概括整体意图，细节留给 body
-- body 在 subject 说不清"为什么"、或改动点需分别交代时写，每行 ≤ 72 字符
+- subject：≤ 72 列（按显示宽度计，中日文等全角字符一个占两列）、句末不加标点；英文 subject 用祈使句、首字母小写；概括整体意图，细节留给 body
+- body 在 subject 说不清"为什么"、或改动点需分别交代时写，每行同样 ≤ 72 列
 - 多个改动点用 `- ` 逐条列出，一条一件事，按重要性排序
 - 不兼容改动在 type / scope 后加 `!`，并在 footer 写 `BREAKING CHANGE: <说明>`
 - 提交信息语言与仓库历史保持一致

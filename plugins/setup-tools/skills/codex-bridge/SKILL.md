@@ -52,27 +52,19 @@ TEMPLATE_DIR="$SETUP_ROOT/skills/codex-bridge/template/claude"
 已有的同名文件直接覆盖，目录里别的文件不动。
 
 ```bash
-X=${CODEX_HOME:-$HOME/.codex}
-# 每个 skill 各自决定写入位置：$HOME/.agents/skills/<名> 已有就原地更新它，否则装到 $X/skills/<名>。
-# 别两处各放一份同名 skill：两处都已存在时函数报错，停下来问用户，不自行删除其中一份。
-codex_skill_dir() {
-  if [ ! -d "$HOME/.agents/skills/$1" ]; then
-    echo "$X/skills/$1"
-  elif [ -d "$X/skills/$1" ]; then
-    echo "$1：$HOME/.agents/skills 与 $X/skills 下都有，停下来问用户保留哪一份" >&2
-    return 1
-  else
-    echo "$HOME/.agents/skills/$1"
-  fi
-}
-D=$(codex_skill_dir claude) || exit 1
 : "${TEMPLATE_DIR:?}"
+D="$HOME/.agents/skills/claude"
 mkdir -p "$D/agents"
 cp "$TEMPLATE_DIR/SKILL.template.md" "$D/SKILL.md"
 cp "$TEMPLATE_DIR/agents/openai.yaml" "$D/agents/"
 ```
 
-**告知用户**：说明实际写入的用户级配置目录；Codex 开启新会话后生效，也可在 Codex 里用 `$claude` 显式触发。
+**告知用户**：
+
+- 说明实际写入的用户级配置目录；Codex 开启新会话后生效，也可在 Codex 里用 `$claude` 显式触发。
+- 装出的 skill 从 `CLAUDE_CONFIG_DIR` 读 Claude 的用户级配置，没设时读 `~/.claude`，而 Codex 的环境里通常没设这个变量。
+  检查当前环境的 `CLAUDE_CONFIG_DIR`：已设置且不是 `~/.claude` 时，提示用户在启动 Codex 的环境里导出同一个值
+  （如写进 shell 配置文件），否则读到的是 `~/.claude`；没设置时说明会读 `~/.claude`，Claude Code 用的是别的配置目录时同样要导出。
 
 ## 重装
 
@@ -86,7 +78,7 @@ cp "$TEMPLATE_DIR/agents/openai.yaml" "$D/agents/"
 - **装新的**：按安装步骤写入。
 - **填回**：把读出的定制值填回新文件的对应位置。
 
-**告知用户**时说明：定制值以外的手改，重装时都会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
+**告知用户**时说明：本安装器装出的内容里，定制值以外的手改，重装时会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
 不要修改已安装 plugin 内的模板。
 
 本安装器的定制值：无。

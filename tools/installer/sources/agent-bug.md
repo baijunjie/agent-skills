@@ -28,9 +28,9 @@ disable-model-invocation: true
    里写着目录的，那就是上次定下的，沿用它（见「重装」）；都没有则用默认的 `docs/bugs/`。
    只确定目录，不改文件。
 2. **写入 skill**：`agent-bug-report`、`agent-bug-fix` 两个都执行所在宿主安装节里的 `cp`，已有的整份覆盖。
-3. **对齐目录**：只在项目级安装时做。目录与默认的 `docs/bugs/` 不同时，把**项目里已写入的那两份** skill
-   （不是 `$TEMPLATE_DIR` 里的模板）中的 `docs/bugs/` 全部改成实际目录，包括 frontmatter 的 `description`，其它路径不动；
-   两份里「工单目录默认 `docs/bugs/`，项目已有自己的约定时按项目的。」这一句随之整句改成「本项目的工单目录是 `<实际目录>`。」。
+3. **对齐目录**：只在项目级安装时做。目录与默认的 `docs/bugs/` 不同时，改的是**项目里已写入的那两份** skill
+   （不是 `$TEMPLATE_DIR` 里的模板），按顺序做：先把两份里「工单目录默认 `docs/bugs/`，项目已有自己的约定时按项目的。」
+   整句改成「本项目的工单目录是 `<实际目录>`。」；再把其余出现的 `docs/bugs/` 改成实际目录，包括 frontmatter 的 `description`，其它路径不动。
 4. **告知用户**：除各安装节列的外，说明重装时保留的只有项目级安装时填写的 bug 工单目录。
 
 用户级安装不定目录、不对齐：bug 工单目录是所在项目的，装出的 skill 在运行时按项目的约定找，
@@ -40,6 +40,7 @@ disable-model-invocation: true
 
 ```bash
 {{include: project-root}}
+: "${TEMPLATE_DIR:?}"
 mkdir -p .claude/skills/agent-bug-report .claude/skills/agent-bug-fix
 cp "$TEMPLATE_DIR/agent-bug-report.md" .claude/skills/agent-bug-report/SKILL.md
 cp "$TEMPLATE_DIR/agent-bug-fix.md" .claude/skills/agent-bug-fix/SKILL.md
@@ -55,6 +56,7 @@ cp "$TEMPLATE_DIR/agent-bug-fix.md" .claude/skills/agent-bug-fix/SKILL.md
 装进**当前会话的用户级配置目录**，不要写死路径。
 
 ```bash
+: "${TEMPLATE_DIR:?}"
 C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 mkdir -p "$C/skills/agent-bug-report" "$C/skills/agent-bug-fix"
 cp "$TEMPLATE_DIR/agent-bug-report.md" "$C/skills/agent-bug-report/SKILL.md"
@@ -68,6 +70,7 @@ cp "$TEMPLATE_DIR/agent-bug-fix.md" "$C/skills/agent-bug-fix/SKILL.md"
 
 ```bash
 {{include: project-root}}
+: "${TEMPLATE_DIR:?}"
 mkdir -p .agents/skills/agent-bug-report .agents/skills/agent-bug-fix
 cp "$TEMPLATE_DIR/agent-bug-report.md" .agents/skills/agent-bug-report/SKILL.md
 cp "$TEMPLATE_DIR/agent-bug-fix.md" .agents/skills/agent-bug-fix/SKILL.md
@@ -81,9 +84,9 @@ cp "$TEMPLATE_DIR/agent-bug-fix.md" .agents/skills/agent-bug-fix/SKILL.md
 ## Codex 用户级安装
 
 ```bash
-{{include: codex-user-skill-dir}}
-D1=$(codex_skill_dir agent-bug-report) || exit 1
-D2=$(codex_skill_dir agent-bug-fix) || exit 1
+: "${TEMPLATE_DIR:?}"
+D1="$HOME/.agents/skills/agent-bug-report"
+D2="$HOME/.agents/skills/agent-bug-fix"
 mkdir -p "$D1" "$D2"
 cp "$TEMPLATE_DIR/agent-bug-report.md" "$D1/SKILL.md"
 cp "$TEMPLATE_DIR/agent-bug-fix.md" "$D2/SKILL.md"

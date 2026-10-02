@@ -29,7 +29,7 @@ fi
 TEMPLATE_DIR="$SETUP_ROOT/skills/workflow/template"
 ```
 
-Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现 Claude Code 用户级配置目录里也有本安装器要装的同名 skill 时，告诉用户项目级这份在 Claude Code 中不会生效。
+Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现 Claude Code 用户级配置目录里也有本安装器要装的同名 skill 时，告知用户项目级这份在 Claude Code 中不会生效。
 
 ## 指令文件里的标记
 
@@ -49,7 +49,7 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
 - **重装**：指令文件里清理的是本安装器的标记范围，同一指令文件里的其它内容不碰。
 - **异常**：下列情况按「现状与预期不符时」**停下来问用户**，不要照写，也不要自行修复；软链要在「写入前检查」里一并查。
   - 指令文件里本安装器的标记不成对：只出现一个、出现多对，或先后颠倒。
-  - 要写的指令文件本身是软链。
+  - 要写的指令文件本身是软链。链向另一宿主的指令文件时，按下面「共用的指令文件」处理。
 - **共用的指令文件**：另一宿主的指令文件是指向要写的这份的软链（如 `CLAUDE.md` → `AGENTS.md`）时，两个宿主读的是同一份。
   写入前**停下来问用户**：说明这一点，问是否写进这份共用的文件；写进去后，按宿主渲染的内容只会保留最后写入的那个宿主的版本。
   这个软链同样在「写入前检查」里一并查。
@@ -72,14 +72,17 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
   - 落进本安装器装出内容的部分以后照常重装，只有定制值所在的位置（见「重装」）会保留，所以融入的内容优先放进这些位置；
     这次安装的作用域下没有定制值的，询问时直说「融入只对这一次有效，下次重装会被覆盖」，建议选完全覆盖。
 
-本安装器另外要查的冲突：指令文件标记范围之外已有开工前、交付前做什么或按什么顺序自检的流程。
+本安装器另外要查的冲突：
+
+- 指令文件标记范围之外已有开工前、交付前做什么或按什么顺序自检的流程。
+- **这一项不按冲突问**：项目级安装时，当前宿主用户级指令文件里已有同类规则（开工前或交付前流程）的，不改它，告知用户两份都会生效、内容差在哪。
 
 ## 通用步骤
 
 1. **查已装的专职 skill**：用所在宿主安装节里的命令查。工作流只为 `agent-docs`、`agent-unit-test`、
    `agent-change-check` 安排步骤，且**只认装在当前项目里的**：工作流写进随仓库提交的指令文件，用户级的 skill 不随仓库分发，队友那里没有。
    - 没装的 skill 对应的步骤整步省略，不写占位，也不顺手装上——没装说明用户没打算做这件事。
-   - 只装在用户级的同样不写进工作流，告诉用户是哪几个，用户要求写进去再说。
+   - 只装在用户级的同样不写进工作流，告知用户是哪几个；要进工作流，先把它装进当前项目再重装本安装器。
    - 项目里一个都没装时，下面几步都不做，改按「一个专职 skill 都没装时」一节处理。
 2. **按已装情况裁剪模板**：模板是 `$TEMPLATE_DIR/workflow.md`。`<!-- if-installed: <skill> -->` 到其后最近的
    `<!-- end-if -->` 是一段可省略的内容：该 skill 已装就保留内容、删掉这两行标记；没装就连内容整段删掉。
@@ -88,7 +91,7 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
 3. **写入指令文件**：写所在宿主安装节里的指令文件，没有就新建。模板已带本安装器的标记。
    文件里已有这对标记时，先读出标记范围里「### 本项目」小节的条目。按「指令文件里的标记」
    写入裁剪后的内容。读出的条目原样填回新的「### 本项目」小节，替掉占位行；
-   没有条目就留着新模板的占位行。条目锚定的步骤这次被裁掉了的，条目照样填回，告诉用户是哪几条。
+   没有条目就留着新模板的占位行。条目锚定的步骤这次被裁掉了的，条目照样填回，告知用户是哪几条。
 4. **写入 skill**：执行所在宿主安装节里的 `cp`，已有的整份覆盖。
 5. **告知用户**：写进工作流的步骤、因没装而省略的步骤、因只装在用户级而没写的步骤分别列出。
    再说一句：重装时保留的只有「### 本项目」小节——「工作流」一节的其余部分每次都按当前已装的 skill 重新生成，
@@ -96,8 +99,8 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
 
 ## 一个专职 skill 都没装时
 
-不写「## 工作流」一节：三个专职 skill 都没装，裁剪后只剩静态检查，构不成工作流。告诉用户项目里没有可编排的内容；
-只装在用户级的照第 1 步告诉用户。
+不写「## 工作流」一节：三个专职 skill 都没装，裁剪后只剩静态检查，构不成工作流。告知用户项目里没有可编排的内容；
+只装在用户级的照第 1 步告知用户。
 
 之前装过的（指令文件里有本安装器的标记，或项目里有 `agent-workflow-edit`），按标记范围里「### 本项目」小节的状态清理：
 
@@ -105,10 +108,10 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
   项目里有 `agent-workflow-edit` 的删掉它的 `SKILL.md`，目录空了再删目录。
 - **小节有条目**：条目是用户写的，保留。标记范围里只留「## 工作流」标题与原样的「### 本项目」小节，模板内容全部删掉，
   标题只用来承载这些条目；
-  `agent-workflow-edit` 照「写入 skill」一步整份覆盖，留着它以后改这个小节。告诉用户这些条目锚定的步骤都已不在，
+  `agent-workflow-edit` 照「写入 skill」一步整份覆盖，留着它以后改这个小节。告知用户这些条目锚定的步骤都已不在，
   由他决定留还是删。
 
-告诉用户删了什么、留了什么。
+告知用户删了什么、留了什么。
 
 ## Claude Code 项目级安装
 
@@ -117,7 +120,7 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
 查已装的专职 skill（第 1 步）：
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
 C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 for s in agent-docs agent-unit-test agent-change-check; do
   p=; u=
@@ -135,7 +138,8 @@ done
 写入 skill（第 4 步）：
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+: "${TEMPLATE_DIR:?}"
 mkdir -p .claude/skills/agent-workflow-edit
 cp "$TEMPLATE_DIR/agent-workflow-edit.md" .claude/skills/agent-workflow-edit/SKILL.md
 ```
@@ -150,11 +154,10 @@ cp "$TEMPLATE_DIR/agent-workflow-edit.md" .claude/skills/agent-workflow-edit/SKI
 查已装的专职 skill（第 1 步）：
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
-X=${CODEX_HOME:-$HOME/.codex}
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
 for s in agent-docs agent-unit-test agent-change-check; do
   if [ -f ".agents/skills/$s/SKILL.md" ]; then echo "$s: 项目"
-  elif [ -f "$HOME/.agents/skills/$s/SKILL.md" ] || [ -f "$X/skills/$s/SKILL.md" ]; then echo "$s: 仅用户级"
+  elif [ -f "$HOME/.agents/skills/$s/SKILL.md" ]; then echo "$s: 仅用户级"
   fi
 done
 ```
@@ -162,7 +165,8 @@ done
 写入 skill（第 4 步）：
 
 ```bash
-cd "$(git rev-parse --show-toplevel)" || exit 1
+top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+: "${TEMPLATE_DIR:?}"
 mkdir -p .agents/skills/agent-workflow-edit
 cp "$TEMPLATE_DIR/agent-workflow-edit.md" .agents/skills/agent-workflow-edit/SKILL.md
 ```
@@ -182,7 +186,7 @@ cp "$TEMPLATE_DIR/agent-workflow-edit.md" .agents/skills/agent-workflow-edit/SKI
 - **装新的**：按安装步骤写入。
 - **填回**：把读出的定制值填回新文件的对应位置。
 
-**告知用户**时说明：定制值以外的手改，重装时都会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
+**告知用户**时说明：本安装器装出的内容里，定制值以外的手改，重装时会被覆盖；定制值为「无」的，说这个安装器没有可定制的位置。
 不要修改已安装 plugin 内的模板。
 
 本安装器的定制值：
