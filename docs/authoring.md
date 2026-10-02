@@ -13,7 +13,18 @@
 
 ### 新增 plugin
 
-创建三个 manifest（`plugin.json`、`.codex-plugin/plugin.json`、`.claude-plugin/plugin.json`），在两个 marketplace 的 `plugins` 数组中登记，再在 `README.md` 的安装、更新命令与「可用 Skills」中补上。三个 manifest 的 `description` 一字不差，`.claude-plugin/marketplace.json` 里照抄它；`.codex-plugin/plugin.json` 的 `interface` 文案与它保持一致。plugin 名表达领域或能力组；宿主适用性由具体 skill 的描述与实现分支决定，不要因某个 skill 只配置某一宿主就把整个 plugin 排除出另一 marketplace。
+登记三处，缺一不可：
+
+- 创建三个 manifest：`plugin.json`、`.codex-plugin/plugin.json`、`.claude-plugin/plugin.json`。
+- 在两个 marketplace 的 `plugins` 数组中登记。
+- 在 `README.md` 的安装、更新命令与「可用 Skills」中补上。
+
+文案一致性：
+
+- 三个 manifest 的 `description` 一字不差，`.claude-plugin/marketplace.json` 里照抄它。
+- `.codex-plugin/plugin.json` 的 `interface` 文案与它保持一致。
+
+命名与适用性：plugin 名表达领域或能力组；宿主适用性由具体 skill 的描述与实现分支决定，不要因某个 skill 只配置某一宿主就把整个 plugin 排除出另一 marketplace。
 
 ## Frontmatter
 
@@ -32,5 +43,13 @@ YAML frontmatter 必须位于文件最开头，`---` 是第一行。必填 `name
 - skill 携带的脚本、模板放在自己目录下，用 `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}/skills/<skill>/<file>` 引用（安装后路径不可预测，先用 Codex 的 `PLUGIN_ROOT`，回退到 Claude Code 的 `CLAUDE_PLUGIN_ROOT`）。
 - 同一 plugin 内多个 skill 共用的资源放 plugin 级 `scripts/`，不要让一个 skill 引另一个 skill 的 `template/`——单独装其中一个就会读到不属于它的路径。依赖同一 `scripts/` 的 skill 必须留在同一 plugin，plugin 之间不共享文件。
 - 附带的模板文件不要命名为 `SKILL.md`。
-- 共享指令正文只维护一份，禁止另建宿主版本或作用域副本，宿主差异由 `plugins/setup-agent/scripts/` 的渲染脚本生成：Agent 模板的 Codex 版由 `render-codex-agent.py` 生成，模型与 reasoning effort 在其中集中映射（新增 agent 时必须同时补齐），Claude 版的模型配置写在模板 frontmatter；`setup-agent:subagents` 的规则由 `render-subagent-rules.py` 生成；`setup-agent:report-style` 以 Claude Code 输出风格文件为唯一模板，Codex 那一节由 `render-report-style.py` 生成。
+- 共享指令正文只维护一份，禁止另建宿主版本或作用域副本，宿主差异由 `plugins/setup-agent/scripts/` 的渲染脚本生成，各脚本生成什么见下面「渲染脚本」。
 - 渲染脚本的写法：有模块 docstring；参数由 argparse 校验；出错时输出 `<脚本名>: <错误信息>` 到 stderr 并以 1 退出，不抛 traceback；自己写的消息用中文。直接写文件的渲染脚本全部渲染成功后才写，替换语义见其 docstring；安装器重装时用 `--replace`，不要先 `rm` 目标再渲染（会把软链换成普通文件，渲染失败时旧文件也没了）。
+
+### 渲染脚本
+
+| 渲染脚本 | 生成什么 | 备注 |
+|---|---|---|
+| `render-codex-agent.py` | Agent 模板的 Codex 版 | 模型与 reasoning effort 在其中集中映射，新增 agent 时必须同时补齐；Claude 版的模型配置写在模板 frontmatter |
+| `render-subagent-rules.py` | `setup-agent:subagents` 的规则 | |
+| `render-report-style.py` | `setup-agent:report-style` 的 Codex 那一节 | 以 Claude Code 输出风格文件为唯一模板 |

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Project Init"
+  short_description: "一次装好新项目的默认开发配置"
+  default_prompt: "Use $batch-setup:project-init to set up the default development configuration for this project."
+policy:
+  allow_implicit_invocation: false

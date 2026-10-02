@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "bjj-agent-skills",
-  "description": "个人 agent skills 集合：开发流程、agent skill 创建，以及 agent 工作方式、Git 规范、开发辅助工具与知识类规范的安装器",
+  "description": "个人 agent skills 集合：开发流程、agent skill 创建、一键初始化项目，以及 agent 工作方式、Git 规范、开发辅助工具与知识类规范的安装器",
   "owner": {
     "name": "BaiJunjie",
     "email": "bjj19851010@gmail.com"
@@ -59,6 +59,15 @@
         "name": "BaiJunjie"
       },
       "source": "./plugins/setup-knowledge",
+      "category": "productivity"
+    },
+    {
+      "name": "batch-setup",
+      "description": "为 Claude Code 或 Codex 一次装好新项目的默认开发配置：按序读取并执行子代理分派、项目文档、改动检查、bug 工单、开发计划、worktree 流程、提交 PR 流程与项目工作流八个安装器，全部只装进项目，不含输出风格与单元测试",
+      "author": {
+        "name": "BaiJunjie"
+      },
+      "source": "./plugins/batch-setup",
       "category": "productivity"
     }
   ]

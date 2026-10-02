@@ -17,6 +17,7 @@ claude plugin install setup-agent@bjj-agent-skills
 claude plugin install setup-git@bjj-agent-skills
 claude plugin install setup-tools@bjj-agent-skills
 claude plugin install setup-knowledge@bjj-agent-skills
+claude plugin install batch-setup@bjj-agent-skills
 
 # 3. 重启 Claude Code
 ```
@@ -36,6 +37,7 @@ codex plugin add setup-agent@bjj-agent-skills
 codex plugin add setup-git@bjj-agent-skills
 codex plugin add setup-tools@bjj-agent-skills
 codex plugin add setup-knowledge@bjj-agent-skills
+codex plugin add batch-setup@bjj-agent-skills
 
 # 3. 开启新会话
 ```
@@ -57,6 +59,7 @@ claude plugin update setup-agent@bjj-agent-skills
 claude plugin update setup-git@bjj-agent-skills
 claude plugin update setup-tools@bjj-agent-skills
 claude plugin update setup-knowledge@bjj-agent-skills
+claude plugin update batch-setup@bjj-agent-skills
 
 # 3. 重启 Claude Code
 ```
@@ -76,6 +79,7 @@ codex plugin add setup-agent@bjj-agent-skills
 codex plugin add setup-git@bjj-agent-skills
 codex plugin add setup-tools@bjj-agent-skills
 codex plugin add setup-knowledge@bjj-agent-skills
+codex plugin add batch-setup@bjj-agent-skills
 
 # 3. 开启新会话
 ```
@@ -155,6 +159,14 @@ codex plugin add setup-knowledge@bjj-agent-skills
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
 | `setup-knowledge:i18n-copy` | 多语言 App 界面文案规范 | 项目级（默认）+ 用户级 | 手动 |
+
+### `batch-setup` — 一键初始化项目
+
+把几个安装器按固定顺序一次装完，不自己写文件；那些安装器禁止模型调用，所以读它们的 `SKILL.md` 照做，要求对应 plugin 已装。
+
+| Skill | 说明 | 作用域 | 触发方式 |
+|-------|------|--------|----------|
+| `batch-setup:project-init` | 初始化项目：按序读取并执行 `setup-agent` 的 `subagents`、`docs`、`change-check`、`bug`、`plan`、`workflow` 与 `setup-git` 的 `worktree`、`pr`，不含 `report-style` 与 `unit-test` | 项目级 | 手动 |
 
 ## 排查
 
