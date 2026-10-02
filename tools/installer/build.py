@@ -89,6 +89,7 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #     那里的标记出现在命令里）
 #   - 写指令文件（源文件含 {{marker}}，或 template/ 里有本安装器的标记）却没有在顶层 include markers，
 #     或 include 了 markers 却不写指令文件
+#   - template/ 里带本安装器成对标记的文件，标记范围内最浅的标题不是一级
 #
 # 步骤引用
 #   - 生成物里「第 N 步」「第 N–M 步」「第 N、M 步」中的任一数字大于代码块之外编号列表项的最大序号。
@@ -227,6 +228,8 @@ SECTION_WORDS = ("项目级", "用户级")
 # 行首缩进 0–3 个空格仍是 Markdown 标题；缩进的安装节标题不合上面两种写法，会被当成写法不对报错。
 SECTION_HEADING = re.compile(r"^ {0,3}###?[ \t]")
 LEVEL2_HEADING = re.compile(r"^ {0,3}##[ \t]")
+# 任意层级的 ATX 标题，取出 # 的个数判断层级。
+ATX_HEADING = re.compile(r"^ {0,3}(#{1,6})[ \t]")
 # 代码块围栏：开头那行定下符号（` 或 ~）与长度，只有同一符号、不短于它、其后只有空白的行才收尾。
 # 缩进不限，列表项里的代码块也算。
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})(.*)$")
@@ -507,6 +510,39 @@ def check_markers(name: str, marker: str, text: str, where: str, paired: bool) -
     if paired and kinds not in ([], ["begin", "end"]):
         sys.exit(f"{name}: {where}里的标记须为 begin、end 各一个且 begin 在前，现在依次是 {'、'.join(kinds)}")
     return bool(kinds)
+
+
+def check_marked_heading_level(name: str, text: str, where: str) -> None:
+    """模板里标记范围内最浅的标题须是一级。
+
+    markers 片段约定写进指令文件的内容顶层节标题用 `#`：顶层写成 `##` 的话，装出来这一节会挂到
+    指令文件上一个 `#` 节底下成为它的子节，而指令文件里不报错、也看不出来。
+    """
+    lines = text.split("\n")
+    begin = end = None
+    for index, line in enumerate(lines):
+        m = MARKER.search(line)
+        if m and m.group(2) == "begin":
+            begin = index
+        elif m and m.group(2) == "end":
+            end = index
+    if begin is None or end is None:
+        return
+    span = lines[begin + 1 : end]
+    levels = [
+        (index, len(ATX_HEADING.match(span[index]).group(1)))
+        for index in outside_fences(name, span, where)
+        if ATX_HEADING.match(span[index])
+    ]
+    if not levels:
+        return
+    top = min(level for _, level in levels)
+    if top != 1:
+        index = next(i for i, level in levels if level == top)
+        sys.exit(
+            f"{name}: {where}标记范围里最浅的标题是 {top} 级（第 {begin + 2 + index} 行 "
+            f"{span[index].strip()}），写进指令文件的内容顶层节标题须用 #"
+        )
 
 
 def check_step_refs(name: str, text: str) -> None:
@@ -895,7 +931,9 @@ def render(name: str, scope: str, declared: dict) -> str:
         if f.is_file() and f.name != ".DS_Store":
             where = f"{f.relative_to(REPO)} "
             text_f = f.read_text(encoding="utf-8", errors="ignore")
-            writes_instruction_file |= check_markers(name, marker, text_f, where, paired=True)
+            if check_markers(name, marker, text_f, where, paired=True):
+                writes_instruction_file = True
+                check_marked_heading_level(name, text_f, where)
     if writes_instruction_file and "markers" not in included:
         sys.exit(f"{name}: 源文件或 template/ 里有本安装器的标记，源文件却没有 include markers")
     if "markers" in included and not writes_instruction_file:

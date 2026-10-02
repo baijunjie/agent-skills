@@ -34,7 +34,7 @@ disable-model-invocation: true
 
 写入的是命令渲染出的内容，不要直接拷 `rules.md`（原文带用户级标题与 `{{host_agent_token}}` 占位符）。
 
-用户级安装改用 `--scope project` 渲染时，告知用户：这样渲染出的规则不含「与项目自己的指令文件冲突时，以项目的为准」这一句，
+用户级安装加 `--no-header` 渲染时，告知用户：这样渲染出的规则不含「与项目自己的指令文件冲突时，以项目的为准」这一句，
 请用户确认已有的「# 全局规则」下有没有同样的约定。
 
 ## Claude Code 项目级安装（默认）
@@ -65,18 +65,18 @@ disable-model-invocation: true
 
 装进**当前会话的用户级配置目录**，不要写死路径。
 
-1. **写规则**：标记范围之外已有「# 全局规则」标题时改用 `--scope project` 渲染——它不带这个标题与首句，
-   避免文件里出现两个同名标题；下面的命令会自己判断：
+1. **写规则**：标记范围之外已有「# 全局规则」标题时加 `--no-header` 渲染——它不重复这个标题与首句，
+   写出的规则直接挂到已有的那个标题下；下面的命令会自己判断：
 
    ```bash
    C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
    F="$C/CLAUDE.md"
    : "${RENDER_RULES:?}" "${TEMPLATE_DIR:?}"
    mkdir -p "$C"
-   S=user
-   if [ -f "$F" ] && awk '/^<!-- {{marker}}:begin -->$/{s=1} !s{print} /^<!-- {{marker}}:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then S=project; fi
-   echo "渲染作用域：$S"
-   rules=$(python3 "$RENDER_RULES" --host claude --scope "$S" "$TEMPLATE_DIR/rules.md") &&
+   NOHEAD=
+   if [ -f "$F" ] && awk '/^<!-- {{marker}}:begin -->$/{s=1} !s{print} /^<!-- {{marker}}:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then NOHEAD=--no-header; fi
+   echo "渲染参数：${NOHEAD:-（无，带「# 全局规则」标题）}"
+   rules=$(python3 "$RENDER_RULES" --host claude --scope user $NOHEAD "$TEMPLATE_DIR/rules.md") &&
      printf '\n<!-- {{marker}}:begin -->\n\n%s\n\n<!-- {{marker}}:end -->\n' "$rules" >> "$F"
    ```
 
@@ -118,18 +118,18 @@ disable-model-invocation: true
 
 ## Codex 用户级安装
 
-1. **写规则**：标记范围之外已有「# 全局规则」标题时改用 `--scope project` 渲染——它不带这个标题与首句，
-   避免文件里出现两个同名标题；下面的命令会自己判断：
+1. **写规则**：标记范围之外已有「# 全局规则」标题时加 `--no-header` 渲染——它不重复这个标题与首句，
+   写出的规则直接挂到已有的那个标题下；下面的命令会自己判断：
 
    ```bash
    X=${CODEX_HOME:-$HOME/.codex}
    F="$X/AGENTS.md"
    : "${RENDER_RULES:?}" "${TEMPLATE_DIR:?}"
    mkdir -p "$X"
-   S=user
-   if [ -f "$F" ] && awk '/^<!-- {{marker}}:begin -->$/{s=1} !s{print} /^<!-- {{marker}}:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then S=project; fi
-   echo "渲染作用域：$S"
-   rules=$(python3 "$RENDER_RULES" --host codex --scope "$S" "$TEMPLATE_DIR/rules.md") &&
+   NOHEAD=
+   if [ -f "$F" ] && awk '/^<!-- {{marker}}:begin -->$/{s=1} !s{print} /^<!-- {{marker}}:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then NOHEAD=--no-header; fi
+   echo "渲染参数：${NOHEAD:-（无，带「# 全局规则」标题）}"
+   rules=$(python3 "$RENDER_RULES" --host codex --scope user $NOHEAD "$TEMPLATE_DIR/rules.md") &&
      printf '\n<!-- {{marker}}:begin -->\n\n%s\n\n<!-- {{marker}}:end -->\n' "$rules" >> "$F"
    ```
 

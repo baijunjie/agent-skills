@@ -98,7 +98,6 @@ disable-model-invocation: true
    cat "$TEMPLATE_DIR/rules.md" >> CLAUDE.md
    ```
 
-   模板用 `#` 作节标题，目标文件若把 `#` 用作文档标题、`##` 分节，写入后要把标记范围里的层级降一级对齐。
 3. **装 `git-worktree` skill**：已有的整份覆盖；第 1 步定为写法 B 或 C 的，写入后按该写法改装出的这份，不改模板。
 
    Codex 只执行这块：

@@ -51,5 +51,8 @@ YAML frontmatter 必须位于文件最开头，`---` 是第一行。必填 `name
 | 渲染脚本 | 生成什么 | 备注 |
 |---|---|---|
 | `render-codex-agent.py` | Agent 模板的 Codex 版 | 模型与 reasoning effort 在其中集中映射，新增 agent 时必须同时补齐；Claude 版的模型配置写在模板 frontmatter |
-| `render-subagent-rules.py` | `setup-agent:subagents` 的规则 | |
+| `render-subagent-rules.py` | `setup-agent:subagents` 的规则 | 按宿主与去处定层级，三种形态见其 docstring |
 | `render-report-style.py` | `setup-agent:report-style` 的 Codex 那一节 | 以 Claude Code 输出风格文件为唯一模板 |
+
+同目录的 `markdown_headings.py` 不是渲染脚本，是上面两个脚本共用的模块：把模板里的标题层级平移到写进指令文件
+该有的层级（见 `docs/decisions.md`「写进指令文件的内容顶层用一级标题」），代码块里的 `#` 不动、平移出 1–6 级就报错。

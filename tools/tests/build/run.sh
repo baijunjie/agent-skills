@@ -116,6 +116,7 @@ openai_yaml() { printf '%b' "$1" >"$P/setup-agent/skills/plan/agents/openai.yaml
 CRON_TPL='$P/setup-tools/skills/cron/template/cron/tasks.conf'
 WT_TPL='$P/setup-git/skills/worktree/template/git-worktree.md'
 WT_RULES='$P/setup-git/skills/worktree/template/rules.md'
+WF_TPL='$P/setup-agent/skills/workflow/template/workflow.md'
 
 # ---------------------------------------------------------------------------
 # 基线
@@ -615,6 +616,30 @@ register allow_template_marker_pair_new_file
 case_allow_template_marker_pair_new_file() {
   fixture
   printf '<!-- setup-tools:cron:begin -->\n说明\n<!-- setup-tools:cron:end -->\n' >"$P/setup-tools/skills/cron/template/cron/notes.md"
+  expect_build_ok
+}
+
+# 标记范围内最浅的标题须是一级
+
+bad bad_marked_heading_level_demoted "mut sub \"$WF_TPL\" '# 工作流' '## 工作流'
+  expect_build_fails '标记范围里最浅的标题是 2 级' '顶层节标题须用 #'"
+bad bad_marked_heading_level_rules_demoted "mut sub \"$WT_RULES\" '# 开发流程：Git Worktree' '## 开发流程：Git Worktree'
+  expect_build_fails '标记范围里最浅的标题是 2 级'"
+
+register bad_marked_heading_level_only_fenced_top
+case_bad_marked_heading_level_only_fenced_top() {
+  fixture
+  # 代码块里的 # 不是标题：范围里真正最浅的标题是 `## 小节`，照样要报错
+  printf '<!-- setup-tools:cron:begin -->\n\n```\n# 代码块里不是标题\n```\n\n## 小节\n\n<!-- setup-tools:cron:end -->\n' \
+    >"$P/setup-tools/skills/cron/template/cron/notes.md"
+  expect_build_fails "标记范围里最浅的标题是 2 级"
+}
+
+register allow_marked_heading_level_with_subsections
+case_allow_marked_heading_level_with_subsections() {
+  fixture
+  printf '<!-- setup-tools:cron:begin -->\n\n# 顶层\n\n## 小节\n\n### 更深\n\n<!-- setup-tools:cron:end -->\n' \
+    >"$P/setup-tools/skills/cron/template/cron/notes.md"
   expect_build_ok
 }
 

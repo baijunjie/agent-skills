@@ -48,6 +48,8 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
   - 文件里已有这对标记：去掉命令末尾的 `>> <文件>` 执行，只用输出里从 begin 标记到 end 标记的那一段替换标记范围，
     写回原位置，不再追加第二份。替换内容不带前导空行，标记与相邻内容之间原有的空行保持不变，重装多少次空行都不会累积。
   - 安装步骤直接给出带标记的内容、不经命令输出的，照同样的做法追加或替换。
+- **标题层级**：写入的内容顶层节标题用 `#`，跟指令文件按 `#` 分节的常规一致。目标文件把 `#` 只用作全文的文档标题、
+  用 `##` 分节时，写入后把标记范围里的标题整体降一级对齐：层级不对齐，本安装器的节会挂到上一节底下成为它的子节。
 - **冲突**：指令文件里本安装器的标记范围是本安装器装出的，照常重装、不问；其它安装器标记范围里的内容各管各的，
   也不算冲突。标记范围之外已有管同一件事的规则或流程才是冲突。
 - **冲突的处理结果**：冲突处理完，结果一律写进标记范围，标记之外原来那段删掉。
@@ -89,7 +91,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 
 写入的是命令渲染出的内容，不要直接拷 `rules.md`（原文带用户级标题与 `{{HOST_AGENT_CONFIGURATION}}` 占位符）。
 
-用户级安装改用 `--scope project` 渲染时，告知用户：这样渲染出的规则不含「与项目自己的指令文件冲突时，以项目的为准」这一句，
+用户级安装加 `--no-header` 渲染时，告知用户：这样渲染出的规则不含「与项目自己的指令文件冲突时，以项目的为准」这一句，
 请用户确认已有的「# 全局规则」下有没有同样的约定。
 
 ## Claude Code 项目级安装（默认）
@@ -120,18 +122,18 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 
 装进**当前会话的用户级配置目录**，不要写死路径。
 
-1. **写规则**：标记范围之外已有「# 全局规则」标题时改用 `--scope project` 渲染——它不带这个标题与首句，
-   避免文件里出现两个同名标题；下面的命令会自己判断：
+1. **写规则**：标记范围之外已有「# 全局规则」标题时加 `--no-header` 渲染——它不重复这个标题与首句，
+   写出的规则直接挂到已有的那个标题下；下面的命令会自己判断：
 
    ```bash
    C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
    F="$C/CLAUDE.md"
    : "${RENDER_RULES:?}" "${TEMPLATE_DIR:?}"
    mkdir -p "$C"
-   S=user
-   if [ -f "$F" ] && awk '/^<!-- setup-agent:subagents:begin -->$/{s=1} !s{print} /^<!-- setup-agent:subagents:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then S=project; fi
-   echo "渲染作用域：$S"
-   rules=$(python3 "$RENDER_RULES" --host claude --scope "$S" "$TEMPLATE_DIR/rules.md") &&
+   NOHEAD=
+   if [ -f "$F" ] && awk '/^<!-- setup-agent:subagents:begin -->$/{s=1} !s{print} /^<!-- setup-agent:subagents:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then NOHEAD=--no-header; fi
+   echo "渲染参数：${NOHEAD:-（无，带「# 全局规则」标题）}"
+   rules=$(python3 "$RENDER_RULES" --host claude --scope user $NOHEAD "$TEMPLATE_DIR/rules.md") &&
      printf '\n<!-- setup-agent:subagents:begin -->\n\n%s\n\n<!-- setup-agent:subagents:end -->\n' "$rules" >> "$F"
    ```
 
@@ -173,18 +175,18 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 
 ## Codex 用户级安装
 
-1. **写规则**：标记范围之外已有「# 全局规则」标题时改用 `--scope project` 渲染——它不带这个标题与首句，
-   避免文件里出现两个同名标题；下面的命令会自己判断：
+1. **写规则**：标记范围之外已有「# 全局规则」标题时加 `--no-header` 渲染——它不重复这个标题与首句，
+   写出的规则直接挂到已有的那个标题下；下面的命令会自己判断：
 
    ```bash
    X=${CODEX_HOME:-$HOME/.codex}
    F="$X/AGENTS.md"
    : "${RENDER_RULES:?}" "${TEMPLATE_DIR:?}"
    mkdir -p "$X"
-   S=user
-   if [ -f "$F" ] && awk '/^<!-- setup-agent:subagents:begin -->$/{s=1} !s{print} /^<!-- setup-agent:subagents:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then S=project; fi
-   echo "渲染作用域：$S"
-   rules=$(python3 "$RENDER_RULES" --host codex --scope "$S" "$TEMPLATE_DIR/rules.md") &&
+   NOHEAD=
+   if [ -f "$F" ] && awk '/^<!-- setup-agent:subagents:begin -->$/{s=1} !s{print} /^<!-- setup-agent:subagents:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then NOHEAD=--no-header; fi
+   echo "渲染参数：${NOHEAD:-（无，带「# 全局规则」标题）}"
+   rules=$(python3 "$RENDER_RULES" --host codex --scope user $NOHEAD "$TEMPLATE_DIR/rules.md") &&
      printf '\n<!-- setup-agent:subagents:begin -->\n\n%s\n\n<!-- setup-agent:subagents:end -->\n' "$rules" >> "$F"
    ```
 

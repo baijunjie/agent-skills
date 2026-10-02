@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# 安装器用到的脚本的测试：plugins/setup-agent/scripts/ 下的三个渲染脚本，
+# 安装器用到的脚本的测试：plugins/setup-agent/scripts/ 下的三个渲染脚本（标题层级平移在共享模块
+# markdown_headings.py 里，由用它的 rules_*、style_* 用例覆盖），
 # 以及片段 tools/installer/fragments/project-root.md 里那行切到仓库根目录的 shell。
 #   bash tools/tests/scripts/run.sh [-v] [<用例名>...]
 # 环境变量 SCRIPTS_DIR 可指向另一份 scripts 目录（如故意改坏的副本），默认测仓库里的那份。
@@ -15,7 +16,7 @@ SCRIPTS=$(cd "$SCRIPTS" && pwd -P)
 RCA=$SCRIPTS/render-codex-agent.py
 RSR=$SCRIPTS/render-subagent-rules.py
 RRS=$SCRIPTS/render-report-style.py
-for f in "$RCA" "$RSR" "$RRS"; do [ -f "$f" ] || die "找不到渲染脚本：$f"; done
+for f in "$RCA" "$RSR" "$RRS" "$SCRIPTS/markdown_headings.py"; do [ -f "$f" ] || die "找不到脚本：$f"; done
 AGENT_SKILLS=$REPO_ROOT/plugins/setup-agent/skills
 RULES_TPL=$AGENT_SKILLS/subagents/template/rules.md
 STYLE_TPL=$AGENT_SKILLS/report-style/template/output-styles/concise-plus.md
@@ -391,31 +392,63 @@ case_rules_all_combinations() {
   local host scope want other
   for host in claude codex; do
     case $host in
-      claude) want="### Claude Code 模型配置"; other="### Codex 模型选择" ;;
-      codex) want="### Codex 模型选择"; other="### Claude Code 模型配置" ;;
+      # 层级随形态变，断言只看标题文字
+      claude) want="Claude Code 模型配置"; other="Codex 模型选择" ;;
+      codex) want="Codex 模型选择"; other="Claude Code 模型配置" ;;
     esac
-    for scope in project user; do
-      try python3 "$RSR" --host "$host" --scope "$scope" "$RULES_TPL"
+    # 三种形态：project（不带用户级开头、层级上移一级）、user（原样）、user --no-header（只去掉用户级开头）
+    for scope in project user user-noheader; do
+      case $scope in
+        user-noheader) set -- --scope user --no-header ;;
+        *) set -- --scope "$scope" ;;
+      esac
+      try python3 "$RSR" --host "$host" "$@" "$RULES_TPL"
       expect_rc 0 "$host / $scope"
       printf '%s' "$OUT" >"$CASE_DIR/$host-$scope.md"
       expect_out "$want" "$host / $scope"
       expect_not_out "$other" "$host / $scope"
       expect_not_out "{{" "$host / $scope"
       expect_not_out "}}" "$host / $scope"
-      if [ "$scope" = user ]; then
-        expect_eq "$(head -n 1 "$CASE_DIR/$host-$scope.md")" "# 全局规则" "$host / user 的首行"
-      else
-        grep -qx '# 全局规则' "$CASE_DIR/$host-$scope.md" && fail "$host / project 不应含用户级标题「# 全局规则」"
-        expect_not_out "与项目自己的指令文件冲突时，以项目的为准。" "$host / project"
-      fi
+      case $scope in
+        user)
+          expect_eq "$(head -n 1 "$CASE_DIR/$host-$scope.md")" "# 全局规则" "$host / user 的首行"
+          expect_out "### $want" "$host / user 的模型小节是三级"
+          ;;
+        project)
+          grep -qx '# 全局规则' "$CASE_DIR/$host-$scope.md" && fail "$host / project 不应含用户级标题「# 全局规则」"
+          expect_not_out "与项目自己的指令文件冲突时，以项目的为准。" "$host / project"
+          expect_eq "$(head -n 1 "$CASE_DIR/$host-$scope.md")" "# 分派子代理" "$host / project 的首行须是一级标题"
+          ;;
+        user-noheader)
+          grep -qx '# 全局规则' "$CASE_DIR/$host-$scope.md" && fail "$host / user --no-header 不应含用户级标题"
+          expect_eq "$(head -n 1 "$CASE_DIR/$host-$scope.md")" "## 分派子代理" "$host / user --no-header 的首行层级不动"
+          ;;
+      esac
     done
-    # project 的输出就是 user 的输出去掉开头的用户级标题与首句
-    try python3 -c 'import sys
-u, p = (open(f, encoding="utf-8").read() for f in sys.argv[1:3])
+    # user --no-header 的输出就是 user 的输出去掉开头的用户级标题与首句；project 再把标题整体上移一级
+    try python3 -c 'import re, sys
+u, p, n = (open(f, encoding="utf-8").read() for f in sys.argv[1:4])
 head = "# 全局规则\n\n与项目自己的指令文件冲突时，以项目的为准。\n\n"
-assert u.startswith(head) and u[len(head):] == p' "$CASE_DIR/$host-user.md" "$CASE_DIR/$host-project.md"
-    expect_rc 0 "${host}：project = user 去掉用户级开头"
+assert u.startswith(head), "user 的输出须以用户级开头起头"
+assert u[len(head):] == n, "user --no-header = user 去掉用户级开头"
+assert "```" not in n and "~~~" not in n, "模板里出现了代码块，关系断言要改用围栏感知的方式"
+assert re.sub(r"^#(#+)(?=[ \t])", r"\1", n, flags=re.M) == p, "project = user --no-header 再上移一级"' \
+      "$CASE_DIR/$host-user.md" "$CASE_DIR/$host-project.md" "$CASE_DIR/$host-user-noheader.md"
+    expect_rc 0 "${host}：三种形态的关系"
   done
+}
+
+# 两个 import 共享模块的脚本都设了 sys.dont_write_bytecode：安装器在装出去的 plugin 目录里跑它们，
+# 不该在那里留下 __pycache__。
+register no_pycache_left_behind
+case_no_pycache_left_behind() {
+  [ -e "$SCRIPTS/__pycache__" ] && fail "测试开始前 $SCRIPTS/__pycache__ 就已存在"
+  try python3 "$RSR" --host claude --scope project "$RULES_TPL"
+  expect_rc 0 "渲染规则"
+  try python3 "$RRS" "$STYLE_TPL"
+  expect_rc 0 "渲染输出风格"
+  [ -e "$SCRIPTS/__pycache__" ] && fail "渲染脚本在 $SCRIPTS 下留下了 __pycache__"
+  return 0
 }
 
 register rules_missing_args
@@ -430,6 +463,8 @@ case_rules_missing_args() {
   expect_rc 2 "未知宿主"
   try python3 "$RSR" --host claude --scope global "$RULES_TPL"
   expect_rc 2 "未知作用域"
+  try python3 "$RSR" --host claude --scope project --no-header "$RULES_TPL"
+  expect_rc 2 "project 不接受 --no-header"
 }
 
 register rules_template_errors
@@ -445,6 +480,12 @@ case_rules_template_errors() {
   sed '1s/.*/# 规则/' "$RULES_TPL" >"$CASE_DIR/other-header.md"
   try python3 "$RSR" --host claude --scope project "$CASE_DIR/other-header.md"
   expect_script_error render-subagent-rules.py "开头的用户级标题与首句和渲染脚本里的不一致"
+  # 模板里已有一级标题时 project 再上移就越界，报错而不是静默输出 0 级
+  sed 's/^## 分派子代理$/# 分派子代理/' "$RULES_TPL" >"$CASE_DIR/top-level.md"
+  try python3 "$RSR" --host claude --scope project "$CASE_DIR/top-level.md"
+  expect_script_error render-subagent-rules.py "标题上移后不足一级"
+  try python3 "$RSR" --host claude --scope user "$CASE_DIR/top-level.md"
+  expect_rc 0 "user 不平移层级，同样的模板照常渲染"
 }
 
 # ---------------------------------------------------------------------------
@@ -455,8 +496,8 @@ case_style_real_template() {
   try python3 "$RRS" "$STYLE_TPL"
   expect_rc 0 "渲染 concise-plus.md"
   printf '%s' "$OUT" >"$CASE_DIR/got.md"
-  # 期望值另行推出：节标题取 frontmatter 的 name，空一行，正文（frontmatter 之后、去掉开头空行）里的 ATX 标题加两级。
-  # 这份模板没有代码块，按行首 # 加两级即可；代码块的处理由 style_fences 覆盖。
+  # 期望值另行推出：节标题取 frontmatter 的 name，空一行，正文（frontmatter 之后、去掉开头空行）里的 ATX 标题加一级。
+  # 这份模板没有代码块，按行首 # 加一级即可；代码块的处理由 style_fences 覆盖。
   try python3 - "$STYLE_TPL" "$CASE_DIR/got.md" <<'EOF'
 import re, sys
 text = open(sys.argv[1], encoding="utf-8").read()
@@ -465,12 +506,12 @@ closing = lines.index("---", 1)
 name = next(l.split(":", 1)[1].strip() for l in lines[1:closing] if l.startswith("name:"))
 body = "\n".join(lines[closing + 1:]).lstrip("\n")
 assert "```" not in body and "~~~" not in body, "模板里出现了代码块，改用 style_fences 的方式比对"
-want = f"## 输出风格：{name}\n\n" + re.sub(r"^(#{1,6})(?=[ \t])", r"##\1", body, flags=re.M)
+want = f"# 输出风格：{name}\n\n" + re.sub(r"^(#{1,6})(?=[ \t])", r"#\1", body, flags=re.M)
 got = open(sys.argv[2], encoding="utf-8").read()
 # $(...) 去掉了结尾换行，比较时一并去掉
 assert got == want.rstrip("\n"), "输出与约定不一致"
-assert got.startswith("## 输出风格：Concise+\n\n"), got[:40]
-assert "\n### 只给结果\n" in got
+assert got.startswith("# 输出风格：Concise+\n\n"), got[:40]
+assert "\n## 只给结果\n" in got
 EOF
   expect_rc 0 "与约定一致"
 }
@@ -484,13 +525,13 @@ case_style_fences() {
     '  ```bash' '  # 缩进的代码块里' '  ```' "" \
     '``` 不是' "# 这行在块里，因为上一行带了文字的 \`\`\` 只是开头" '```' "" \
     "# 结尾"
-  put "$CASE_DIR/want.md" "## 输出风格：测试风格" "" \
-    "开头一段" "" "### 一级" "#### 二级" " ### 缩进一格" "   #### 缩进三格" "    # 缩进四格不是标题" "#没有空格不是标题" $'###\t制表符也算' "" \
+  put "$CASE_DIR/want.md" "# 输出风格：测试风格" "" \
+    "开头一段" "" "## 一级" "### 二级" " ## 缩进一格" "   ### 缩进三格" "    # 缩进四格不是标题" "#没有空格不是标题" $'##\t制表符也算' "" \
     '```' "# 代码块里" '~~~' "# ~~~ 不收 \`\`\` 块" '```' "" \
     '~~~~' '```' "# 代码块里" '~~~' "# 短的 ~~~ 不收 ~~~~ 块" '~~~~' "" \
     '  ```bash' '  # 缩进的代码块里' '  ```' "" \
     '``` 不是' "# 这行在块里，因为上一行带了文字的 \`\`\` 只是开头" '```' "" \
-    "### 结尾"
+    "## 结尾"
   try python3 "$RRS" "$CASE_DIR/in.md"
   expect_rc 0 "带代码块的模板"
   python3 "$RRS" "$CASE_DIR/in.md" >"$CASE_DIR/got.md"
@@ -517,7 +558,7 @@ case_style_errors() {
   put "$CASE_DIR/two-names.md" --- "name: a" "name: b" --- "正文"
   try python3 "$RRS" "$CASE_DIR/two-names.md"
   expect_script_error render-report-style.py "须有且只有一个非空的 name"
-  put "$CASE_DIR/too-deep.md" --- "name: x" --- "##### 五级"
+  put "$CASE_DIR/too-deep.md" --- "name: x" --- "###### 六级"
   try python3 "$RRS" "$CASE_DIR/too-deep.md"
   expect_script_error render-report-style.py "标题下移后超过六级"
   try python3 "$RRS" "$CASE_DIR/nope.md"

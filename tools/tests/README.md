@@ -8,7 +8,7 @@
 |---|---|---|
 | `gate/` | `plugins/setup-git/skills/worktree/template/githooks/` | 回退闸门：本地一层（reference-transaction）、pre-push 一层、闸门预检 `revert-gate.py check`、`install.sh` |
 | `build/` | `tools/installer/` 下的一切（`build.py`、源文件、片段），安装器的 `template/` 与 `agents/openai.yaml` | 安装器构建：基线（构建、`--check`、生成物 frontmatter）、`--check` 的比对，以及每一类校验的变异用例 |
-| `scripts/` | `plugins/setup-agent/scripts/`、`tools/installer/fragments/project-root.md` | 三个渲染脚本，与 `project-root` 那行 shell 在 bash / zsh / sh / dash 下的行为 |
+| `scripts/` | `plugins/setup-agent/scripts/`、`tools/installer/fragments/project-root.md` | 三个渲染脚本（含它们共用的 `markdown_headings.py`），与 `project-root` 那行 shell 在 bash / zsh / sh / dash 下的行为 |
 | `manifest/` | `plugins/` 下的任何文件（内容有变化就牵涉版本号）、两个 marketplace、`tools/tests/manifest/` | `check.py` 的每一项校验各有变异用例，并对真实仓库跑一遍：三份 manifest 的 `version`、`description` 一致，两个 marketplace 登记全部 plugin、`.claude-plugin/marketplace.json` 的 `description` 与 manifest 一致，`interface` 文案非空，相对 `origin/main` 版本只升一次（本地没有 `origin/main` 时该项 SKIP）；不校验的项见 `check.py` 模块 docstring |
 | `cron/` | `plugins/setup-tools/skills/cron/template/cron/` | `setup-tools:cron` 的模板脚本：dry-run、安装与卸载、标记撞车与接管、标记计算、`tasks.conf` 读取、命令字段里 `%` 的转义 |
 

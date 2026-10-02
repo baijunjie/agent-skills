@@ -2,13 +2,25 @@
 """把分派子代理的共享规则模板按宿主与作用域渲染，输出到 stdout。
 
 模板里唯一的 {{HOST_AGENT_CONFIGURATION}} 占位符换成该宿主的模型配置小节。模板以用户级的
-「# 全局规则」标题与首句开头：user 作用域原样保留，project 作用域去掉它们，因为项目指令文件
-本身就是项目的规则。指令文件的标记由安装器在外面包上，这里不输出。
+「# 全局规则」标题与首句开头，输出的层级按去处定：
+
+  --scope project              去掉这个标题与首句（项目指令文件本身就是项目的规则），余下的标题整体上移
+                               一级，让「分派子代理」成为顶层的 `#` 节——写进指令文件的内容顶层用 `#`，
+                               否则这一节会挂到上一节底下（见安装器的「指令文件里的标记」）
+  --scope user                 原样保留，「分派子代理」是「# 全局规则」下的 `##` 子节
+  --scope user --no-header     去掉这个标题与首句、层级不动，挂到目标文件里已有的「# 全局规则」下
+
+指令文件的标记由安装器在外面包上，这里不输出。
 """
 
 import argparse
 import sys
 from pathlib import Path
+
+# 安装器是在装出去的 plugin 目录里跑本脚本的，import 同目录模块不要在那里留下 __pycache__。
+sys.dont_write_bytecode = True
+
+from markdown_headings import shift_headings  # noqa: E402
 
 
 USER_HEADER = """# 全局规则
@@ -36,7 +48,7 @@ HOST_AGENT_CONFIGURATION = {
 PLACEHOLDER = "{{HOST_AGENT_CONFIGURATION}}"
 
 
-def render_rules(source: Path, host: str, scope: str) -> str:
+def render_rules(source: Path, host: str, scope: str, no_header: bool = False) -> str:
     template = source.read_text(encoding="utf-8")
     if template.count(PLACEHOLDER) != 1:
         raise ValueError(f"{source}：须有且只有一个 {PLACEHOLDER} 占位符")
@@ -45,6 +57,8 @@ def render_rules(source: Path, host: str, scope: str) -> str:
 
     rendered = template.replace(PLACEHOLDER, HOST_AGENT_CONFIGURATION[host].rstrip())
     if scope == "project":
+        rendered = shift_headings(source, rendered.removeprefix(USER_HEADER), -1)
+    elif no_header:
         rendered = rendered.removeprefix(USER_HEADER)
     return rendered
 
@@ -54,10 +68,14 @@ def main() -> int:
     parser.add_argument("source", type=Path, help="共享规则模板 rules.md 的路径")
     parser.add_argument("--host", choices=HOST_AGENT_CONFIGURATION, required=True, help="目标宿主")
     parser.add_argument("--scope", choices=("project", "user"), required=True, help="安装作用域")
+    parser.add_argument("--no-header", action="store_true",
+                        help="只用户级：去掉「# 全局规则」标题与首句、层级不动，挂到目标文件里已有的那个标题下")
     args = parser.parse_args()
+    if args.no_header and args.scope == "project":
+        parser.error("--no-header 只用于 --scope user：project 本来就不带「# 全局规则」标题")
 
     try:
-        sys.stdout.write(render_rules(args.source, args.host, args.scope))
+        sys.stdout.write(render_rules(args.source, args.host, args.scope, args.no_header))
     except (ValueError, OSError) as error:
         print(f"{parser.prog}: {error}", file=sys.stderr)
         return 1
