@@ -51,9 +51,10 @@ Codex 文档只列出这一处用户级 skill 位置，安装器就固定写它�
 
 - 装出的专职 skill（`agent-docs`、`agent-unit-test`、`agent-change-check` 等）不往指令文件里挂触发说明，只靠自己的 `description` 被自动触发。
 - 开工前与交付前的工作流只由 `setup-agent:workflow` 写入指令文件的「工作流」一节；规范如何改这一节的 `agent-workflow-edit` 只在 workflow 安装器自己的源文件、生成物与模板里出现，其它安装器、装出的 skill 与 README 都不提它的名字。
+- 例外：同一安装器既写指令文件、又装出配套的操作 skill 时，可以在**自己的标记范围内**点名那份 skill 作为操作入口（目前只有 `setup-git:worktree` 指向 `git-worktree`）。标记范围由该安装器独占、只有一处、重装时整份覆盖，不会散落也无需别人统筹，所以不算自挂触发点。指令文件里只写无条件生效的约定与这个入口，操作细节只写在 skill 里，两边不复述。
 
 为什么：各 skill 各挂一段会让工作流散落在指令文件多处、顺序无人统筹，增删 skill 时也没人收拾。
-校验：AGENTS.md「硬规则」里关于工作流的那条是规则本身；`build.py`「标记」项会拦下不 include `markers` 却写指令文件的安装器。`agent-workflow-edit` 的出现范围不校验，可用 `grep -rn agent-workflow-edit` 核对。
+校验：AGENTS.md「硬规则」里关于工作流的那条是规则本身；`build.py`「标记」项会拦下不 include `markers` 却写指令文件的安装器。`agent-workflow-edit` 的出现范围不校验，可用 `grep -rn agent-workflow-edit` 核对；例外那条也不校验，可用 ``grep -rn '`git-worktree` skill'`` 核对点名只出现在 worktree 安装器自己的源文件、生成物、模板与 `README.md` 的说明列里。
 
 ### 不写迁移与兼容说明
 
@@ -102,7 +103,7 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 - 不强推目标分支。
 
 为什么：目标分支上的本地提交会被 rebase 改写，从它切出的分支直接 rebase 会把改写前的提交再搬一遍；强推会覆盖队友的提交，闸门也会拒绝。
-校验：规则原文在 `plugins/setup-git/skills/worktree/template/git-worktree.md`，闸门测试见上。
+校验：操作步骤原文在 `plugins/setup-git/skills/worktree/template/git-worktree.md`（写进指令文件的那几条约定在同目录的 `rules.md`），闸门测试见上。
 
 ## `setup-agent:plan`
 

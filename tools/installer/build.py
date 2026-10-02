@@ -49,6 +49,8 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 # 模板
 #   - TEMPLATE_DIR（template/ 加 template_sub）不存在
 #   - include 了 skill-targets，template/<name>.md 却不存在
+#   - 正文用 cat "$TEMPLATE_DIR/<文件>" >> 整块追加的模板不存在，或首行不是空行
+#   - TEMPLATE_DIR 下带 frontmatter name 的 *.md 模板（即装出的 skill），bash 代码块里没有装到 skills/<name> 的命令
 #
 # frontmatter
 #   - 源文件或生成物首行不是 ---，或其后没有独占一行的结尾 ---；顶层键出现不止一次
@@ -98,6 +100,8 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #   - 「位置」里每段「」在模板里不是恰好一个列表项（「- 」开头的行）以它开头
 #   - 「原文」里每段「」在模板里不是恰好出现一次，或「位置」只有一段时不落在那一项里
 #     （该项算到下一个缩进不深于它的非空行为止）。「改成」不查
+#   - 「位置」有多段「」时，后一段锚定的列表项不在前一段之后；写了「共 N 条」而首尾锚点之间
+#     （含首尾）与首个锚点同级的列表项不是 N 条
 #
 # 命令块
 #   - 生成物里用到 $TEMPLATE_DIR（含 ${TEMPLATE_DIR…}）的 bash 代码块，在第一次用到之前没有
@@ -283,6 +287,11 @@ LOOSE_MARKER = re.compile(r"<!--\s*setup[-:_]", re.I)
 # 正文里的步骤引用：「第 3 步」「第 2–4 步」「第 5、6 步」，取其中全部数字。
 STEP_REF = re.compile(r"第 ?\d+(?: ?[–、] ?\d+)* ?步")
 NUMBERED_ITEM = re.compile(r"^[ \t]*(\d+)\.[ \t]")
+# 把模板整块追加进指令文件的命令：cat "$TEMPLATE_DIR/<文件>" >> <指令文件>。
+APPEND_TEMPLATE = re.compile(r'cat "\$TEMPLATE_DIR/([^"]+)"[ \t]*>>')
+# 「位置」里写成「共 N 条」的区间条数断言，N 写阿拉伯数字或一到十。
+RANGE_COUNT = re.compile(r"共 ?([0-9]+|[一二三四五六七八九十]) ?条")
+CN_DIGITS = {c: i for i, c in enumerate("一二三四五六七八九十", start=1)}
 # 替换表：表头整行是「| 位置 | 原文 | 改成 |」的 Markdown 表格，可以缩进放进列表项。
 TABLE_ROW = re.compile(r"^[ \t]*\|(.*)\|[ \t]*$")
 REPLACEMENT_HEADER = ["位置", "原文", "改成"]
@@ -532,8 +541,8 @@ def quoted(cell: str) -> list[str]:
     return out
 
 
-def item_spans(template: str) -> list[tuple[str, int, int]]:
-    """模板里每个列表项的 (去掉「- 」后的首行, 起点, 终点)，终点前是该项连同其下更深缩进的行与空行。"""
+def item_spans(template: str) -> list[tuple[str, int, int, int]]:
+    """模板里每个列表项的 (去掉「- 」后的首行, 起点, 终点, 缩进)，终点前是该项连同其下更深缩进的行与空行。"""
     lines = template.split("\n")
     offsets = [0]
     for line in lines:
@@ -547,7 +556,7 @@ def item_spans(template: str) -> list[tuple[str, int, int]]:
         end = i + 1
         while end < len(lines) and (not lines[end].strip() or len(lines[end]) - len(lines[end].lstrip()) > indent):
             end += 1
-        spans.append((line[m.end() :], offsets[i], offsets[end]))
+        spans.append((line[m.end() :], offsets[i], offsets[end], indent))
     return spans
 
 
@@ -556,6 +565,10 @@ def check_replacements(name: str, text: str, template_path: Path) -> None:
 
     「位置」列里每段「」是列表项的开头，模板里须恰好有一个列表项以它开头；「原文」列里每段「」须在模板里
     恰好出现一次，「位置」只有一段时还须落在那一项里。「改成」列不查。
+
+    「位置」给出多段「」时是一段区间（「从以 A 开头的那条起，到以 B 开头的那条为止」）：后一个锚点须在前一个之后，
+    写了「共 N 条」就按区间内与首个锚点同级的列表项核对条数——往区间中间插一条、或把其中一条移出去，
+    装出时照旧会被整体换掉，而正文还写着原来的条数，两边都不报错。
     """
     lines = text.split("\n")
     rows, in_table = [], False
@@ -587,6 +600,22 @@ def check_replacements(name: str, text: str, template_path: Path) -> None:
             if len(found) != 1:
                 sys.exit(f"{name}: 生成物第 {lineno} 行替换表的位置「{anchor}」在 {where} 里有 {len(found)} 个列表项以它开头，须恰好一个")
             items.append(found[0])
+        for i, (earlier, later) in enumerate(zip(items, items[1:])):
+            if later[1] <= earlier[1]:
+                sys.exit(
+                    f"{name}: 生成物第 {lineno} 行替换表的位置「{anchors[i + 1]}」"
+                    f"在 {where} 里不在「{anchors[i]}」那一条之后"
+                )
+        declared = RANGE_COUNT.search(cells[0])
+        if declared and len(items) > 1:
+            n = declared.group(1)
+            count = int(n) if n.isdigit() else CN_DIGITS[n]
+            inside = [s for s in spans if items[0][1] <= s[1] <= items[-1][1] and s[3] == items[0][3]]
+            if len(inside) != count:
+                sys.exit(
+                    f"{name}: 生成物第 {lineno} 行替换表写的是「{declared.group(0)}」，"
+                    f"{where} 里从「{anchors[0]}」到「{anchors[-1]}」之间（含首尾）却有 {len(inside)} 条同级列表项"
+                )
         for original in quoted(cells[1]):
             count = template.count(original)
             if count != 1:
@@ -594,6 +623,66 @@ def check_replacements(name: str, text: str, template_path: Path) -> None:
             at = template.index(original)
             if len(items) == 1 and not items[0][1] <= at < items[0][2]:
                 sys.exit(f"{name}: 生成物第 {lineno} 行替换表的原文「{original}」不在以「{anchors[0]}」开头的那一项里")
+
+
+def template_skill_name(path: Path) -> str:
+    """模板 frontmatter 里的 name，没有 frontmatter 或没有 name 时为空串。"""
+    lines = path.read_text(encoding="utf-8").split("\n")
+    if lines[0] != "---" or "---" not in lines[1:]:
+        return ""
+    m = re.search(r"^name: (.*)$", "\n".join(lines[1 : lines.index("---", 1)]), re.M)
+    return m.group(1).strip() if m else ""
+
+
+def bash_lines(text: str) -> list[str]:
+    """生成物里全部 bash 代码块内的行（不含围栏本身）。"""
+    out, opener, is_bash = [], "", False
+    for line in text.split("\n"):
+        m = FENCE.match(line)
+        if opener:
+            if m and m.group(1)[0] == opener[0] and len(m.group(1)) >= len(opener) and not m.group(2).strip():
+                opener = ""
+            elif is_bash:
+                out.append(line)
+        elif m:
+            opener, is_bash = m.group(1), m.group(2).strip() == "bash"
+    return out
+
+
+def check_appended_templates(name: str, text: str, template_dir: Path) -> None:
+    """被 `cat "$TEMPLATE_DIR/<文件>" >> <指令文件>` 整块追加的模板，首行必须是空行。
+
+    markers 片段约定这种模板「以空行开头」：没有它，追加时 begin 标记会贴在指令文件原有的最后一行下面，
+    粘连前面的段落、列表与表格，而重装时按「新建的文件删掉开头的空行」又找不到那一行。两头都不报错。
+    """
+    for rel in APPEND_TEMPLATE.findall("\n".join(bash_lines(text))):
+        tpl = template_dir / rel
+        if not tpl.is_file():
+            sys.exit(f"{name}: 正文要追加的模板 {(template_dir / rel).relative_to(REPO)} 不存在")
+        if not tpl.read_text(encoding="utf-8").startswith("\n"):
+            sys.exit(f"{name}: 模板 {tpl.relative_to(REPO)} 被整块追加进指令文件，首行必须是空行")
+
+
+def check_installed_skill_names(name: str, text: str, template_dir: Path) -> None:
+    """装出的 skill 模板的 frontmatter name 与安装命令里的目录名必须一致。
+
+    TEMPLATE_DIR 下直接放着的带 frontmatter name 的 `*.md` 就是要装成 skill 的模板，装到的目录名必须是那个 name——
+    两个宿主都只按目录名找 skill。改了模板的 name 而没改安装命令（或反过来），装出的 skill 不报错、只是不被触发，
+    指令文件里指向它的入口也跟着指空。子目录下的子代理、输出风格模板装到别处，不在此列。
+    """
+    commands = "\n".join(bash_lines(text))
+    for tpl in sorted(template_dir.glob("*.md")):
+        skill_name = template_skill_name(tpl)
+        if not skill_name:
+            continue
+        # 只看 bash 代码块：正文散文里也会提到 skills/<name>（如「告知用户」那几条），
+        # 拿整份生成物去找，只改安装命令、散文照旧的改法就蒙过去了。
+        # 后面不接名字字符，否则 skills/<name> 会被 skills/<name>-x 这样的另一个目录名蒙过去。
+        if not re.search(rf"skills/{re.escape(skill_name)}(?![\w-])", commands):
+            sys.exit(
+                f"{name}: 模板 {tpl.relative_to(REPO)} 的 frontmatter name 是 {skill_name}，"
+                f"bash 代码块里却没有装到 skills/{skill_name} 的命令"
+            )
 
 
 def check_template_dir_guard(name: str, text: str) -> None:
@@ -796,6 +885,8 @@ def render(name: str, scope: str, declared: dict) -> str:
     check_template_dir_guard(name, text)
     check_codex_skill_dir(name, text)
     check_replacements(name, text, template_dir / f"{name}.md")
+    check_installed_skill_names(name, text, template_dir)
+    check_appended_templates(name, text, template_dir)
     if includes["skill-targets"]:
         if not (template / f"{name}.md").is_file():
             sys.exit(f"{name}: include 了 skill-targets，模板 {(template / f'{name}.md').relative_to(REPO)} 却不存在")

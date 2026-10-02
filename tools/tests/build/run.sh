@@ -115,6 +115,7 @@ bad() {
 openai_yaml() { printf '%b' "$1" >"$P/setup-agent/skills/plan/agents/openai.yaml"; }
 CRON_TPL='$P/setup-tools/skills/cron/template/cron/tasks.conf'
 WT_TPL='$P/setup-git/skills/worktree/template/git-worktree.md'
+WT_RULES='$P/setup-git/skills/worktree/template/rules.md'
 
 # ---------------------------------------------------------------------------
 # 基线
@@ -338,6 +339,32 @@ bad bad_template_dir_removed 'rm -rf "$P/setup-tools/skills/cron/template/cron"
   expect_build_fails "TEMPLATE_DIR 指向的目录不存在"'
 bad bad_skill_targets_template_missing 'rm "$P/setup-git/skills/commit/template/git-commit.md"
   expect_build_fails "include 了 skill-targets，模板 plugins/setup-git/skills/commit/template/git-commit.md 却不存在"'
+bad bad_skill_template_name_renamed "mut sub \"$WT_TPL\" 'name: git-worktree' 'name: git-worktree-ops'
+  expect_build_fails '模板 plugins/setup-git/skills/worktree/template/git-worktree.md 的 frontmatter name 是 git-worktree-ops' '没有装到 skills/git-worktree-ops 的命令'"
+bad bad_skill_install_path_renamed 'mut sub "$S/agent-workflow.md" "skills/agent-workflow-edit" "skills/agent-workflow-edited" 6
+  expect_build_fails "模板 plugins/setup-agent/skills/workflow/template/agent-workflow-edit.md 的 frontmatter name 是 agent-workflow-edit" "没有装到 skills/agent-workflow-edit 的命令"'
+bad bad_skill_install_cmd_renamed 'mut sub "$S/git-worktree.md" "skills/git-worktree/SKILL.md" "skills/git-wt/SKILL.md" 2
+  mut sub "$S/git-worktree.md" "mkdir -p .agents/skills/git-worktree" "mkdir -p .agents/skills/git-wt"
+  mut sub "$S/git-worktree.md" "mkdir -p .claude/skills/git-worktree" "mkdir -p .claude/skills/git-wt"
+  expect_build_fails "bash 代码块里却没有装到 skills/git-worktree 的命令"'
+register bad_appended_template_missing
+case_bad_appended_template_missing() {
+  fixture
+  mut sub "$S/git-worktree.md" 'rules.md" >> CLAUDE.md' 'no-such.md" >> CLAUDE.md'
+  expect_build_fails "正文要追加的模板 plugins/setup-git/skills/worktree/template/no-such.md 不存在"
+}
+
+bad bad_instruction_template_no_leading_blank "tail -n +2 \"$WT_RULES\" >\"$WT_RULES.new\" && mv \"$WT_RULES.new\" \"$WT_RULES\"
+  expect_build_fails '模板 plugins/setup-git/skills/worktree/template/rules.md 被整块追加进指令文件，首行必须是空行'"
+
+# 子目录下的模板装到别处（子代理、输出风格），不按装出的 skill 查
+register allow_subdir_template_name
+case_allow_subdir_template_name() {
+  fixture
+  mkdir -p "$P/setup-git/skills/worktree/template/agents"
+  printf -- '---\nname: never-installed\ndescription: x\n---\n' >"$P/setup-git/skills/worktree/template/agents/never-installed.md"
+  expect_build_ok
+}
 
 # ---------------------------------------------------------------------------
 # extra_env
@@ -568,8 +595,8 @@ bad bad_template_marker_unpaired "mut append \"$CRON_TPL\" \$'\\n<!-- setup-tool
   expect_build_fails 'tasks.conf 里的标记须为 begin、end 各一个且 begin 在前'"
 bad bad_template_marker_reversed "mut append \"$CRON_TPL\" \$'\\n<!-- setup-tools:cron:end -->\\n<!-- setup-tools:cron:begin -->\\n'
   expect_build_fails '标记须为 begin、end 各一个且 begin 在前，现在依次是 end、begin'"
-bad bad_template_marker_two_pairs "mut append \"$WT_TPL\" \$'\\n<!-- setup-git:worktree:begin -->\\n<!-- setup-git:worktree:end -->\\n'
-  expect_build_fails 'git-worktree.md 里的标记须为 begin、end 各一个'"
+bad bad_template_marker_two_pairs "mut append \"$WT_RULES\" \$'\\n<!-- setup-git:worktree:begin -->\\n<!-- setup-git:worktree:end -->\\n'
+  expect_build_fails 'rules.md 里的标记须为 begin、end 各一个'"
 bad bad_template_marker_wrong_name "mut append \"$CRON_TPL\" \$'\\n<!-- setup-tools:other:begin -->\\n<!-- setup-tools:other:end -->\\n'
   expect_build_fails '标记 setup-tools:other 与本安装器的标记名 setup-tools:cron 不一致'"
 for pair in "no_space=<!--setup-tools:cron:begin-->" "underscore=<!-- setup_tools:cron:begin -->" "uppercase=<!-- SETUP-tools:cron:begin -->" \
@@ -687,6 +714,10 @@ bad bad_replacement_anchor_duplicated "mut append \"$WT_TPL\" \$'\\n- reset 被�
   expect_build_fails '位置「reset 被拦时」' '有 2 个列表项以它开头'"
 bad bad_replacement_range_anchor_changed "mut sub \"$WT_TPL\" '- 确要撤销某个提交' '- 要撤销某个提交'
   expect_build_fails '位置「确要撤销某个提交」' '有 0 个列表项以它开头'"
+bad bad_replacement_range_count "mut sub \"$WT_TPL\" '- reset 被拦时，' \$'- 插进来的一条\\n- reset 被拦时，'
+  expect_build_fails '写的是「共四条」' '却有 5 条同级列表项'"
+bad bad_replacement_range_reversed 'mut sub "$S/git-worktree.md" "从以「仓库装有回退闸门」开头的那条起，到以「确要撤销某个提交」开头的那条为止" "从以「确要撤销某个提交」开头的那条起，到以「仓库装有回退闸门」开头的那条为止"
+  expect_build_fails "位置「仓库装有回退闸门」" "不在「确要撤销某个提交」那一条之后"'
 bad bad_replacement_original_outside_item 'mut sub "$S/git-worktree.md" "| 以「reset 被拦时」开头的那条 | 整条 | 删掉 |" "| 以「reset 被拦时」开头的那条 | 「移动时，本地 merge / commit / reset 与 push 都会被自动检查」 | 删掉 |"
   expect_build_fails "不在以「reset 被拦时」开头的那一项里"'
 bad bad_replacement_row_columns 'mut sub "$S/git-worktree.md" "| 以「reset 被拦时」开头的那条 | 整条 | 删掉 |" "| 以「reset 被拦时」开头的那条 | 整条 | 删掉 | 多一列 |"
