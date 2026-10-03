@@ -1,6 +1,6 @@
 ---
 name: report-style
-description: {{scope_lead}}Concise+ 回答规则，让 Claude Code 使用自定义 output style，Codex 把等价规则写进 AGENTS.md。{{scope_tail}}用于"agent 报告太啰嗦""让它少说废话只给结论""别顺着我说""配输出风格""装 output style"等场景。
+description: {{scope_lead}}Concise+ 回答风格，Claude Code 装成 output style，Codex 写进 AGENTS.md。{{scope_tail}}用于"agent 报告太啰嗦""让它少说废话只给结论""配输出风格""装 output style"等场景。
 disable-model-invocation: true
 ---
 

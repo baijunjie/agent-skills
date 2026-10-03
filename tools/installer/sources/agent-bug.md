@@ -1,12 +1,13 @@
 ---
 name: bug
-description: {{scope_lead}}agent-bug-report 与 agent-bug-fix 两个 skill，规定「把缺陷记成 bug 工单」和「复现、定位根因后只改代码修复」的做法。{{scope_tail}}用于"给这个项目配 bug 工单流程""装 bug-report / bug-fix""更新项目里的 bug 处理 skill""全局装 bug 工单 skill"等场景。
+description: {{scope_lead}}agent-bug-report 与 agent-bug-fix 两个 skill，把缺陷记成工单、定位根因后修复。{{scope_tail}}用于"给这个项目配 bug 工单流程""装 bug-report / bug-fix""全局装 bug skill"等场景。
 disable-model-invocation: true
 ---
 
 # 安装 bug 工单 skill
 
-装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
+装 `agent-bug-report` 与 `agent-bug-fix` 两个 skill：前者把缺陷记成 bug 工单，
+后者复现、定位根因后只改代码修复。装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
 
 ## 跨宿主约定
 

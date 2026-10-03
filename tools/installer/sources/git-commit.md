@@ -1,6 +1,6 @@
 ---
 name: commit
-description: {{scope_lead}}按 Conventional Commits 规范生成提交的 git-commit skill。{{scope_tail}}用于"装 git-commit skill""给项目配提交规范""统一 commit message 格式""新电脑装提交规范"等场景。
+description: {{scope_lead}}按 Conventional Commits 规范生成提交的 git-commit skill。{{scope_tail}}用于"装 git-commit skill""给项目配提交规范""统一 commit message 格式"等场景。
 disable-model-invocation: true
 ---
 

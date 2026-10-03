@@ -65,7 +65,7 @@ def render_rules(source: Path, host: str, scope: str, no_header: bool = False) -
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="把分派子代理的共享规则渲染成指定宿主与作用域要写入的内容，输出到 stdout。")
-    parser.add_argument("source", type=Path, help="共享规则模板 rules.md 的路径")
+    parser.add_argument("source", type=Path, help="共享规则模板 INJECT.md 的路径")
     parser.add_argument("--host", choices=HOST_AGENT_CONFIGURATION, required=True, help="目标宿主")
     parser.add_argument("--scope", choices=("project", "user"), required=True, help="安装作用域")
     parser.add_argument("--no-header", action="store_true",

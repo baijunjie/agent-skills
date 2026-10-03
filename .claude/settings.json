@@ -16,6 +16,7 @@
       "Bash(git show:*)",
       "Bash(git branch:*)",
       "Bash(git remote:*)",
+      "Skill(dev:choose)",
       "Skill(dev:discuss)",
       "Skill(dev:optimize)",
       "Skill(dev:todo)",

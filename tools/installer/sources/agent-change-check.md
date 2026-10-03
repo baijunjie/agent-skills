@@ -1,12 +1,12 @@
 ---
 name: change-check
-description: {{scope_lead}}收尾时的改动检查：agent-change-check skill 规定怎么派审查与处理意见，change-checker 子代理审本次改动，查缺失、逻辑错误与结构问题，只给意见不改文件。{{scope_tail}}用于"给这个项目配代码审查""装 change-checker""改动检查加上项目自己的规范""更新审查规则"等场景。
+description: {{scope_lead}}agent-change-check skill 与 change-checker 子代理，收尾时审本次改动、只给意见不改文件。{{scope_tail}}用于"给这个项目配代码审查""装 change-checker""更新审查规则"等场景。
 disable-model-invocation: true
 ---
 
 # 安装改动检查
 
-装两样东西：`agent-change-check` skill（怎么派、意见怎么处理）与 `change-checker` 子代理（检查项与判断标准）。
+装两样东西：`agent-change-check` skill（怎么派、意见怎么处理）与 `change-checker` 子代理（检查项与判断标准——查缺失、逻辑错误与结构问题，只给意见不改文件）。
 装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
 
 ## 跨宿主约定

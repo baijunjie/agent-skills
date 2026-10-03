@@ -1,12 +1,13 @@
 ---
 name: codex-bridge
-description: 在当前用户环境装上（或更新）供 Codex 读取 Claude 规范的 `claude` skill，让 Codex 开工前先盘点用户级与项目级的 CLAUDE.md、skills、agents、settings，并把兼容的工作流用于本次任务。装进用户级配置，对当前用户环境中的所有项目生效。用于"让 Codex 也认 Claude 的规范""Codex 读不到我的 CLAUDE.md""配一台新电脑的 Codex""同步 Codex 侧配置"等场景。
+description: 在当前用户环境装上（或更新）供 Codex 读取 Claude 规范的 `claude` skill，开工前先盘点 CLAUDE.md 与 skills。装进用户级配置，对当前用户环境中的所有项目生效。用于"让 Codex 认 Claude 的规范""Codex 读不到 CLAUDE.md"等场景。
 disable-model-invocation: true
 ---
 
 # 给 Codex 装上 Claude 规范预检 skill
 
-装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
+装出的 `claude` skill 让 Codex 开工前先盘点用户级与项目级的 `CLAUDE.md`、skills、agents、settings，
+并把兼容的工作流用于本次任务。它靠 description 自动触发，本安装器不往指令文件写任何内容。
 
 ## 跨宿主约定
 

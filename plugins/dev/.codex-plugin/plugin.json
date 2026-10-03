@@ -1,6 +1,6 @@
 {
   "name": "dev",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "开发流程 skills：讨论、TODO 检查与优化",
   "author": { "name": "BaiJunjie" },
   "repository": "https://github.com/baijunjie/agent-skills",

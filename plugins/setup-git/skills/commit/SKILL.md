@@ -1,6 +1,6 @@
 ---
 name: commit
-description: 装上（或更新）按 Conventional Commits 规范生成提交的 git-commit skill。默认装进当前项目随仓库提交，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"装 git-commit skill""给项目配提交规范""统一 commit message 格式""新电脑装提交规范"等场景。
+description: 装上（或更新）按 Conventional Commits 规范生成提交的 git-commit skill。默认装进当前项目随仓库提交，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"装 git-commit skill""给项目配提交规范""统一 commit message 格式"等场景。
 disable-model-invocation: true
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: subagents
-description: 装上（或更新）分派子代理的规则与四个通用子代理（mechanical、implement、investigate、architect）。默认装进当前项目随仓库提交，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"装通用子代理""配子代理分派规则""配一台新电脑""同步我的子代理规则"等场景。
+description: 装上（或更新）分派子代理的规则，与 mechanical、implement、investigate、architect 四个通用子代理。默认装进当前项目随仓库提交，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"装通用子代理""配子代理分派规则""配一台新电脑"等场景。
 disable-model-invocation: true
 ---
 
@@ -89,7 +89,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
 
 ## 写入的规则内容
 
-写入的是命令渲染出的内容，不要直接拷 `rules.md`（原文带用户级标题与 `{{HOST_AGENT_CONFIGURATION}}` 占位符）。
+写入的是命令渲染出的内容，不要直接拷 `INJECT.md`（原文带用户级标题与 `{{HOST_AGENT_CONFIGURATION}}` 占位符）。
 
 用户级安装加 `--no-header` 渲染时，告知用户：这样渲染出的规则不含「与项目自己的指令文件冲突时，以项目的为准」这一句，
 请用户确认已有的「# 全局规则」下有没有同样的约定。
@@ -101,7 +101,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
    ```bash
    top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
    : "${RENDER_RULES:?}" "${TEMPLATE_DIR:?}"
-   rules=$(python3 "$RENDER_RULES" --host claude --scope project "$TEMPLATE_DIR/rules.md") &&
+   rules=$(python3 "$RENDER_RULES" --host claude --scope project "$TEMPLATE_DIR/INJECT.md") &&
      printf '\n<!-- setup-agent:subagents:begin -->\n\n%s\n\n<!-- setup-agent:subagents:end -->\n' "$rules" >> CLAUDE.md
    ```
 
@@ -133,7 +133,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
    NOHEAD=
    if [ -f "$F" ] && awk '/^<!-- setup-agent:subagents:begin -->$/{s=1} !s{print} /^<!-- setup-agent:subagents:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then NOHEAD=--no-header; fi
    echo "渲染参数：${NOHEAD:-（无，带「# 全局规则」标题）}"
-   rules=$(python3 "$RENDER_RULES" --host claude --scope user $NOHEAD "$TEMPLATE_DIR/rules.md") &&
+   rules=$(python3 "$RENDER_RULES" --host claude --scope user $NOHEAD "$TEMPLATE_DIR/INJECT.md") &&
      printf '\n<!-- setup-agent:subagents:begin -->\n\n%s\n\n<!-- setup-agent:subagents:end -->\n' "$rules" >> "$F"
    ```
 
@@ -156,7 +156,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
    ```bash
    top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
    : "${RENDER_RULES:?}" "${TEMPLATE_DIR:?}"
-   rules=$(python3 "$RENDER_RULES" --host codex --scope project "$TEMPLATE_DIR/rules.md") &&
+   rules=$(python3 "$RENDER_RULES" --host codex --scope project "$TEMPLATE_DIR/INJECT.md") &&
      printf '\n<!-- setup-agent:subagents:begin -->\n\n%s\n\n<!-- setup-agent:subagents:end -->\n' "$rules" >> AGENTS.md
    ```
 
@@ -186,7 +186,7 @@ Claude Code 中同名子代理是**项目级 `.claude/agents/` 优先于用户�
    NOHEAD=
    if [ -f "$F" ] && awk '/^<!-- setup-agent:subagents:begin -->$/{s=1} !s{print} /^<!-- setup-agent:subagents:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then NOHEAD=--no-header; fi
    echo "渲染参数：${NOHEAD:-（无，带「# 全局规则」标题）}"
-   rules=$(python3 "$RENDER_RULES" --host codex --scope user $NOHEAD "$TEMPLATE_DIR/rules.md") &&
+   rules=$(python3 "$RENDER_RULES" --host codex --scope user $NOHEAD "$TEMPLATE_DIR/INJECT.md") &&
      printf '\n<!-- setup-agent:subagents:begin -->\n\n%s\n\n<!-- setup-agent:subagents:end -->\n' "$rules" >> "$F"
    ```
 

@@ -52,6 +52,7 @@ disable-model-invocation: true
 
    缓存里会残留旧版本目录，只取版本号最大的那个；`$SELF` 所在的目录名是本 plugin 的版本，`$BASE` 是本 plugin 的目录，`$BASE/..` 才是各 plugin 并列的那一层。
 3. **按顺序读取并执行**：对上表每个安装器，读 `<plugin 目录>/skills/<skill>/SKILL.md`，执行当前宿主对应的**项目级安装**分支，同时遵守：
+   - 安装节之外的节该做的照样做（如 `setup-git:pr` 的「装回退闸门」）：它们不分宿主，漏了不报错，装出来的东西却少一半。
    - 带「选作用域」的安装器直接按项目级走，不再问用户。
    - 它的「跨宿主约定」里的 shell 会按 `$PLUGIN_ROOT`、`$CLAUDE_PLUGIN_ROOT` 定位模板，这两个变量此时指向的是本 plugin，会读错模板：
      执行那段 shell 时先 `unset PLUGIN_ROOT CLAUDE_PLUGIN_ROOT`，并把 `SKILL_DIR` 设为**该安装器所在的目录**（`<plugin 目录>/skills/<skill>`）。

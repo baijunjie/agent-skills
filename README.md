@@ -106,6 +106,7 @@ codex plugin add batch-setup@bjj-agent-skills
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
+| `dev:choose` | 选择式提问：需要用户决策的内容一律以选项提问 | 手动 |
 | `dev:discuss` | 问题讨论：只补上下文、给方案，不写代码 | 手动 |
 | `dev:optimize` | 优化代码：复查逻辑遗漏、冗余代码与可优化点 | 手动 |
 | `dev:todo` | 逐条查证代码里的 TODO 是否过时、能否处理，再问用户是否清理、是否开工 | 手动 |
@@ -140,7 +141,7 @@ codex plugin add batch-setup@bjj-agent-skills
 |-------|------|--------|----------|
 | `setup-git:commit` | 按 Conventional Commits 规范生成提交 | 项目级（默认）+ 用户级 | 手动 |
 | `setup-git:find-issues` | 在指定仓库中搜索与问题相关的 Issue 和 PR | 项目级（默认）+ 用户级 | 手动 |
-| `setup-git:pr` | 压平本地提交、推送并提 PR，建好后清理本地分支与 worktree | 项目级 | 手动 |
+| `setup-git:pr` | 压平本地提交、rebase 到最新目标分支、推送并提 PR，建好后清理本地分支与 worktree，并装上推送时拦下撤销目标分支改动的回退闸门 | 项目级 | 手动 |
 | `setup-git:worktree` | 把「开发在独立 worktree 加独立分支上完成」写成项目规则，合并回目标分支的操作步骤装成 `git-worktree` skill，并装上拦截改写已发布历史、撤销已有改动的回退闸门 | 项目级 | 手动 |
 
 ### `setup-tools` — 安装开发辅助工具

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Choose"
+  short_description: "需要用户决策时一律以选项提问"
+  default_prompt: "Use $dev:choose to ask me multiple-choice questions for every decision."
+policy:
+  allow_implicit_invocation: false

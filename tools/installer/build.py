@@ -43,13 +43,14 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #   - scope 不是 SCOPES 里的作用域；声明了推导出的或作用域决定的变量
 #   - 声明的变量在展开后的正文与注入的片段里都没被引用（DEFAULTS 有回退值也不豁免）
 #   - template_sub 不匹配 TEMPLATE_SUB（须带前导 /、不带末尾 /，各段不能是 . 或 ..）
-#   - extra_env 非空却不以换行开头，或有不是 <变量>="<值>" 的行；正文用到的 $RENDER_*（含 ${RENDER_…}）
-#     没在 extra_env 里定义，或 extra_env 定义的变量在正文里没用到
+#   - extra_env 非空却不以换行开头，或有不是 <变量>="<值>" 的行；正文用到的 plugin 资源变量
+#     （RESOURCE_USE：RENDER_* 与以 _DIR / _ROOT 结尾的大写名，含 ${…} 写法）既不在 BASE_VARS、
+#     也没在正文里赋值、又没在 extra_env 里定义，或 extra_env 定义的变量在正文里没用到
 #
 # 模板
 #   - TEMPLATE_DIR（template/ 加 template_sub）不存在
 #   - include 了 skill-targets，template/<name>.md 却不存在
-#   - 正文用 cat "$TEMPLATE_DIR/<文件>" >> 整块追加的模板不存在，或首行不是空行
+#   - 正文用 cat "$TEMPLATE_DIR/<文件>" >> 整块追加的模板不存在、不叫 INJECT.md，或首行不是空行
 #   - TEMPLATE_DIR 下带 frontmatter name 的 *.md 模板（即装出的 skill），bash 代码块里没有装到 skills/<name> 的命令
 #
 # frontmatter
@@ -57,6 +58,7 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #   - 源文件缺少 description；description 不以 {{scope_lead}} 开头，或 {{scope_tail}} 引用次数不是一次；
 #     {{scope_tail}} 之后不是紧接末尾的「用于……等场景。」这一句（写成 {{scope_tail}}用于，其后到结尾的
 #     「等场景。」之间不能再有「。」）
+#   - description 去掉 {{scope_lead}} / {{scope_tail}} 后超过 DESC_LIMIT 个字符
 #   - 源文件没有 disable-model-invocation: true
 #   - 生成物的 description 含「: 」「 #」、以「:」结尾，或以 YAML 指示字符（YAML_INDICATORS）开头
 #   - 生成物的 name 与所在目录名不一致
@@ -105,9 +107,9 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #     （含首尾）与首个锚点同级的列表项不是 N 条
 #
 # 命令块
-#   - 生成物里用到 $TEMPLATE_DIR（含 ${TEMPLATE_DIR…}）的 bash 代码块，在第一次用到之前没有
-#     `: "${TEMPLATE_DIR:?}"` 守卫（以「: 」开头、含 "${TEMPLATE_DIR:?…}" 的行，可与别的变量合写一行，不含 # 之后的注释，守卫之前的部分也不能含 #（包括 ${A#x} 这类展开）；内联在 cp 等命令里的 :? 不算守卫，须单独成行）；
-#     报错指出生成物里该块的起始行。只查围栏信息串恰为 bash 的块（生成物里只有 bash 与 markdown 两种），正文里提到的 $TEMPLATE_DIR 不查
+#   - 生成物里用到 $TEMPLATE_DIR 或 extra_env 定义的变量（含 ${…} 写法）的 bash 代码块，在第一次用到之前没有
+#     `: "${<变量>:?}"` 守卫（以「: 」开头、含 "${<变量>:?…}" 的行，可与别的变量合写一行，不含 # 之后的注释，守卫之前的部分也不能含 #（包括 ${A#x} 这类展开）；内联在 cp 等命令里的 :? 不算守卫，须单独成行）；
+#     报错指出生成物里该块的起始行与变量名。只查围栏信息串恰为 bash 的块（生成物里只有 bash 与 markdown 两种），正文里提到的这些变量不查
 #   - 生成物里出现 Codex 用户级 skill 的旧位置（CODEX_SKILL_DIR：$X/skills、$CODEX_HOME/skills、.codex/skills 等）；
 #     用户级 skill 固定写 $HOME/.agents/skills/<名>，项目级的 .agents/skills 与 .codex/agents 不受影响
 #
@@ -123,7 +125,8 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #   - host-conventions、markers 以外各片段的放置位置与适用的源文件（见各片段文件开头的说明）；
 #     pre-write / reinstall 之后只查第一个非空行的开头
 #   - subagent_rule 只声明给装子代理的安装器；subagent-rule 直接 include 只用于装子代理的源文件
-#   - description 里 {{scope_tail}} 以外只写本安装器独有的内容
+#   - description 里 {{scope_tail}} 以外只写本安装器独有的内容，且只写装出什么、用于什么场景
+#     （长度由 DESC_LIMIT 兜底，写的是不是处理细节查不出来）
 #   - reinstall 之后的定制值逐项写明从哪读、何时填回；装出的模板里待填位置写明记录什么、来自哪里
 #   - #### 及更深的标题不参与作用域检查；「## 步骤」这类不提「项目级」「用户级」的标题不报错，只是不算安装节
 #   - 用户级安装节是否 Claude Code、Codex 两个宿主都写了
@@ -191,11 +194,13 @@ def fragment(name: str, lead: str = "") -> Fragment:
 RENDER_AGENT = '\nRENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"'
 RENDER_RULES = '\nRENDER_RULES="$SETUP_ROOT/scripts/render-subagent-rules.py"'
 RENDER_STYLE = '\nRENDER_STYLE="$SETUP_ROOT/scripts/render-report-style.py"'
+# 回退闸门的脚本由 setup-git 的 pr 与 worktree 两个安装器共用，放在 plugin 级 scripts/ 下。
+GATE_DIR = '\nGATE_DIR="$SETUP_ROOT/scripts/githooks"'
 
 # 各安装器没声明时取这里的值。
 DEFAULTS = {
     "template_sub": "",  # TEMPLATE_DIR 在 skills/<skill>/template 下的子目录，带前导 /
-    "extra_env": "",  # host-conventions 末尾追加的环境变量定义，调用渲染脚本的安装器用它追加 RENDER_*
+    "extra_env": "",  # host-conventions 末尾追加的变量定义：渲染脚本的 RENDER_*、共用资源的 GATE_DIR 等
     "subagent_rule": "",  # skill-priority 里接在 skill 优先级后的子代理优先级说明
 }
 
@@ -235,11 +240,27 @@ ATX_HEADING = re.compile(r"^ {0,3}(#{1,6})[ \t]")
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})(.*)$")
 # 每一段都不能是 . 或 ..：TEMPLATE_DIR 不得跳出 template/。
 TEMPLATE_SUB = re.compile(r"^(/(?!\.\.?(/|$))[\w.-]+)+$")
-# extra_env 里每一行都是一条变量定义，值写成双引号字符串；正文用 $RENDER_X 或 ${RENDER_X…} 引用。
+# extra_env 里每一行都是一条变量定义，值写成双引号字符串；正文用 $GATE_DIR 或 ${RENDER_X…} 这样引用。
 ENV_DEFINITION = re.compile(r'^(\w+)="[^"\n]*"$')
-RENDER_USE = re.compile(r"\$\{?(RENDER_\w+)")
+# 指向 plugin 内资源的变量：RENDER_* 与以 _DIR / _ROOT 结尾的大写名。正文用到这类变量，
+# 要么在 BASE_VARS 里，要么正文自己赋了值，否则必须在 extra_env 里声明——不然生成物里它是空的。
+# 这项校验按命名认人：新加的 plugin 资源变量必须叫 RENDER_* 或以 _DIR / _ROOT 结尾，否则绕得过去。
+RESOURCE_USE = re.compile(r"\$\{?(RENDER_\w+|[A-Z][A-Z0-9_]*_(?:DIR|ROOT))\b")
+# host-conventions 定义的、宿主提供的，以及正文按「有就用、没有就默认」读的宿主环境变量。
+BASE_VARS = {"TEMPLATE_DIR", "SETUP_ROOT", "SKILL_DIR", "PLUGIN_ROOT", "CLAUDE_PLUGIN_ROOT",
+             "CLAUDE_CONFIG_DIR"}
+# 正文自己赋过值的变量不算（如 `PROJECT_ROOT=$(git rev-parse --show-toplevel)`），
+# 但只认 bash 代码块里的赋值：散文里顶格写一行 `X=…` 就能豁免掉这项校验。
+LOCAL_ASSIGN = re.compile(r"^[ \t]*(\w+)=", re.MULTILINE)
 # 不加引号的 YAML 标量不能以这些字符开头。
 YAML_INDICATORS = set("-?:,[]{}#&*!|>'\"%@`")
+
+# description 里作者自己写的部分（去掉 {{scope_lead}} / {{scope_tail}} 两处作用域措辞）的字符数上限。
+# 安装器都是 disable-model-invocation: true、Codex 侧也关了隐式调用，只能由用户手动调用，description
+# 不参与自动触发匹配，是用户在安装器列表里挑它时看的一句话：说清装出什么、装到哪、用于什么场景就够，
+# 裁剪逻辑、条件分支、安装步骤这些处理细节写进正文。120 是现有 15 个安装器重写后的实际上限，
+# 再长就说明细节又写回 description 了。
+DESC_LIMIT = 120
 
 # 源文件名 -> (作用域, 变量)。生成物路径、skill、name、marker 都由源文件名推导，这里只写各安装器真正不同的。
 INSTALLERS = {
@@ -267,8 +288,10 @@ INSTALLERS = {
     "git-commit": ("project-user", {}),
     "git-find-issues": ("project-user", {}),
     # 模板里的占位符本身就是 {{PR_BASE}}，经变量输出以绕开语法检查。
-    "git-pr": ("project", {"pr_base_token": "{{PR_BASE}}"}),
-    "git-worktree": ("project", {}),
+    "git-pr": ("project", {"pr_base_token": "{{PR_BASE}}", "extra_env": GATE_DIR,
+                           "gate_peer": "setup-git:worktree", "gate_entry_ref": "「装回退闸门」里"}),
+    "git-worktree": ("project", {"extra_env": GATE_DIR,
+                                 "gate_peer": "setup-git:pr", "gate_entry_ref": "第 7 步"}),
     "knowledge-i18n-copy": ("project-user", {}),
     "tools-cron": ("project", {"template_sub": "/cron"}),
     "tools-codex-bridge": ("user", {"template_sub": "/claude"}),
@@ -292,6 +315,8 @@ STEP_REF = re.compile(r"第 ?\d+(?: ?[–、] ?\d+)* ?步")
 NUMBERED_ITEM = re.compile(r"^[ \t]*(\d+)\.[ \t]")
 # 把模板整块追加进指令文件的命令：cat "$TEMPLATE_DIR/<文件>" >> <指令文件>。
 APPEND_TEMPLATE = re.compile(r'cat "\$TEMPLATE_DIR/([^"]+)"[ \t]*>>')
+# 写进指令文件（CLAUDE.md / AGENTS.md）的模板固定叫这个名字。
+INJECT_TEMPLATE = "INJECT.md"
 # 「位置」里写成「共 N 条」的区间条数断言，N 写阿拉伯数字或一到十。
 RANGE_COUNT = re.compile(r"共 ?([0-9]+|[一二三四五六七八九十]) ?条")
 CN_DIGITS = {c: i for i, c in enumerate("一二三四五六七八九十", start=1)}
@@ -299,9 +324,10 @@ CN_DIGITS = {c: i for i, c in enumerate("一二三四五六七八九十", start=
 TABLE_ROW = re.compile(r"^[ \t]*\|(.*)\|[ \t]*$")
 REPLACEMENT_HEADER = ["位置", "原文", "改成"]
 LIST_ITEM = re.compile(r"^([ \t]*)- ")
-# bash 代码块里对 TEMPLATE_DIR 的使用与守卫。守卫行本身也含 ${TEMPLATE_DIR:?}，须先按守卫认。
-TEMPLATE_DIR_USE = re.compile(r"\$(?:TEMPLATE_DIR\b|\{TEMPLATE_DIR\b)")
-TEMPLATE_DIR_GUARD = re.compile(r'^[ \t]*: [^#]*"\$\{TEMPLATE_DIR:\?[^}]*\}"')
+# bash 代码块里对 TEMPLATE_DIR 与 extra_env 定义的变量的使用与守卫，按变量名套进这两个模板。
+# 守卫行本身也含 ${<变量>:?}，须先按守卫认。
+VAR_USE = r"\$(?:{var}\b|\{{{var}\b)"
+VAR_GUARD = r'^[ \t]*: [^#]*"\$\{{{var}:\?[^}}]*\}}"'
 # Codex 用户级 skill 不在 $CODEX_HOME（缺省 ~/.codex）下：凡是这个目录下的 skills 都是旧位置。
 # 「.codex}」是 ${CODEX_HOME:-$HOME/.codex}/skills 的写法。
 # 变量后可带 :-默认值 / :?提示，也可带引号：${X:?}/skills、"$X"/skills、"$HOME/.codex"/skills。
@@ -380,6 +406,13 @@ def check_frontmatter(name: str, text: str) -> None:
     _, _, tail = desc.partition("{{scope_tail}}用于")
     if not tail.endswith("等场景。") or "。" in tail[:-1]:
         sys.exit(f"{name}: description 的 {{{{scope_tail}}}} 须紧接末尾的「用于……等场景。」这一句，写成 {{{{scope_tail}}}}用于……")
+    own = len(desc.replace("{{scope_lead}}", "").replace("{{scope_tail}}", ""))
+    if own > DESC_LIMIT:
+        sys.exit(
+            f"{name}: description 去掉作用域措辞后有 {own} 个字符，超过 {DESC_LIMIT}；"
+            "安装器只能由用户手动调用，description 只给人挑安装器时看，只写装出什么、用于什么场景，"
+            "处理细节写进正文"
+        )
     if not re.search(r"^disable-model-invocation: true$", front, re.M):
         sys.exit(f"{name}: 源文件 frontmatter 须有 disable-model-invocation: true")
     openai = target_of(name).parent / "agents" / "openai.yaml"
@@ -470,8 +503,25 @@ def check_scope(name: str, scope: str, text: str) -> None:
             sys.exit(f"{name}: 作用域为 {scope}，正文{'须含' if want else '不得含'}{label}")
 
 
+def bash_blocks(text: str):
+    """逐个 yield 围栏信息串恰为 bash 的代码块正文（不含围栏行）。"""
+    opener, buffer, is_bash = "", [], False
+    for line in text.split("\n"):
+        m = FENCE.match(line)
+        if opener:
+            if m and m.group(1)[0] == opener[0] and len(m.group(1)) >= len(opener) and not m.group(2).strip():
+                if is_bash:
+                    yield "\n".join(buffer)
+                opener, buffer = "", []
+            elif is_bash:
+                buffer.append(line)
+        elif m:
+            opener, buffer = m.group(1), []
+            is_bash = m.group(2).strip() == "bash"
+
+
 def check_extra_env(name: str, extra_env: str, text: str) -> None:
-    """extra_env 定义的变量与正文里用到的 $RENDER_* 须一一对应。
+    """extra_env 定义的变量与正文里用到的 plugin 资源变量（RENDER_* 与 *_DIR / *_ROOT）须一一对应。
 
     extra_env 由 host-conventions 无条件引用，「声明了却没引用」的通用检查对它永远不触发，所以在这里按
     变量名双向比对。它接在 TEMPLATE_DIR 那行末尾，非空时须以换行开头，否则第一条定义会粘在那一行上。
@@ -484,8 +534,11 @@ def check_extra_env(name: str, extra_env: str, text: str) -> None:
         if not m:
             sys.exit(f'{name}: extra_env 里每一行都须是 <变量>="<值>" 的定义，现在有：{line}')
         defined.add(m.group(1))
-    used = set(RENDER_USE.findall(text))
-    for var in sorted(used - defined):
+    assigned = set()
+    for block in bash_blocks(text):
+        assigned |= set(LOCAL_ASSIGN.findall(block))
+    used = {m.group(1) for m in RESOURCE_USE.finditer(text)}
+    for var in sorted(used - defined - BASE_VARS - assigned):
         sys.exit(f"{name}: 正文用到了 ${var}，INSTALLERS 的 extra_env 却没有定义它")
     for var in sorted(defined):
         if not re.search(rf"\$\{{?{var}\b", text):
@@ -688,6 +741,9 @@ def bash_lines(text: str) -> list[str]:
 def check_appended_templates(name: str, text: str, template_dir: Path) -> None:
     """被 `cat "$TEMPLATE_DIR/<文件>" >> <指令文件>` 整块追加的模板，首行必须是空行。
 
+    文件名固定 INJECT.md：这个目录下别的模板装的是 skill、子代理、输出风格，看名字就得分得出哪份会被
+    写进 CLAUDE.md / AGENTS.md。经渲染脚本写进去的（如 setup-agent:subagents）同名，但不走这条命令，
+    这里查不到，靠约定。
     markers 片段约定这种模板「以空行开头」：没有它，追加时 begin 标记会贴在指令文件原有的最后一行下面，
     粘连前面的段落、列表与表格，而重装时按「新建的文件删掉开头的空行」又找不到那一行。两头都不报错。
     """
@@ -695,6 +751,8 @@ def check_appended_templates(name: str, text: str, template_dir: Path) -> None:
         tpl = template_dir / rel
         if not tpl.is_file():
             sys.exit(f"{name}: 正文要追加的模板 {(template_dir / rel).relative_to(REPO)} 不存在")
+        if tpl.name != INJECT_TEMPLATE:
+            sys.exit(f"{name}: 写进指令文件的模板要命名为 {INJECT_TEMPLATE}，现在是 {tpl.name}")
         if not tpl.read_text(encoding="utf-8").startswith("\n"):
             sys.exit(f"{name}: 模板 {tpl.relative_to(REPO)} 被整块追加进指令文件，首行必须是空行")
 
@@ -721,29 +779,35 @@ def check_installed_skill_names(name: str, text: str, template_dir: Path) -> Non
             )
 
 
-def check_template_dir_guard(name: str, text: str) -> None:
-    """用到 $TEMPLATE_DIR 的 bash 代码块须在第一次用到之前先 `: "${TEMPLATE_DIR:?}"`。
+def check_env_guards(name: str, text: str, extra_env: str) -> None:
+    """用到 $TEMPLATE_DIR 或 extra_env 里定义的变量的 bash 代码块，须在第一次用到之前先 `: "${<变量>:?}"`。
 
-    TEMPLATE_DIR 只在 host-conventions 那一块里定义，命令块分开执行时它是空的，cp "$TEMPLATE_DIR/x" 会去读根目录下的
+    这些变量只在 host-conventions 那一块里定义，命令块分开执行时它们是空的，cp "$TEMPLATE_DIR/x" 会去读根目录下的
     /x，渲染脚本也会读错文件，都不一定报错；守卫让它在空时立刻失败。
     """
+    checks = {}
+    for var in ["TEMPLATE_DIR", *(m.group(1) for m in map(ENV_DEFINITION.match, extra_env.split("\n")[1:]) if m)]:
+        checks[var] = (re.compile(VAR_GUARD.format(var=var)), re.compile(VAR_USE.format(var=var)))
     lines = text.split("\n")
-    opener, start, guarded, is_bash = "", 0, False, False
+    opener, start, guarded, is_bash = "", 0, set(), False
     for index, line in enumerate(lines):
         m = FENCE.match(line)
         if opener:
             if m and m.group(1)[0] == opener[0] and len(m.group(1)) >= len(opener) and not m.group(2).strip():
                 opener = ""
-            elif is_bash and not guarded:
-                if TEMPLATE_DIR_GUARD.match(line):
-                    guarded = True
-                elif TEMPLATE_DIR_USE.search(line):
-                    sys.exit(
-                        f'{name}: 生成物第 {start + 1} 行起的 bash 代码块在第 {index + 1} 行用到 $TEMPLATE_DIR 之前'
-                        f'没有 : "${{TEMPLATE_DIR:?}}" 守卫'
-                    )
+            elif is_bash:
+                for var, (guard, use) in checks.items():
+                    if var in guarded:
+                        continue
+                    if guard.match(line):
+                        guarded.add(var)
+                    elif use.search(line):
+                        sys.exit(
+                            f'{name}: 生成物第 {start + 1} 行起的 bash 代码块在第 {index + 1} 行用到 ${var} 之前'
+                            f'没有 : "${{{var}:?}}" 守卫'
+                        )
         elif m:
-            opener, start, guarded = m.group(1), index, False
+            opener, start, guarded = m.group(1), index, set()
             is_bash = m.group(2).strip() == "bash"
 
 
@@ -918,7 +982,7 @@ def render(name: str, scope: str, declared: dict) -> str:
     if not template_dir.is_dir():
         sys.exit(f"{name}: TEMPLATE_DIR 指向的目录不存在 {template_dir.relative_to(REPO)}")
     check_step_refs(name, text)
-    check_template_dir_guard(name, text)
+    check_env_guards(name, text, variables["extra_env"])
     check_codex_skill_dir(name, text)
     check_replacements(name, text, template_dir / f"{name}.md")
     check_installed_skill_names(name, text, template_dir)

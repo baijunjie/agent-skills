@@ -137,8 +137,8 @@ case_cron_dry_run_does_not_write() {
   [ ! -e "$root/logs" ] || fail "dry-run 不应建日志目录"
 }
 
-register cron_dry_run_without_crontab_command
-case_cron_dry_run_without_crontab_command() {
+register cron_without_crontab_command
+case_cron_without_crontab_command() {
   new_project "$CASE_DIR/my-app"
   try cron_sh --nocron "$CRON/install.sh" --dry-run
   expect_rc 0 "没有 crontab 命令时 dry-run"

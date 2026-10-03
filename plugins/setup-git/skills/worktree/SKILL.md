@@ -1,17 +1,18 @@
 ---
 name: worktree
-description: 给当前项目装上（或更新）git worktree 开发流程：指令文件（AGENTS.md 或 CLAUDE.md）里写开发形态与分支约定，操作步骤装成随项目提交的 git-worktree skill，让 .gitignore 忽略 worktree 目录，并装上拦截「合并时撤销目标分支已有改动」、也拒绝改写已发布历史的回退闸门；步骤要求本地合并前先对齐远程目标分支，推送被拒后 fetch 并 rebase 再推、不强推。只装进当前项目，随仓库提交。用于"给这个项目配 worktree 流程""让 agent 在独立分支上开发""初始化 git worktree 规范"等场景。
+description: 给当前项目装上（或更新）git worktree 开发流程——指令文件里的约定、git-worktree skill 与回退闸门。只装进当前项目，随仓库提交。用于"给这个项目配 worktree 流程""让 agent 在独立分支上开发""初始化 worktree 规范"等场景。
 disable-model-invocation: true
 ---
 
 # 安装项目级 git worktree 流程
 
-装三样东西，都只装进当前项目：指令文件里无条件生效的约定（哪些任务要开 worktree、必须记下目标分支与切出点、
+装三样东西，都只装进当前项目：指令文件里无条件生效的约定（哪些任务要开 worktree、合并前先读 skill、
 不绕过仓库的检查）、从创建分支到合回目标分支的操作步骤 `git-worktree` skill，
 以及回退闸门——worktree 合并回去的目标分支移动时按内容检查，拒绝改写已发布历史、以及撤销该分支已有改动的更新。
 
-指令文件只写无条件生效的约定，并指向 `git-worktree` skill；创建、对齐远程、压平、rebase、合并、推送与闸门处置
-这些操作细节只写在 skill 里，不回写进指令文件。
+指令文件只写无条件生效的约定，并指向 `git-worktree` skill；创建、对齐远程（切出前与本地合并前都先对齐远程目标分支）、
+压平、rebase、合并、推送（被拒后 fetch 并 rebase 再推、不强推）与闸门处置这些操作细节只写在 skill 里，
+不回写进指令文件。
 
 ## 跨宿主约定
 
@@ -30,6 +31,7 @@ else
   SETUP_ROOT="${SKILL_DIR:?先将 SKILL_DIR 设为当前 SKILL.md 的绝对父目录}/../.."
 fi
 TEMPLATE_DIR="$SETUP_ROOT/skills/worktree/template"
+GATE_DIR="$SETUP_ROOT/scripts/githooks"
 ```
 
 Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现 Claude Code 用户级配置目录里也有本安装器要装的同名 skill 时，告知用户项目级这份在 Claude Code 中不会生效。
@@ -83,6 +85,8 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
 - hook 入口：`git config core.hooksPath` 已设置，或 `$(git rev-parse --git-common-dir)/hooks/` 下已有不含
   `# revert-gate hook entry` 一行的 `reference-transaction` / `pre-push`。完全覆盖会让原来那套 hook 失效，询问时说明。
   入口里已调用 `.githooks/hook.sh` 的，按第 7 步「融入」那一行处理，不算冲突。
+- `.githooks/` 下的 `revert-gate.py`、`hook.sh`、`install.sh` 由本安装器与 `setup-git:pr` 共同拥有：
+  这三个文件已有同一份闸门不算冲突，照常重装、不问；这三个之外，`.githooks/` 里别的文件只由写它的那个安装器管，不碰。
 
 ## 项目级安装
 
@@ -95,12 +99,12 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
    |---|---|---|---|
    | 有 `python3`、git 2.28+ | 用下面的命令复制到项目根目录的 `.githooks/`：保留可执行位，已有的同名文件直接覆盖，`.githooks/` 里别的文件不动 | 执行，见第 7 步 | 模板原文 |
    | 有 `python3`、git 低于 2.28 | 同上 | 照样执行，见第 7 步：pre-push 一层生效，本地 merge / commit / reset 一层不生效，告知用户 | 写法 B |
-   | 没有 `python3` | 上面记下的原文是写法 C 时，说明用户上次选了不要闸门，沿用、不再问；否则问用户是装 Python 还是不要闸门。装 Python 的装好后按上两行处理；不要闸门的不复制，已有的 `.githooks/` 与 hook 入口也不删 | 不执行，跳过第 6、7 步 | 写法 C |
+   | 没有 `python3` | 上面记下的原文是写法 C 时，说明用户上次选了不要闸门，沿用、不再问；否则问用户是装 Python 还是不要闸门。装 Python 的装好后按上两行处理；不要闸门的不复制，已有的 `.githooks/` 与 hook 入口也不删 | 选了不要闸门：不执行，跳过第 6、7 步；装了 Python 的按上两行 | 选了不要闸门：写法 C；装了 Python 的按上两行 |
 
    ```bash
    top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
-   : "${TEMPLATE_DIR:?}"
-   mkdir -p .githooks && cp -p "$TEMPLATE_DIR/githooks/"* .githooks/
+   : "${GATE_DIR:?}"
+   mkdir -p .githooks && cp -p "$GATE_DIR/"* .githooks/
    ```
 
    写法 B、C 都只按各自的表改第 3 步装出的 skill，指令文件那块与其余内容不动。表里「位置」指
@@ -120,15 +124,15 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
    | 位置 | 原文 | 改成 |
    |---|---|---|
    | 以「创建 worktree 前」开头的那条 | 整条 | 删掉 |
+   | 以「补装之后按下面的顺序创建」开头的那条 | 「补装之后」 | 删掉 |
    | 从以「仓库装有回退闸门」开头的那条起，到以「确要撤销某个提交」开头的那条为止（共四条） | 这四条整体 | 表下代码块里的两条 |
    | 以「本地合并前必须确认」开头的那条 | 从「闸门预检通过」起到这条末尾为止（含其下的命令块与说明） | 「已按「仓库没有装回退闸门」那条人工核对过。」 |
    | 以「本地合并在主工作副本里」开头的那条 | 「重跑预检再合」 | 「重新人工核对再合」 |
    | 以「推送目标分支被拒」开头的那条 | 「（远端报非快进，或 pre-push 报远程有本地没有的提交）」 | 「（远端报非快进）」 |
-   | 以「分支若又是别的 worktree 分支的目标分支」开头的那条 | 「装有回退闸门时，这两种多半会被拒，但不要靠闸门拦，按本条自己遵守。」 | 删掉 |
 
    ```markdown
    - 仓库没有装回退闸门，本地合并前要人工核对：逐个检查切出点之后目标分支上的提交，确认它们的改动在待合并分支里都还在；有改动不见了，说明压平或解冲突出了错，回分支重做。
-   - 确要撤销某个提交，先问用户，同意后用 `git revert`，不要在目标分支上用 reset、amend 去掉提交。
+   - 确要撤销某个提交，先问用户，同意后在主工作副本里用 `git revert`，不要在目标分支上用 reset、amend 去掉已推送的提交。
    ```
 2. **写指令文件**：Codex 的目标是项目根目录的 `AGENTS.md`，Claude Code 的目标是 `CLAUDE.md`；没有就新建。
    模板已带本安装器的标记。写入前检查通过后，按「指令文件里的标记」写入下面 `cat` 输出的内容；
@@ -139,7 +143,7 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
    ```bash
    top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
    : "${TEMPLATE_DIR:?}"
-   cat "$TEMPLATE_DIR/rules.md" >> AGENTS.md
+   cat "$TEMPLATE_DIR/INJECT.md" >> AGENTS.md
    ```
 
    Claude Code 只执行这块：
@@ -147,7 +151,7 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
    ```bash
    top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
    : "${TEMPLATE_DIR:?}"
-   cat "$TEMPLATE_DIR/rules.md" >> CLAUDE.md
+   cat "$TEMPLATE_DIR/INJECT.md" >> CLAUDE.md
    ```
 
 3. **装 `git-worktree` skill**：已有的整份覆盖；第 1 步定为写法 B 或 C 的，写入后按该写法改装出的这份，不改模板。

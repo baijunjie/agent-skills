@@ -1,7 +1,7 @@
 {
   "name": "setup-git",
-  "version": "0.5.1",
-  "description": "为 Claude Code 或 Codex 安装 Git 相关规范与流程：提交规范、Issue/PR 检索、提交 PR 流程、worktree 流程与回退闸门；提交 PR 流程与 worktree 流程只装进项目，其余默认装进项目、可选用户级",
+  "version": "0.6.0",
+  "description": "为 Claude Code 或 Codex 安装 Git 相关规范与流程：提交规范、Issue/PR 检索、提交 PR 流程与 worktree 流程（两者都带回退闸门）；提交 PR 流程与 worktree 流程只装进项目，其余默认装进项目、可选用户级",
   "author": {
     "name": "BaiJunjie"
   },

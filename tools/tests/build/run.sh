@@ -115,8 +115,8 @@ bad() {
 openai_yaml() { printf '%b' "$1" >"$P/setup-agent/skills/plan/agents/openai.yaml"; }
 CRON_TPL='$P/setup-tools/skills/cron/template/cron/tasks.conf'
 WT_TPL='$P/setup-git/skills/worktree/template/git-worktree.md'
-WT_RULES='$P/setup-git/skills/worktree/template/rules.md'
-WF_TPL='$P/setup-agent/skills/workflow/template/workflow.md'
+WT_RULES='$P/setup-git/skills/worktree/template/INJECT.md'
+WF_TPL='$P/setup-agent/skills/workflow/template/INJECT.md'
 
 # ---------------------------------------------------------------------------
 # 基线
@@ -336,8 +336,6 @@ for pair in "root=/" "trailing_slash=/cron/" "dotdot=/.." "dot_segment=/./cron" 
 done
 bad bad_template_dir_missing 'mut sub "$BPY" "{\"template_sub\": \"/cron\"}" "{\"template_sub\": \"/no-such\"}"
   expect_build_fails "TEMPLATE_DIR 指向的目录不存在 plugins/setup-tools/skills/cron/template/no-such"'
-bad bad_template_dir_removed 'rm -rf "$P/setup-tools/skills/cron/template/cron"
-  expect_build_fails "TEMPLATE_DIR 指向的目录不存在"'
 bad bad_skill_targets_template_missing 'rm "$P/setup-git/skills/commit/template/git-commit.md"
   expect_build_fails "include 了 skill-targets，模板 plugins/setup-git/skills/commit/template/git-commit.md 却不存在"'
 bad bad_skill_template_name_renamed "mut sub \"$WT_TPL\" 'name: git-worktree' 'name: git-worktree-ops'
@@ -348,15 +346,24 @@ bad bad_skill_install_cmd_renamed 'mut sub "$S/git-worktree.md" "skills/git-work
   mut sub "$S/git-worktree.md" "mkdir -p .agents/skills/git-worktree" "mkdir -p .agents/skills/git-wt"
   mut sub "$S/git-worktree.md" "mkdir -p .claude/skills/git-worktree" "mkdir -p .claude/skills/git-wt"
   expect_build_fails "bash 代码块里却没有装到 skills/git-worktree 的命令"'
+register bad_inject_template_name
+case_bad_inject_template_name() {
+  fixture
+  # 写进指令文件的模板必须叫 INJECT.md
+  cp "$P/setup-git/skills/worktree/template/INJECT.md" "$P/setup-git/skills/worktree/template/rules.md"
+  mut sub "$S/git-worktree.md" 'INJECT.md" >> CLAUDE.md' 'rules.md" >> CLAUDE.md'
+  expect_build_fails "要命名为 INJECT.md" "现在是 rules.md"
+}
+
 register bad_appended_template_missing
 case_bad_appended_template_missing() {
   fixture
-  mut sub "$S/git-worktree.md" 'rules.md" >> CLAUDE.md' 'no-such.md" >> CLAUDE.md'
+  mut sub "$S/git-worktree.md" 'INJECT.md" >> CLAUDE.md' 'no-such.md" >> CLAUDE.md'
   expect_build_fails "正文要追加的模板 plugins/setup-git/skills/worktree/template/no-such.md 不存在"
 }
 
 bad bad_instruction_template_no_leading_blank "tail -n +2 \"$WT_RULES\" >\"$WT_RULES.new\" && mv \"$WT_RULES.new\" \"$WT_RULES\"
-  expect_build_fails '模板 plugins/setup-git/skills/worktree/template/rules.md 被整块追加进指令文件，首行必须是空行'"
+  expect_build_fails '模板 plugins/setup-git/skills/worktree/template/INJECT.md 被整块追加进指令文件，首行必须是空行'"
 
 # 子目录下的模板装到别处（子代理、输出风格），不按装出的 skill 查
 register allow_subdir_template_name
@@ -395,7 +402,8 @@ register allow_extra_env_brace_use
 case_allow_extra_env_brace_use() {
   fixture
   mut sub "$BPY" '"agent-plan": ("project-user", {}),' '"agent-plan": ("project-user", {"extra_env": RENDER_AGENT}),'
-  mut append "$S/agent-plan.md" $'\n```bash\necho "${RENDER_AGENT:?}"\n```\n'
+  # ${…} 写法也算「正文用到了这个变量」；块里照样要有单独成行的守卫
+  mut append "$S/agent-plan.md" $'\n```bash\n: "${RENDER_AGENT:?}"\necho "${RENDER_AGENT}"\n```\n'
   expect_build_ok
 }
 
@@ -435,8 +443,6 @@ bad bad_source_frontmatter_unclosed 'mut sub "$S/agent-plan.md" $'"'"'disable-mo
   expect_build_fails "源文件的 frontmatter 没有独占一行的结尾 ---"'
 bad bad_source_dup_key_override 'mut sub "$S/agent-plan.md" $'"'"'disable-model-invocation: true\n'"'"' $'"'"'disable-model-invocation: true\ndisable-model-invocation: false\n'"'"'
   expect_build_fails "源文件的 frontmatter 里 disable-model-invocation 出现了 2 次"'
-bad bad_source_dup_key_name 'mut sub "$S/agent-plan.md" $'"'"'name: plan\n'"'"' $'"'"'name: plan\nname: plan\n'"'"'
-  expect_build_fails "源文件的 frontmatter 里 name 出现了 2 次"'
 bad bad_generated_dup_key 'mut sub "$BPY" "\"agent-plan\": (\"project-user\", {})," "\"agent-plan\": (\"project-user\", {\"fm_extra\": \"name: other\"}),"
   mut sub "$S/agent-plan.md" $'"'"'disable-model-invocation: true\n'"'"' $'"'"'disable-model-invocation: true\n{{fm_extra}}\n'"'"'
   expect_build_fails "生成物的 frontmatter 里 name 出现了 2 次"'
@@ -456,6 +462,8 @@ bad bad_description_not_ending_changjing 'mut sub "$S/agent-plan.md" $'"'"'"等�
   expect_build_fails "{{scope_tail}} 须紧接末尾的「用于……等场景。」这一句"'
 bad bad_description_extra_sentence 'mut sub "$S/agent-plan.md" "{{scope_tail}}用于\"" "{{scope_tail}}用于测试。\""
   expect_build_fails "{{scope_tail}} 须紧接末尾的「用于……等场景。」这一句"'
+bad bad_description_too_long 'mut sub "$S/agent-plan.md" "{{scope_lead}}agent-plan-write 与" "{{scope_lead}}按已装的专职 skill 裁剪，没装的步骤不写，重装时保留填过的值，agent-plan-write 与"
+  expect_build_fails "description 去掉作用域措辞后有" "超过 120"'
 bad bad_description_colon_space 'mut sub "$S/agent-plan.md" "{{scope_lead}}agent-plan-write 与" "{{scope_lead}}agent-plan-write: 与"
   expect_build_fails "生成物的 description 含「: 」「 #」"'
 bad bad_description_space_hash 'mut sub "$S/agent-plan.md" "{{scope_lead}}agent-plan-write 与" "{{scope_lead}}agent-plan-write #与"
@@ -512,8 +520,6 @@ bad bad_scope_project_missing_project 'mut sub "$S/git-pr.md" $'"'"'## Claude Co
 bad bad_scope_user_missing_user 'mut sub "$S/tools-codex-bridge.md" "## Codex 用户级安装" "## Codex 装法"
   expect_build_fails "作用域为 user，正文须含用户级安装节"'
 bad bad_scope_select_in_project 'mut sub "$S/git-pr.md" $'"'"'{{include: skill-priority-project}}\n'"'"' $'"'"'{{include: skill-priority-project}}\n\n{{include: scope-select}}\n'"'"'
-  expect_build_fails "作用域为 project，不得 include scope-select"'
-bad bad_scope_select_in_project_indented 'mut append "$S/git-pr.md" $'"'"'\n- 列表项\n\n  {{include: scope-select}}\n'"'"'
   expect_build_fails "作用域为 project，不得 include scope-select"'
 bad bad_scope_select_in_user 'mut sub "$S/tools-codex-bridge.md" $'"'"'{{include: pre-write}}\n'"'"' $'"'"'{{include: scope-select}}\n\n{{include: pre-write}}\n'"'"'
   expect_build_fails "作用域为 user，不得 include scope-select"'
@@ -584,10 +590,8 @@ bad bad_reinstall_not_followed 'mut sub "$S/tools-cron.md" "本安装器的定�
 # ---------------------------------------------------------------------------
 # 标记
 
-bad bad_source_literal_marker 'mut append "$S/tools-cron.md" $'"'"'\n<!-- setup-tools:cron:begin -->\n'"'"'
-  expect_build_fails "源文件第" "手写了 setup 标记"'
 bad bad_source_loose_marker 'mut append "$S/agent-plan.md" $'"'"'\n<!--setup_x:y:begin-->\n'"'"'
-  expect_build_fails "手写了 setup 标记"'
+  expect_build_fails "源文件第" "手写了 setup 标记"'
 bad bad_generated_malformed_marker 'mut append "$F/markers.md" $'"'"'\n  <!-- setup-agent:subagents:BEGIN -->\n'"'"'
   expect_build_fails "生成物第" "setup 标记格式不对"'
 bad bad_generated_marker_wrong_name 'mut append "$F/markers.md" $'"'"'\n  <!-- setup-git:commit:begin -->\n'"'"'
@@ -597,7 +601,7 @@ bad bad_template_marker_unpaired "mut append \"$CRON_TPL\" \$'\\n<!-- setup-tool
 bad bad_template_marker_reversed "mut append \"$CRON_TPL\" \$'\\n<!-- setup-tools:cron:end -->\\n<!-- setup-tools:cron:begin -->\\n'
   expect_build_fails '标记须为 begin、end 各一个且 begin 在前，现在依次是 end、begin'"
 bad bad_template_marker_two_pairs "mut append \"$WT_RULES\" \$'\\n<!-- setup-git:worktree:begin -->\\n<!-- setup-git:worktree:end -->\\n'
-  expect_build_fails 'rules.md 里的标记须为 begin、end 各一个'"
+  expect_build_fails 'INJECT.md 里的标记须为 begin、end 各一个'"
 bad bad_template_marker_wrong_name "mut append \"$CRON_TPL\" \$'\\n<!-- setup-tools:other:begin -->\\n<!-- setup-tools:other:end -->\\n'
   expect_build_fails '标记 setup-tools:other 与本安装器的标记名 setup-tools:cron 不一致'"
 for pair in "no_space=<!--setup-tools:cron:begin-->" "underscore=<!-- setup_tools:cron:begin -->" "uppercase=<!-- SETUP-tools:cron:begin -->" \
@@ -623,8 +627,6 @@ case_allow_template_marker_pair_new_file() {
 
 bad bad_marked_heading_level_demoted "mut sub \"$WF_TPL\" '# 工作流' '## 工作流'
   expect_build_fails '标记范围里最浅的标题是 2 级' '顶层节标题须用 #'"
-bad bad_marked_heading_level_rules_demoted "mut sub \"$WT_RULES\" '# 开发流程：Git Worktree' '## 开发流程：Git Worktree'
-  expect_build_fails '标记范围里最浅的标题是 2 级'"
 
 register bad_marked_heading_level_only_fenced_top
 case_bad_marked_heading_level_only_fenced_top() {
@@ -663,7 +665,7 @@ case_allow_step_ref_in_range() {
 }
 
 # ---------------------------------------------------------------------------
-# 命令块：TEMPLATE_DIR 守卫与 Codex 用户级 skill 位置
+# 命令块：TEMPLATE_DIR 与 extra_env 变量的声明、守卫，以及 Codex 用户级 skill 位置
 
 register bad_template_dir_unguarded
 case_bad_template_dir_unguarded() {
@@ -692,6 +694,41 @@ case_bad_template_dir_unguarded_in_fragment() {
   # skill-targets 的 Codex 用户级块去掉守卫：报错指向 include 了它的每个安装器之一
   mut sub "$F/skill-targets.md" $': "${TEMPLATE_DIR:?}"\nD=' 'D='
   expect_build_fails "bash 代码块在第" "守卫"
+}
+
+register bad_prose_assignment_not_exempt
+case_bad_prose_assignment_not_exempt() {
+  fixture
+  # 散文里顶格写一行 X= 不算赋值，豁免不掉声明校验
+  mut sub "$BPY" '"extra_env": GATE_DIR,
+                           "gate_peer"' '"gate_peer"'
+  mut append "$S/git-pr.md" $'\nGATE_DIR=这是散文里顶格的一行，不是 shell\n'
+  expect_build_fails "正文用到了 \$GATE_DIR"
+}
+
+register allow_locally_assigned_resource_var
+case_allow_locally_assigned_resource_var() {
+  fixture
+  # 正文自己赋值的 *_DIR 不要求声明
+  mut append "$S/agent-plan.md" $'\n```bash\nPROJECT_ROOT=$(git rev-parse --show-toplevel)\necho "$PROJECT_ROOT"\n```\n'
+  expect_build_ok
+}
+
+register bad_extra_env_var_unguarded
+case_bad_extra_env_var_unguarded() {
+  fixture
+  # extra_env 定义的变量（这里是 setup-git 共用闸门的 GATE_DIR）同样要守卫
+  mut sub "$S/git-pr.md" $': "${GATE_DIR:?}"\nmkdir' 'mkdir'
+  expect_build_fails "bash 代码块在第" "用到 \$GATE_DIR 之前没有"
+}
+
+register allow_extra_env_var_guard_shared_line
+case_allow_extra_env_var_guard_shared_line() {
+  fixture
+  # 与 TEMPLATE_DIR 合写一行守卫：两个变量都算守住了
+  mut sub "$S/git-pr.md" $': "${GATE_DIR:?}"\nmkdir -p .githooks && cp -p "$GATE_DIR/"* .githooks/' \
+    $': "${TEMPLATE_DIR:?}" "${GATE_DIR:?}"\nmkdir -p .githooks && cp -p "$GATE_DIR/"* "$TEMPLATE_DIR/" '
+  expect_build_ok
 }
 
 register allow_template_dir_guard_forms

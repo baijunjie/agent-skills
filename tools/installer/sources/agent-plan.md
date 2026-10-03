@@ -1,12 +1,13 @@
 ---
 name: plan
-description: {{scope_lead}}agent-plan-write 与 agent-plan-exec 两个 skill，规定「把方案写成开发计划文档」和「按计划文档逐里程碑开发」的做法。{{scope_tail}}用于"给这个项目配开发计划流程""装 plan-write / plan-exec""更新项目里的开发计划 skill""全局装开发计划 skill"等场景。
+description: {{scope_lead}}agent-plan-write 与 agent-plan-exec 两个 skill，把方案写成开发计划文档、按它逐里程碑开发。{{scope_tail}}用于"给这个项目配开发计划流程""装 plan-write / plan-exec"等场景。
 disable-model-invocation: true
 ---
 
 # 安装开发计划 skill
 
-装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
+装 `agent-plan-write` 与 `agent-plan-exec` 两个 skill：前者把方案写成开发计划文档，
+后者按计划文档逐里程碑开发。装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
 
 ## 跨宿主约定
 

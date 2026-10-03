@@ -1,6 +1,6 @@
 ---
 name: subagents
-description: {{scope_lead}}分派子代理的规则与四个通用子代理（mechanical、implement、investigate、architect）。{{scope_tail}}用于"装通用子代理""配子代理分派规则""配一台新电脑""同步我的子代理规则"等场景。
+description: {{scope_lead}}分派子代理的规则，与 mechanical、implement、investigate、architect 四个通用子代理。{{scope_tail}}用于"装通用子代理""配子代理分派规则""配一台新电脑"等场景。
 disable-model-invocation: true
 ---
 
@@ -32,7 +32,7 @@ disable-model-invocation: true
 
 ## 写入的规则内容
 
-写入的是命令渲染出的内容，不要直接拷 `rules.md`（原文带用户级标题与 `{{host_agent_token}}` 占位符）。
+写入的是命令渲染出的内容，不要直接拷 `INJECT.md`（原文带用户级标题与 `{{host_agent_token}}` 占位符）。
 
 用户级安装加 `--no-header` 渲染时，告知用户：这样渲染出的规则不含「与项目自己的指令文件冲突时，以项目的为准」这一句，
 请用户确认已有的「# 全局规则」下有没有同样的约定。
@@ -44,7 +44,7 @@ disable-model-invocation: true
    ```bash
    {{include: project-root}}
    : "${RENDER_RULES:?}" "${TEMPLATE_DIR:?}"
-   rules=$(python3 "$RENDER_RULES" --host claude --scope project "$TEMPLATE_DIR/rules.md") &&
+   rules=$(python3 "$RENDER_RULES" --host claude --scope project "$TEMPLATE_DIR/INJECT.md") &&
      printf '\n<!-- {{marker}}:begin -->\n\n%s\n\n<!-- {{marker}}:end -->\n' "$rules" >> CLAUDE.md
    ```
 
@@ -76,7 +76,7 @@ disable-model-invocation: true
    NOHEAD=
    if [ -f "$F" ] && awk '/^<!-- {{marker}}:begin -->$/{s=1} !s{print} /^<!-- {{marker}}:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then NOHEAD=--no-header; fi
    echo "渲染参数：${NOHEAD:-（无，带「# 全局规则」标题）}"
-   rules=$(python3 "$RENDER_RULES" --host claude --scope user $NOHEAD "$TEMPLATE_DIR/rules.md") &&
+   rules=$(python3 "$RENDER_RULES" --host claude --scope user $NOHEAD "$TEMPLATE_DIR/INJECT.md") &&
      printf '\n<!-- {{marker}}:begin -->\n\n%s\n\n<!-- {{marker}}:end -->\n' "$rules" >> "$F"
    ```
 
@@ -99,7 +99,7 @@ disable-model-invocation: true
    ```bash
    {{include: project-root}}
    : "${RENDER_RULES:?}" "${TEMPLATE_DIR:?}"
-   rules=$(python3 "$RENDER_RULES" --host codex --scope project "$TEMPLATE_DIR/rules.md") &&
+   rules=$(python3 "$RENDER_RULES" --host codex --scope project "$TEMPLATE_DIR/INJECT.md") &&
      printf '\n<!-- {{marker}}:begin -->\n\n%s\n\n<!-- {{marker}}:end -->\n' "$rules" >> AGENTS.md
    ```
 
@@ -129,7 +129,7 @@ disable-model-invocation: true
    NOHEAD=
    if [ -f "$F" ] && awk '/^<!-- {{marker}}:begin -->$/{s=1} !s{print} /^<!-- {{marker}}:end -->$/{s=0}' "$F" | grep -qx '# 全局规则'; then NOHEAD=--no-header; fi
    echo "渲染参数：${NOHEAD:-（无，带「# 全局规则」标题）}"
-   rules=$(python3 "$RENDER_RULES" --host codex --scope user $NOHEAD "$TEMPLATE_DIR/rules.md") &&
+   rules=$(python3 "$RENDER_RULES" --host codex --scope user $NOHEAD "$TEMPLATE_DIR/INJECT.md") &&
      printf '\n<!-- {{marker}}:begin -->\n\n%s\n\n<!-- {{marker}}:end -->\n' "$rules" >> "$F"
    ```
 

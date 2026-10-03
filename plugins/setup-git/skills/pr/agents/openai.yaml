@@ -1,6 +1,6 @@
 interface:
   display_name: "Git PR Setup"
-  short_description: "安装 git-pr skill"
+  short_description: "安装 git-pr skill 与回退闸门"
   default_prompt: "Use $setup-git:pr to install the git-pr skill."
 policy:
   allow_implicit_invocation: false

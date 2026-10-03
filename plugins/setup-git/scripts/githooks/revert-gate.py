@@ -3,10 +3,11 @@
 
 典型成因是压平时换了基点却没合内容（如 `git reset --soft <目标分支>` 后提交），
 旧代码被当成新改动压进去。`git merge --ff-only` 只校验祖先关系，照样快进成功，
-所以在受守护的分支移动时按内容检查。受守护的是各 worktree 分支记录的目标分支
-（`git config branch.<分支>.worktreeTarget`），外加 `git config revert-gate.branch` 记录的常驻守护分支
-（可多值，通常是主分支）。只看记录、不看主工作副本当前在哪个分支，是为了不把人在自己的特性分支上
-rebase、amend 也拦下来；没记录的目标分支因此不受守护。检查规则：
+所以在受守护的分支移动时按内容检查。受守护的是各开发分支记录的目标分支
+（`git config branch.<分支>.targetBranch`，worktree 流程与 PR 流程共用这个键），外加
+`git config revert-gate.branch` 记录的常驻守护分支（可多值，通常是主分支）。只看记录、不看主工作副本
+当前在哪个分支，是为了不把人在自己的特性分支上 rebase、amend 也拦下来；没记录的目标分支因此不受守护。
+检查规则：
 
 1. 非快进只在被丢下的提交都没发布过时才可能放行（`pull --rebase`、`git rebase <分支>@{u}`
    把本地未推送的提交垫到远端最新提交之上、改写还没推送的本地提交），
@@ -22,7 +23,7 @@ rebase、amend 也拦下来；没记录的目标分支因此不受守护。检�
    是故意绕过，闸门分辨不出，照样放行。
 2. 移动前该分支上最近的非 merge 提交里，有被这次移动撤销的就拒绝，判据见 find_reverts。查多远：
    至少最近 WINDOW 个；这次移动能对应到某个特性分支、且它记录了切出点
-   （`git config branch.<分支>.worktreeBase`）时，延伸到切出点之后的全部提交。
+   （`git config branch.<分支>.forkPoint`）时，延伸到切出点之后的全部提交。
    只靠 git 历史找不到切出点——换了基点的压平正是把父提交改成了最新的目标分支，
    所以要在创建分支时记下来。目标分支对齐远程时被 rebase 过的，切出点不再是它的祖先，
    改从切出点与它的合并基点起算。
@@ -32,10 +33,21 @@ rebase、amend 也拦下来；没记录的目标分支因此不受守护。检�
      尖端上仍在的改动被撤销照样拒绝，同一提交、同一文件里也是如此。
    - 别人新推、移动前的位置上没有的提交也在其中：解冲突时只留本地一侧撤销的正是它们，
      只以移动前的位置为参照查不到，要到推送时才被拦下，那时已不便重做。
-   只新增内容的提交被整体删掉不算撤销，所以撤销一个纯新增的提交拦不住，被丢下的未推送提交只新增内容时
-   同样拦不住——这是为了不把「删掉做完的计划文档」「去掉临时代码」这类正常清理挡下来。
+   内容判据看的是「像不像被还原」，所以只增行、从不删行的改动被整段抹掉它看不出来（撤销纯新增的提交、
+   删掉只追加过的文件都在内）。这类靠 find_reverts 的第三条——换了基点的结构判据——查：
+   这次移动改了某个文件、而分支自己从切出点起没碰过它，就是基点变了带出来的，不分新增 / 删除 / 改内容。
+   它要有切出点记录；没有记录的分支（没走两个 skill 建的）这类误删拦不住。
 3. 本次新增提交的信息里带 `Reverts: <sha>` 或 git revert 默认的
    `This reverts commit <sha>.` 时，放行对应提交——有意撤销必须留下记录。
+
+PR 流程的合并发生在远端，目标分支本地不动，上面那套检查因此都不触发，另有一条路径：
+pre-push 时，被推的分支记了目标分支就按上面第 2、3 条核对它相对该目标分支远端跟踪尖端的内容。
+只在被推的尖端是那个尖端的后代（即已 rebase 到最新目标分支）时才查：还没 rebase 的分支天天推，
+一律查全是误拦。第 1 条不用——压平后强推自己独用的 PR 分支是预期操作。
+核对范围同样靠切出点（`git config branch.<分支>.forkPoint`）延伸；PR 流程要在压平前记下它，
+rebase 之后就再也算不出来。
+已知边界：没记 targetBranch 的分支、没 rebase 到最新目标分支的推送都不查；目标分支的远端状态以最近一次
+fetch 为准（pre-push 只拿得到被推 ref 的远端实时值）。
 
 用法：
   revert-gate.py reference-transaction <state>   由 hook.sh 调用，stdin 为 ref 更新列表
@@ -45,13 +57,18 @@ rebase、amend 也拦下来；没记录的目标分支因此不受守护。检�
                                                  其上游时同样退出码 1；没有上游时以远端唯一的同名分支
                                                  代替，没有同名分支就不查，有多个时退出码 1、要求先设好
                                                  上游。以最近一次 fetch 为准，不联网
+  revert-gate.py check-pr <目标分支 ref> <分支>  PR 推送前的手动预检，目标分支 ref 写成远端跟踪 ref
+                                                 （如 origin/main）；分支不是它的后代时提示先 rebase、
+                                                 退出码 1，命中退出码 1，检查出错退出码 2。不查目标分支
+                                                 与上游的关系（给的就是远端状态），以最近一次 fetch 为准
 
 pre-push 模式下，受守护分支的远端提交（git 推送时从远端拿到的实时值）本地没有时直接拒绝：
 判断不了内容，而 `push --force` 不会被远端拒绝，放过去就会覆盖别人刚推的提交。
 
 hook 模式下拒绝时退出码为 3，调用它的 hook 入口只把 3 当作拒绝；入口装进各 clone 后不随仓库更新，
 这个约定不能改。
-闸门自身出错（含脚本跑不起来）时放行，宁可漏检一次，也不能让它卡死所有 ref 更新。
+hook 模式下闸门自身出错（含脚本跑不起来）时放行，宁可漏检一次，也不能让它卡死所有 ref 更新；
+两个预检模式（check / check-pr）改为退出码 2，让人看见检查没做成。
 设置环境变量 REVERT_GATE_SKIP=1 可临时跳过，仅供人确认过的场合使用。
 reference-transaction 模式依赖 git 2.28+（这个 hook 从 2.28 起才有），pre-push 与 check 模式不依赖。
 """
@@ -85,6 +102,9 @@ OVERRIDE = re.compile(
 
 REJECTED = 3
 
+# 手动预检的两个模式：出错时退出码 2、不按「出错即放行」处理，人要看见检查没做成。
+CHECK_MODES = ("check", "check-pr")
+
 # 本地一层拦下时，各命令已经做完的部分不同：merge / pull 先写工作树与暂存区、最后才更新 ref；
 # reset 先改暂存区（--hard 还有工作树）；rebase 停在最后一步。
 RESTORE_HINT = (
@@ -114,8 +134,14 @@ def text(data):
 
 def guarded_branches():
     """受守护的分支名集合，见文件说明。"""
-    out = git("config", "--get-regexp", r"^(branch\..*\.worktreetarget|revert-gate\.branch)$", check=False).stdout
+    out = git("config", "--get-regexp", r"^(branch\..*\.targetbranch|revert-gate\.branch)$", check=False).stdout
     return {line.split(" ", 1)[1] for line in text(out).split("\n") if " " in line}
+
+
+def target_of(branch):
+    """分支记录的目标分支（branch.<分支>.targetBranch），没记录返回 None。
+    记了它的分支本身不因此受守护：开发分支压平、rebase、强推都是常态，拦下只会妨碍正常操作。"""
+    return text(git("config", "--get", f"branch.{branch}.targetBranch", check=False).stdout).strip() or None
 
 
 def is_null(oid):
@@ -195,6 +221,18 @@ def tree_diff(a, b):
     return result
 
 
+def rename_sources(a, b):
+    """a → b 里被 git 判定为改名来源的路径：内容搬到了别处，不是删掉。"""
+    out = git("diff-tree", "-r", "-z", "--find-renames", "--diff-filter=R", a, b, check=False).stdout
+    fields = out.split(b"\0")
+    sources, i = set(), 0
+    while i + 1 < len(fields) and fields[i].startswith(b":"):
+        # 改名的原始记录多一个路径字段：:<模式>… R<相似度>\0<来源>\0<去处>
+        sources.add(text(fields[i + 1]))
+        i += 3
+    return sources
+
+
 def recent_commits(old, forks):
     """要核对的提交：old 上最近 WINDOW 个，并上每个切出点与 old 的合并基点到 old 之间的全部
     （至多 MAX_DEPTH 个），都只取非 merge 提交。返回 [(sha, 标题, [(改前 id, 改后 id, 路径)])]。"""
@@ -239,10 +277,10 @@ def ratio(part, whole):
 
 
 def recorded_forks(branches):
-    """这些分支记录的切出点（branch.<分支>.worktreeBase）解析成的提交 id，没记录或解析不了的略过。"""
+    """这些分支记录的切出点（branch.<分支>.forkPoint）解析成的提交 id，没记录或解析不了的略过。"""
     forks = []
     for name in branches:
-        fork = text(git("config", "--get", f"branch.{name}.worktreeBase", check=False).stdout).strip()
+        fork = text(git("config", "--get", f"branch.{name}.forkPoint", check=False).stdout).strip()
         if fork:
             oid = text(git("rev-parse", "--verify", "-q", f"{fork}^{{commit}}", check=False).stdout).strip()
             if oid:
@@ -256,14 +294,65 @@ def branches_at(commit):
     return [ref[len("refs/heads/"):] for ref in text(out).split()]
 
 
-def find_reverts(old, new, forks=()):
+def base_artifacts(old, new, touched, allowed, bases):
+    """换了基点而内容没合留下的痕迹：这次移动相对 old 改了某个文件，而分支自己（切出点 → new）
+    根本没碰过它——那处差异不是作者写的，是基点变了带出来的。返回 [(sha, 标题, [(文件, 说明)])]。
+
+    这一条不看内容像不像被还原，所以目标分支那边是新增、删除还是改已有内容都一样查得出，
+    「只增行不删行的文件被整份删掉」这类行级判据看不见的形态也在内。切出点就有的文件被作者删掉时，
+    分支自己的 diff 里有它，不会落进来；切出点之后才出现的内容被删才算——有意删的留 `Reverts:`。
+    没有切出点记录（branch.<分支>.forkPoint）时查不了：换了基点的压平正是把父提交改成了目标分支
+    尖端，merge-base 不再是切出点。改名来源不算，内容搬到别处去了。
+    """
+    # 切出点等于 new 的不算：那个分支一个提交都没贡献（多半是刚建出来、正好指着这里），
+    # 拿它算 authored 会得到空集，于是这次移动改过的每个文件都成了疑点。
+    bases = [b for b in bases if b != new]
+    if not bases or not touched:
+        return []
+    authored = set()
+    for base in bases:
+        # 认改名：分支把文件改了名时只有新路径算它写过，旧路径仍是疑点——
+        # 目标分支在切出点之后改写过旧路径的内容时，那份改写正是这样丢掉的。
+        # 用 diff-tree 而不是 diff，免得受各 clone 的 diff.renames 配置影响。
+        out = git("diff-tree", "-r", "--find-renames", "--name-only", "-z", base, new,
+                  check=False).stdout
+        authored |= {text(f) for f in out.split(b"\0") if f}
+    suspects = [p for p in touched if p not in authored]
+    if not suspects:
+        return []
+    renamed = rename_sources(old, new)
+    found = {}
+    for path in sorted(p for p in suspects if p not in renamed):
+        at_old, at_new = touched[path]
+        # 归到目标分支上最后改过这个文件的提交：有意撤销时 `Reverts:` 要写它。
+        out = text(git("log", "-1", "--no-merges", "--format=%H %s", old, "--", path,
+                       check=False).stdout).strip()
+        if not out:
+            continue
+        sha, _, subject = out.partition(" ")
+        if any(sha.startswith(a) for a in allowed):
+            continue
+        if at_new is None:
+            why = "这个文件被整份删掉，而本分支自己没有碰过它"
+        elif at_old is None:
+            # 单独覆盖不了：复活的内容与被删那版差不多时，内容判据总会先命中。
+            why = "这个文件被复活，而本分支自己没有碰过它"
+        else:
+            why = "这个文件被改回切出点那一版，而本分支自己没有碰过它"
+        found.setdefault(sha, (sha, subject, []))[2].append((path, why))
+    return list(found.values())
+
+
+def find_reverts(old, new, forks=(), bases=()):
     """返回 old → new 撤销掉的提交：[(sha, 标题, [(文件, 说明)])]，按从新到旧。
 
-    一个提交 C 在两种情况下算被撤销：
+    一个提交 C 在三种情况下算被撤销，前两种比内容、第三种比「谁写的」：
     - 整体撤销：C 改过、且到 old 仍保留着 C 的改动的每个文件，这次都被还原了，并且 C 删掉的行
-      这次又被找了回来。只新增内容的提交被整体删掉是正常清理，不算。
+      这次又被找了回来。
     - 局部撤销：C 修改或删除的某个已有文件被还原，且 C 删掉的行成批重现——rebase 时把冲突一律
       解到自己这一侧就是这个形态。
+    - 换了基点（见 base_artifacts）：这次移动改了某个文件，而分支自己从切出点起没碰过它。
+      要有切出点记录才查得了，查得了就不分新增 / 删除 / 改已有内容。
     行比对只看行的多重集合、不看位置，所以 C 之后文件又被别的提交改过也比得出来。
     """
     touched = tree_diff(old, new)
@@ -274,7 +363,7 @@ def find_reverts(old, new, forks=()):
                   if any(path in touched for _, _, path in c[2])
                   and not any(c[0].startswith(a) for a in allowed)]
     if not candidates:
-        return []
+        return base_artifacts(old, new, touched, allowed, bases)
     # 没被这次移动改到的文件在 old 与 new 里是同一份，只需 old 里那份来判断 C 的改动还在不在。
     untouched = tree_entries(old, [p for c in candidates for _, _, p in c[2] if p not in touched])
     blobs = read_blobs({oid for c in candidates for before, after, p in c[2] if p in touched
@@ -326,6 +415,14 @@ def find_reverts(old, new, forks=()):
             findings.append((sha, subject, [(p, "这个提交在此文件上的改动被还原") for p in reverted]))
         elif partial:
             findings.append((sha, subject, partial))
+    for sha, subject, hits in base_artifacts(old, new, touched, allowed, bases):
+        for found_sha, _, listed in findings:
+            if found_sha == sha:  # 同一个提交两类都命中：合并文件列表，不重复报同一个文件
+                shown = {p for p, _ in listed}
+                listed.extend((p, why) for p, why in hits if p not in shown)
+                break
+        else:
+            findings.append((sha, subject, hits))
     return findings
 
 
@@ -362,6 +459,62 @@ def report(branch, old, new, findings, mode, remote_findings=(), aligning=False)
 """, file=sys.stderr)
     if mode == "reference-transaction":
         print(RESTORE_HINT, file=sys.stderr)
+
+
+def check_pr(branch, shown, tip, new, mode, bases=None):
+    """PR 路径的内容检查：被推的 new（分支尖端）相对 tip（目标分支的远端状态）有没有撤销已有提交的改动。
+    放行返回 True。shown 是提示里怎么写目标分支。tip 不是 new 的祖先（还没 rebase）时不查，
+    预检模式下改为提示先 rebase，见文件说明的 PR 流程那一段。"""
+    if is_null(tip) or is_null(new) or tip == new:
+        return True
+    if not is_ancestor(tip, new):
+        if mode == "check-pr":
+            print(f"\n[revert-gate] {branch} 还没 rebase 到最新的 {shown}，先 `git rebase {shown}`。\n",
+                  file=sys.stderr)
+            return False
+        return True
+    forks = recorded_forks([branch]) if bases is None else bases
+    findings = find_reverts(tip, new, forks, bases=forks)
+    if not findings:
+        return True
+    head = f"拒绝推送 {branch}：它" if mode == "pre-push" else f"{branch} "
+    print(f"\n[revert-gate] {head}相对 {shown} 撤销了已有提交的改动。\n", file=sys.stderr)
+    print(f"相对 {shown}（{tip[:10]}）上的提交：", file=sys.stderr)
+    print_findings(findings)
+    print(f"""
+成因是 rebase 解冲突只取了自己一侧，或压平时换了基点（如 `git reset --soft {shown}` 后提交）。
+回到压平前，改为 `git reset --soft $(git merge-base HEAD {shown})` 压平，再 `git rebase {shown}`
+如实解冲突，把双方的改动合起来；不要用 `--no-verify` 绕过。
+确属有意撤销时，经确认后改用 `git revert`，或在撤销它的提交信息里为每个被撤销的提交加一行 `Reverts: <sha>`。
+""", file=sys.stderr)
+    return False
+
+
+def pr_prepush(branch, new):
+    """被推的分支记了目标分支时，按 PR 路径检查；没记录就放行。
+
+    取不到目标分支的远端状态（本地没有它、同名远端跟踪分支不是恰好一个、上游指向本地分支）时也放行，
+    但要打一行「没查」：退出码 0 不能让人误以为查过了。
+    """
+    target = target_of(branch)
+    if not target:
+        return True
+    ref, _ = upstream_of(target)
+    # PR 流程以远端尖端为基准，上游指向本地分支（branch.<目标>.remote = .）时等于取不到。
+    tip = ""
+    if ref and ref.startswith("refs/remotes/"):
+        tip = text(git("rev-parse", "--verify", "-q", f"{ref}^{{commit}}", check=False).stdout).strip()
+    if not tip:
+        if not remote_refs(target):
+            # 目标分支根本没有远端跟踪分支：它不是往远端提的目标（如只在本地的目标分支），
+            # 不是「查不了」。每次推送都提示只会刷屏。
+            return True
+        print(f"\n[revert-gate] 没查 {branch}：定不下 {target} 的远端状态——它有多个同名远端跟踪分支、"
+              f"却没设上游，或上游不是远端分支。`git branch -u <远端>/{target} {target}` 设好上游后再推。\n",
+              file=sys.stderr)
+        return True
+    # PR 流程一律 rebase 到 <远端>/<目标分支>，提示里就按这个写法，而不是 <分支>@{u}。
+    return check_pr(branch, ref[len("refs/remotes/"):], tip, new, "pre-push")
 
 
 def busy_branches():
@@ -439,11 +592,12 @@ def tips_below(branch, old, new):
             if tip != old and not is_ancestor(tip, old) and is_ancestor(tip, new)]
 
 
-def reverted_on_tips(new, tips, forks):
-    """以各尖端为参照，new 撤销了的尖端上的提交（都是已发布的）。forks 决定核对范围往回延伸到哪。"""
+def reverted_on_tips(new, tips, forks, bases=()):
+    """以各尖端为参照，new 撤销了的尖端上的提交（都是已发布的）。forks 决定核对范围往回延伸到哪；
+    bases 是分支真正的切出点——forks 这个参数掺了 old 与父提交，不能当切出点用。"""
     found = {}
     for tip in tips:
-        for finding in find_reverts(tip, new, forks):
+        for finding in find_reverts(tip, new, forks, bases=bases):
             found.setdefault(finding[0], finding)
     return list(found.values())
 
@@ -485,7 +639,8 @@ def check_move(branch, old, new, mode, forks=(), source=None):
             print(RESTORE_HINT, file=sys.stderr)
             return False
     # find_reverts 不要求 old 是 new 的祖先：非快进时同样以 old 为参照，丢下的本地提交也在检查之列。
-    findings = find_reverts(old, new, forks)
+    # bases 只传真正的切出点：reverted_on_tips 那边的 forks 掺了别的参照点，不能当切出点用。
+    findings = find_reverts(old, new, forks, bases=forks)
     remote_findings, tips = [], []
     if local:
         tips = tips_below(branch, old, new)
@@ -494,7 +649,8 @@ def check_move(branch, old, new, mode, forks=(), source=None):
             # 也当切出点传进去：尖端比 old 多出很多提交时，它们可能落在以尖端起算的 WINDOW 之外。
             published = [f[0] for f in findings if any(is_ancestor(f[0], tip) for tip in tips)]
             findings = [f for f in findings if f[0] not in published]
-            remote_findings = reverted_on_tips(new, tips, [old, *forks, *(f"{sha}^" for sha in published)])
+            remote_findings = reverted_on_tips(new, tips, [old, *forks, *(f"{sha}^" for sha in published)],
+                                               bases=forks)
     if findings or remote_findings:
         report(branch, old, new, findings, mode, remote_findings, aligning=bool(tips))
         return False
@@ -534,7 +690,15 @@ def pre_push():
             continue
         branch = parts[2][len("refs/heads/"):]
         local, remote = parts[1], parts[3]
-        if branch not in guarded or is_null(remote) or is_null(local):
+        if is_null(local):
+            continue
+        # 两套检查都要跑，不是二选一：一个分支可以既记了自己的目标分支，又因为别的分支记着它
+        # 而受守护。PR 路径以目标分支的远端尖端为参照，受守护那套以它
+        # 自己的远端尖端为参照，谁也替不了谁；没记目标分支的分支在 pr_prepush 里自己放行。
+        # targetBranch 记在本地分支上，所以按本地 ref 认分支：`push <本地>:<远端>` 时两边名字可能不同。
+        source = parts[0][len("refs/heads/"):] if parts[0].startswith("refs/heads/") else branch
+        ok = pr_prepush(source, local) and ok
+        if branch not in guarded or is_null(remote):
             continue
         if not has_commit(remote):
             # 不联网：remote 是 git 推送时拿到的远端实时值，本地没有它就说明远程有本地还没取到的提交。
@@ -543,7 +707,9 @@ def pre_push():
                   f"验证后再推。\n", file=sys.stderr)
             ok = False
             continue
-        ok = check_move(branch, remote, local, "pre-push") and ok
+        # 与 reference-transaction 同一取法：快进合并后 local 上还指着那个特性分支，借它拿到切出点。
+        ok = check_move(branch, remote, local, "pre-push",
+                        forks=recorded_forks(b for b in branches_at(local) if b != branch)) and ok
     return 0 if ok else REJECTED
 
 
@@ -563,11 +729,23 @@ def main(argv):
             if not upstream_ok(argv[2]):
                 return 1
             return 0 if check_move(argv[2], old, new, "check", forks=forks, source=argv[3]) else 1
+        if mode == "check-pr" and len(argv) == 4:
+            # 第一个参数必须是远端跟踪 ref：给本地分支就成了拿本地状态当远端基准，查了也不算查。
+            full = text(git("rev-parse", "--symbolic-full-name", argv[2]).stdout).strip()
+            if not full.startswith("refs/remotes/"):
+                print(f"[revert-gate] {argv[2]} 不是远端跟踪分支，check-pr 的目标分支要写成 "
+                      f"<远端>/<目标分支>（如 origin/main）。", file=sys.stderr)
+                return 2
+            tip = text(git("rev-parse", "--verify", f"{argv[2]}^{{commit}}").stdout).strip()
+            new = text(git("rev-parse", "--verify", f"{argv[3]}^{{commit}}").stdout).strip()
+            # 分支参数写成 HEAD 时按它指向的分支取切出点，与 check 模式同一写法。
+            return 0 if check_pr(argv[3], argv[2], tip, new, "check-pr",
+                                 bases=recorded_forks({argv[3], *branches_at(new)})) else 1
     except Exception as e:  # noqa: BLE001 —— 任何意外都按文件说明里的出错策略处理
-        print(f"[revert-gate] 检查出错{'' if mode == 'check' else '，已放行'}：{e!r}", file=sys.stderr)
-        return 2 if mode == "check" else 0
+        print(f"[revert-gate] 检查出错{'' if mode in CHECK_MODES else '，已放行'}：{e!r}", file=sys.stderr)
+        return 2 if mode in CHECK_MODES else 0
     print(f"[revert-gate] 用法不对：{' '.join(argv[1:]) or '(无参数)'}", file=sys.stderr)
-    return 2 if mode == "check" else 0
+    return 2 if mode in CHECK_MODES else 0
 
 
 if __name__ == "__main__":

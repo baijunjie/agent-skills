@@ -41,8 +41,8 @@ YAML frontmatter 必须位于文件最开头，`---` 是第一行。必填 `name
 ## 附带资源与共享模板
 
 - skill 携带的脚本、模板放在自己目录下，用 `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}/skills/<skill>/<file>` 引用（安装后路径不可预测，先用 Codex 的 `PLUGIN_ROOT`，回退到 Claude Code 的 `CLAUDE_PLUGIN_ROOT`）。
-- 同一 plugin 内多个 skill 共用的资源放 plugin 级 `scripts/`，不要让一个 skill 引另一个 skill 的 `template/`——单独装其中一个就会读到不属于它的路径。依赖同一 `scripts/` 的 skill 必须留在同一 plugin，plugin 之间不共享文件。
-- 附带的模板文件不要命名为 `SKILL.md`。
+- 同一 plugin 内多个 skill 共用的资源放 plugin 级 `scripts/`，不要让一个 skill 引另一个 skill 的 `template/`——单独装其中一个就会读到不属于它的路径。依赖同一 `scripts/` 的 skill 必须留在同一 plugin，plugin 之间不共享文件。安装器怎么引用它见 `docs/installers.md`「生成」与 `build.py` 的 `extra_env`：变量名要让 `RESOURCE_USE` 认得出（`RENDER_*` 或以 `_DIR` / `_ROOT` 结尾），用到它的命令块先写 `: "${<变量>:?}"` 守卫。
+- 附带的模板文件不要命名为 `SKILL.md`；要写进指令文件的那份固定叫 `INJECT.md`（见 `docs/installers.md`「源文件契约」）。
 - 共享指令正文只维护一份，禁止另建宿主版本或作用域副本，宿主差异由 `plugins/setup-agent/scripts/` 的渲染脚本生成，各脚本生成什么见下面「渲染脚本」。
 - 渲染脚本的写法：有模块 docstring；参数由 argparse 校验；出错时输出 `<脚本名>: <错误信息>` 到 stderr 并以 1 退出，不抛 traceback；自己写的消息用中文。直接写文件的渲染脚本全部渲染成功后才写，替换语义见其 docstring；安装器重装时用 `--replace`，不要先 `rm` 目标再渲染（会把软链换成普通文件，渲染失败时旧文件也没了）。
 
@@ -54,5 +54,5 @@ YAML frontmatter 必须位于文件最开头，`---` 是第一行。必填 `name
 | `render-subagent-rules.py` | `setup-agent:subagents` 的规则 | 按宿主与去处定层级，三种形态见其 docstring |
 | `render-report-style.py` | `setup-agent:report-style` 的 Codex 那一节 | 以 Claude Code 输出风格文件为唯一模板 |
 
-同目录的 `markdown_headings.py` 不是渲染脚本，是上面两个脚本共用的模块：把模板里的标题层级平移到写进指令文件
+同目录的 `markdown_headings.py` 不是渲染脚本，是 `render-subagent-rules.py` 与 `render-report-style.py` 共用的模块：把模板里的标题层级平移到写进指令文件
 该有的层级（见 `docs/decisions.md`「写进指令文件的内容顶层用一级标题」），代码块里的 `#` 不动、平移出 1–6 级就报错。

@@ -1,15 +1,20 @@
 ---
 name: pr
-description: {{scope_lead}}提交 PR 的 git-pr skill：压平本地提交、推送并向本项目约定的目标分支提 PR，建好后清理本地分支与 worktree。安装时确定本项目默认的 PR 目标分支并写进 skill，调用时仍可另行指定。{{scope_tail}}用于"装 git-pr skill""给项目配提 PR 的流程""统一 PR 提交方式"等场景。
+description: {{scope_lead}}提 PR 的 git-pr skill，连同推送时拦下撤销目标分支已有改动的回退闸门。{{scope_tail}}用于"装 git-pr skill""给项目配提 PR 的流程""统一 PR 提交方式"等场景。
 disable-model-invocation: true
 ---
 
 # 安装 git-pr skill
 
+装两样东西，都只装进当前项目：从压平、rebase 到提 PR、清理的操作步骤 `git-pr` skill，
+以及回退闸门——推送记了目标分支（`branch.<分支>.targetBranch`，与 `setup-git:worktree` 共用这个键）的分支时
+按内容检查，拒绝撤销目标分支已有改动的推送，目标分支也因此受守护。
 装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
 
 只做项目级安装：默认的 PR 目标分支因项目而异，要在安装时写进 skill，装进用户级就没法对所有项目都成立。
 当前目录不是 git 仓库时停下来汇报。
+
+闸门的脚本由 `setup-git` 下的 `pr` 与 `worktree` 两个安装器共用，装到项目的同一个 `.githooks/`。
 
 ## 跨宿主约定
 
@@ -21,7 +26,9 @@ disable-model-invocation: true
 
 {{include: pre-write}}
 
-本安装器另外要查的冲突：无。
+本安装器另外要查的冲突：
+
+{{include: gate-conflicts}}
 
 ## 确定默认的 PR 目标分支
 
@@ -44,6 +51,52 @@ disable-model-invocation: true
 
 已装过的，旧 skill 里「没指定就提到 `<分支>`」那句的分支是上次定下的，可能是用户选的，先读出来：
 表里直接采用的两种情况以依据为准，与旧值不同要告知用户；要问用户的两种情况改为沿用旧值，不再问。
+
+## 装回退闸门
+
+闸门的 PR 一层在 `pre-push` 上，只要 `python3`。装出的 skill 还会把目标分支记进 `targetBranch`，
+目标分支因此进入受守护集合，本地 merge / commit / reset 动它时走 reference-transaction 那一层，
+那一层要 git 2.28+。先确认有没有 `python3`、git 版本够不够，按下表处理：
+
+| 环境 | 做法 |
+|---|---|
+| 有 `python3`、git 2.28+ | 按下面两步做：执行复制闸门脚本的命令块，再按下表接 hook 入口 |
+| 有 `python3`、git 低于 2.28 | 同上照做：pre-push 一层（PR 推送检查）生效，本地 merge / commit / reset 那一层不生效，告知用户 |
+| 没有 `python3` | 问用户是装 Python 还是不要闸门。装 Python 的装好后照上两行；不要闸门的两个命令块都不执行，已有的 `.githooks/` 与 hook 入口也不删——装出的 skill 自己会查闸门脚本在不在，不在就走人工核对那一支，skill 正文不因此改写 |
+
+复制闸门脚本（保留可执行位，已有的同名文件直接覆盖，`.githooks/` 里别的文件不动）：
+
+```bash
+{{include: project-root}}
+: "${GATE_DIR:?}"
+mkdir -p .githooks && cp -p "$GATE_DIR/"* .githooks/
+```
+
+接 hook 入口，按「写入前检查」里 hook 入口的冲突结果三种接法选一：
+
+| 情况 | 做法 |
+|---|---|
+| 没有冲突 | 直接装：执行下面的命令（可重复执行） |
+| 用户选完全覆盖 | 按询问时说给用户的改法撤掉原来那套入口（如 `git config --unset core.hooksPath`、移走原 hook 文件），再按直接装执行 |
+| 用户选融入，或入口里已调用 `.githooks/hook.sh` | 在那套体系（如 husky）的 `pre-push` 里调用一次 `sh .githooks/hook.sh pre-push "$@"`（原样转发 stdin），怎么接由用户定；已调用的不重复接。不执行下面的命令——它会因同一原因报错退出 |
+
+直接装的命令：
+
+```bash
+{{include: project-root}}
+sh .githooks/install.sh --pr-only
+```
+
+`--pr-only` 只装 hook 入口、不写也不清常驻守护分支（那是 `setup-git:worktree` 的定制值）。
+命令报 `core.hooksPath` 已设置或同名 hook 已存在，是事先漏查了这项冲突，先按「写入前检查」问用户。
+
+**告知用户**（选了「不要闸门」、两个命令块都没执行的，只说末尾那条）：`.githooks/` 要提交进版本库才随仓库生效；闸门读的是目标分支上已提交的那份脚本，
+提交并推送之后才开始检查。hook 在各 clone 自己的 `.git/` 里、不随仓库生效：其它 clone 各自执行一次
+`sh .githooks/install.sh --pr-only`（融入了 husky 等体系的改为按上表接进那套体系），同一 clone 的所有
+worktree 共用，无需重复；skill 也要求 agent 推送前发现没装就补装。
+选了「不要闸门」的：仓库里没有闸门，装出的 skill 会走人工核对那一支；这个选择没有载体，下次重装还会再问一遍。
+git 在每次 ref 更新的每个阶段都会启动一次 hook：不涉及本地分支的调用在 shell 里就放行了，但进程启动
+本身的开销省不掉，rebase 一长串提交会慢上几秒，一次 fetch 几千个新 tag 或分支可能多出一分钟以上。
 
 ## 通用步骤
 

@@ -1,12 +1,13 @@
 ---
 name: i18n-copy
-description: 装上（或更新）多语言 App 界面文案规范 knowledge-i18n-copy skill：各语言语体、破坏性操作与确认框、进行态、报错、括号空格、iOS / Android / Web 大小写、术语统一与多端同步；项目级安装时可补本项目的语种、资源位置与术语。默认装进当前项目随仓库提交，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"装界面文案规范""给项目配本地化规范""统一多语言文案""新电脑装文案规范"等场景。
+description: 装上（或更新）多语言 App 界面文案规范 knowledge-i18n-copy skill，管各语言语体、标点、大小写与术语统一。默认装进当前项目随仓库提交，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"装界面文案规范""给项目配本地化规范""统一多语言文案"等场景。
 disable-model-invocation: true
 ---
 
 # 安装 knowledge-i18n-copy skill
 
-装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
+装 `knowledge-i18n-copy` skill：各语言语体、破坏性操作与确认框、进行态、报错、括号空格、
+iOS / Android / Web 大小写、术语统一与多端同步。装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
 
 ## 跨宿主约定
 

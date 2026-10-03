@@ -1,6 +1,6 @@
 ---
 name: find-issues
-description: {{scope_lead}}在指定 GitHub 仓库搜索相关 Issue 与 PR 的 git-find-issues skill。{{scope_tail}}用于"装 git-find-issues skill""装查 issue 的 skill""让项目能搜上游 Issue / PR""新电脑装 git-find-issues"等场景。
+description: {{scope_lead}}在指定 GitHub 仓库搜索相关 Issue 与 PR 的 git-find-issues skill。{{scope_tail}}用于"装 git-find-issues skill""装查 issue 的 skill""搜上游 Issue / PR"等场景。
 disable-model-invocation: true
 ---
 

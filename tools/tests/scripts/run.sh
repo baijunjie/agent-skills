@@ -18,7 +18,7 @@ RSR=$SCRIPTS/render-subagent-rules.py
 RRS=$SCRIPTS/render-report-style.py
 for f in "$RCA" "$RSR" "$RRS" "$SCRIPTS/markdown_headings.py"; do [ -f "$f" ] || die "找不到脚本：$f"; done
 AGENT_SKILLS=$REPO_ROOT/plugins/setup-agent/skills
-RULES_TPL=$AGENT_SKILLS/subagents/template/rules.md
+RULES_TPL=$AGENT_SKILLS/subagents/template/INJECT.md
 STYLE_TPL=$AGENT_SKILLS/report-style/template/output-styles/concise-plus.md
 # 片段开头可以有只给维护者看的说明块（首行恰为 <!--，到恰为 --> 的行为止，其后的一个空行一并去掉），
 # 与 build.py 读片段时一样去掉，剩下的才是装进生成物的命令。
@@ -614,8 +614,8 @@ new_repo() { # new_repo <目录>：建一个有一个提交的仓库
 
 phys() { (cd "$1" && pwd -P); }
 
-register root_shells_available
-case_root_shells_available() {
+register root_shells_and_single_line
+case_root_shells_and_single_line() {
   echo "测试的 shell：${ROOT_SHELLS[*]}"
   [ ${#ROOT_SHELLS[@]} -gt 0 ] || fail "一个可用的 shell 都没有"
   case " ${ROOT_SHELLS[*]} " in *" bash "*) ;; *) fail "至少要有 bash" ;; esac

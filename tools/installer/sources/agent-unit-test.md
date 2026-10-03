@@ -1,12 +1,13 @@
 ---
 name: unit-test
-description: {{scope_lead}}agent-unit-test skill 与 test-writer 子代理：基于项目已有的单元测试框架（没有就问用户并协助安装），测试默认放独立目录并镜像源码结构，收尾时为改动文件补测试、只跑受影响的测试。{{scope_tail}}用于"给这个项目配单元测试""装 test-writer""让 agent 收尾时补测试""更新项目里的单元测试 skill"等场景。
+description: {{scope_lead}}agent-unit-test skill 与 test-writer 子代理，收尾时为改动的文件补单元测试、只跑受影响的测试。{{scope_tail}}用于"给这个项目配单元测试""装 test-writer""让 agent 收尾时补测试"等场景。
 disable-model-invocation: true
 ---
 
 # 安装单元测试
 
-装两样东西：`agent-unit-test` skill 与写测试的 `test-writer` 子代理。装出的 skill 靠 description 自动触发，
+装两样东西：`agent-unit-test` skill 与写测试的 `test-writer` 子代理：基于项目已有的单元测试框架
+（没有就问用户并协助安装），测试默认放独立目录并镜像源码结构。装出的 skill 靠 description 自动触发，
 本安装器不往指令文件写任何内容。
 
 ## 跨宿主约定

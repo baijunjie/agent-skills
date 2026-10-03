@@ -1,6 +1,6 @@
 ---
 name: find-issues
-description: 装上（或更新）在指定 GitHub 仓库搜索相关 Issue 与 PR 的 git-find-issues skill。默认装进当前项目随仓库提交，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"装 git-find-issues skill""装查 issue 的 skill""让项目能搜上游 Issue / PR""新电脑装 git-find-issues"等场景。
+description: 装上（或更新）在指定 GitHub 仓库搜索相关 Issue 与 PR 的 git-find-issues skill。默认装进当前项目随仓库提交，也可安装到用户级配置、对当前用户环境中的所有项目生效。用于"装 git-find-issues skill""装查 issue 的 skill""搜上游 Issue / PR"等场景。
 disable-model-invocation: true
 ---
 

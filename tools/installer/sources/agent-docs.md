@@ -1,12 +1,12 @@
 ---
 name: docs
-description: {{scope_lead}}agent-docs skill 与 map-writer、product-writer、memory-writer 三个子代理：总索引、项目地图、产品文档与开发记忆的读写规则，以及代码注释规范。{{scope_tail}}用于"给这个项目配文档规范""初始化项目文档结构""给这个项目配开发记忆""让 agent 维护文档""更新项目里的 agent-docs skill""全局装文档规范"等场景。
+description: {{scope_lead}}agent-docs skill 与 map-writer、product-writer、memory-writer 三个子代理，管文档读写与注释规范。{{scope_tail}}用于"给这个项目配文档规范""初始化项目文档结构""全局装文档规范"等场景。
 disable-model-invocation: true
 ---
 
 # 安装项目文档规范
 
-装两样东西：`agent-docs` skill（读写规则与注释规范）与 `map-writer`、`product-writer`、`memory-writer`
+装两样东西：`agent-docs` skill（总索引、项目地图、产品文档与开发记忆的读写规则，以及代码注释规范）与 `map-writer`、`product-writer`、`memory-writer`
 三个子代理。装出的 skill 靠 description 自动触发，本安装器不往指令文件写任何内容。
 
 ## 跨宿主约定

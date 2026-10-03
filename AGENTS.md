@@ -58,7 +58,7 @@ Plugin 名即调用前缀：`plugins/dev/skills/discuss/SKILL.md` 在 Claude Cod
 | 给安装器或装出的 skill 定名、定归属的 plugin、定作用域 | `docs/installers.md`「命名与归属」 |
 | 写或改安装器源文件（`tools/installer/sources/`）、片段（`tools/installer/fragments/`）、`build.py` 的 `INSTALLERS`、安装器的 `template/` 或 `agents/openai.yaml` | `docs/installers.md`「生成」「源文件契约」 |
 | 改 `build.py` 的校验 | `docs/installers.md`「源文件契约」、`docs/checklist.md`「改动后」、`tools/tests/README.md` |
-| 改闸门（`plugins/setup-git/skills/worktree/template/githooks/`）、cron 模板、渲染脚本或 `project-root` 片段；新增、选跑测试用例或套件 | `tools/tests/README.md`、`docs/checklist.md`「改动后」 |
+| 改闸门（`plugins/setup-git/scripts/githooks/`）、cron 模板、渲染脚本或 `project-root` 片段；新增、选跑测试用例或套件 | `tools/tests/README.md`、`docs/checklist.md`「改动后」 |
 | 升 manifest 的 `version`、发布、推送，或推送后更新已装的 plugin | `docs/release.md`「发布」 |
 | 安装或调试本仓库的 plugin、改 marketplace 名 | `docs/release.md`「分发」 |
 | 复核本仓库的改动 | 整份 `docs/checklist.md` |

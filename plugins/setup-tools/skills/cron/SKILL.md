@@ -1,6 +1,6 @@
 ---
 name: cron
-description: 给当前项目装上（或更新）一套 crontab 定时任务安装器——任务清单 tasks.conf 加 install.sh / uninstall.sh。只装进当前项目，随仓库提交。用于"给这个项目配定时任务""装个 cron 安装脚本""把脚本挂到 crontab 上""加一个每天跑的定时任务"等场景。
+description: 给当前项目装上（或更新）一套 crontab 定时任务安装器——任务清单 tasks.conf 加 install.sh / uninstall.sh。只装进当前项目，随仓库提交。用于"给这个项目配定时任务""装个 cron 安装脚本""把脚本挂到 crontab 上"等场景。
 disable-model-invocation: true
 ---
 
