@@ -10,7 +10,7 @@
 
 变量有四个来源：
   DEFAULTS    各安装器没声明时的回退值，INSTALLERS 可以覆盖
-  按文件名推导 skill（skill 目录名）、name（源文件名；skill-targets 用它作装出的 skill 名和模板文件名）、
+  按文件名推导 skill（skill 目录名）、name（源文件名；skill-targets 用它作装出的 skill 名和模板目录名）、
               marker（`setup-<领域>:<skill>`，指令文件里本安装器那对标记的名字）
   SCOPES      作用域决定的 description 措辞 scope_lead / scope_tail
   INSTALLERS  以源文件名为键，值为 (作用域, 变量)，只声明各安装器有差异的变量；
@@ -49,9 +49,11 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #
 # 模板
 #   - TEMPLATE_DIR（template/ 加 template_sub）不存在
-#   - include 了 skill-targets，template/<name>.md 却不存在
+#   - include 了 skill-targets，template/<name>/SKILL.template.md 却不存在
 #   - 正文用 cat "$TEMPLATE_DIR/<文件>" >> 整块追加的模板不存在、不叫 INJECT.md，或首行不是空行
-#   - TEMPLATE_DIR 下带 frontmatter name 的 *.md 模板（即装出的 skill），bash 代码块里没有装到 skills/<name> 的命令
+#   - template/ 下有名为 SKILL.md 的文件；SKILL.template.md 不是直接放在 template/<目录>/ 下，或其 frontmatter name
+#     与所在目录名不一致；template/ 下直接放着带 frontmatter name 的 *.md（装成 skill 的模板没按目录形态放）
+#   - template/*/SKILL.template.md（即装出的 skill），bash 代码块里没有装到 skills/<name> 的命令
 #
 # frontmatter
 #   - 源文件或生成物首行不是 ---，或其后没有独占一行的结尾 ---；顶层键出现不止一次
@@ -97,7 +99,7 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #   - 生成物里「第 N 步」「第 N–M 步」「第 N、M 步」中的任一数字大于代码块之外编号列表项的最大序号。
 #     只是最大步号检查：抓得出指向不存在步骤的引用，不保证指向的是正确的那一步
 #
-# 替换表（表头整行为「| 位置 | 原文 | 改成 |」，被改写的模板是 TEMPLATE_DIR 下的 <name>.md）
+# 替换表（表头整行为「| 位置 | 原文 | 改成 |」，被改写的模板是 template/<name>/SKILL.template.md）
 #   - 有替换表，被改写的模板却不存在
 #   - 某行不是三列，或「位置」里没有「」
 #   - 「位置」里每段「」在模板里不是恰好一个列表项（「- 」开头的行）以它开头
@@ -317,6 +319,8 @@ NUMBERED_ITEM = re.compile(r"^[ \t]*(\d+)\.[ \t]")
 APPEND_TEMPLATE = re.compile(r'cat "\$TEMPLATE_DIR/([^"]+)"[ \t]*>>')
 # 写进指令文件（CLAUDE.md / AGENTS.md）的模板固定叫这个名字。
 INJECT_TEMPLATE = "INJECT.md"
+# 装成一个 skill 目录的模板放成 template/<skill 名>/SKILL.template.md，装出时改名为 SKILL.md。
+SKILL_TEMPLATE = "SKILL.template.md"
 # 「位置」里写成「共 N 条」的区间条数断言，N 写阿拉伯数字或一到十。
 RANGE_COUNT = re.compile(r"共 ?([0-9]+|[一二三四五六七八九十]) ?条")
 CN_DIGITS = {c: i for i, c in enumerate("一二三四五六七八九十", start=1)}
@@ -757,15 +761,36 @@ def check_appended_templates(name: str, text: str, template_dir: Path) -> None:
             sys.exit(f"{name}: 模板 {tpl.relative_to(REPO)} 被整块追加进指令文件，首行必须是空行")
 
 
-def check_installed_skill_names(name: str, text: str, template_dir: Path) -> None:
+def check_template_layout(name: str, template: Path) -> None:
+    """template/ 要体现装出后的目录形态：装成一个 skill 目录的模板放成 template/<skill 名>/SKILL.template.md。
+
+    目录名对不上 frontmatter name，看模板就看不出装到哪；直接叫 SKILL.md 则与 skill 本体同名，看名字分不出哪份是模板。
+    template/ 下直接放着的带 frontmatter name 的 *.md 是没按目录形态放的 skill 模板（子代理在 agents/ 下，不在此列）。
+    """
+    for f in sorted(template.rglob("*")):
+        if not f.is_file():
+            continue
+        where = f.relative_to(REPO)
+        if f.name == "SKILL.md":
+            sys.exit(f"{name}: 模板 {where} 不能叫 SKILL.md，装成 skill 目录的那份叫 {SKILL_TEMPLATE}")
+        if f.name == SKILL_TEMPLATE:
+            if f.parent.parent != template:
+                sys.exit(f"{name}: {where} 须直接放在 template/<skill 名>/ 下")
+            if template_skill_name(f) != f.parent.name:
+                sys.exit(f"{name}: {where} 的 frontmatter name 须为所在目录名 {f.parent.name}")
+        elif f.parent == template and f.suffix == ".md" and template_skill_name(f):
+            sys.exit(f"{name}: 装成 skill 的模板 {where} 要放成 template/{template_skill_name(f)}/{SKILL_TEMPLATE}")
+
+
+def check_installed_skill_names(name: str, text: str, template: Path) -> None:
     """装出的 skill 模板的 frontmatter name 与安装命令里的目录名必须一致。
 
-    TEMPLATE_DIR 下直接放着的带 frontmatter name 的 `*.md` 就是要装成 skill 的模板，装到的目录名必须是那个 name——
+    template/<目录>/SKILL.template.md 就是要装成 skill 的模板，装到的目录名必须是它的 name——
     两个宿主都只按目录名找 skill。改了模板的 name 而没改安装命令（或反过来），装出的 skill 不报错、只是不被触发，
-    指令文件里指向它的入口也跟着指空。子目录下的子代理、输出风格模板装到别处，不在此列。
+    指令文件里指向它的入口也跟着指空。子代理、输出风格模板装到别处，不在此列。
     """
     commands = "\n".join(bash_lines(text))
-    for tpl in sorted(template_dir.glob("*.md")):
+    for tpl in sorted(template.glob(f"*/{SKILL_TEMPLATE}")):
         skill_name = template_skill_name(tpl)
         if not skill_name:
             continue
@@ -984,12 +1009,13 @@ def render(name: str, scope: str, declared: dict) -> str:
     check_step_refs(name, text)
     check_env_guards(name, text, variables["extra_env"])
     check_codex_skill_dir(name, text)
-    check_replacements(name, text, template_dir / f"{name}.md")
-    check_installed_skill_names(name, text, template_dir)
+    check_replacements(name, text, template / name / SKILL_TEMPLATE)
+    check_template_layout(name, template)
+    check_installed_skill_names(name, text, template)
     check_appended_templates(name, text, template_dir)
     if includes["skill-targets"]:
-        if not (template / f"{name}.md").is_file():
-            sys.exit(f"{name}: include 了 skill-targets，模板 {(template / f'{name}.md').relative_to(REPO)} 却不存在")
+        if not (template / name / SKILL_TEMPLATE).is_file():
+            sys.exit(f"{name}: include 了 skill-targets，模板 {(template / name / SKILL_TEMPLATE).relative_to(REPO)} 却不存在")
     for f in sorted(template.rglob("*")):
         # .DS_Store 由 Finder 自动生成、不进版本库，不按模板检查
         if f.is_file() and f.name != ".DS_Store":

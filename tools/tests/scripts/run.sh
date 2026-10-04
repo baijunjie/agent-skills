@@ -445,7 +445,7 @@ case_no_pycache_left_behind() {
   [ -e "$SCRIPTS/__pycache__" ] && fail "测试开始前 $SCRIPTS/__pycache__ 就已存在"
   try python3 "$RSR" --host claude --scope project "$RULES_TPL"
   expect_rc 0 "渲染规则"
-  try python3 "$RRS" "$STYLE_TPL"
+  try python3 "$RRS" --host codex --language "测试语言（xx）" "$STYLE_TPL"
   expect_rc 0 "渲染输出风格"
   [ -e "$SCRIPTS/__pycache__" ] && fail "渲染脚本在 $SCRIPTS 下留下了 __pycache__"
   return 0
@@ -491,16 +491,22 @@ case_rules_template_errors() {
 # ---------------------------------------------------------------------------
 # render-report-style.py
 
+# 放占位符的正文行，fixture 都要带上；STYLE_ARGS 是渲染时固定传的语言。
+STYLE_PH='占位{{OUTPUT_LANGUAGE}}'
+STYLE_ARGS=(--language "测试语言（xx）")
+
 register style_real_template
 case_style_real_template() {
-  try python3 "$RRS" "$STYLE_TPL"
+  try python3 "$RRS" --host codex "${STYLE_ARGS[@]}" "$STYLE_TPL"
   expect_rc 0 "渲染 concise-plus.md"
   printf '%s' "$OUT" >"$CASE_DIR/got.md"
-  # 期望值另行推出：节标题取 frontmatter 的 name，空一行，正文（frontmatter 之后、去掉开头空行）里的 ATX 标题加一级。
+  # 期望值另行推出：占位符填好，节标题取 frontmatter 的 name，空一行，正文（frontmatter 之后、去掉开头空行）里的 ATX 标题加一级。
   # 这份模板没有代码块，按行首 # 加一级即可；代码块的处理由 style_fences 覆盖。
   try python3 - "$STYLE_TPL" "$CASE_DIR/got.md" <<'EOF'
 import re, sys
 text = open(sys.argv[1], encoding="utf-8").read()
+assert text.count("{{OUTPUT_LANGUAGE}}") == 1, "模板里须有且只有一个 {{OUTPUT_LANGUAGE}}"
+text = text.replace("{{OUTPUT_LANGUAGE}}", "测试语言（xx）")
 lines = text.split("\n")
 closing = lines.index("---", 1)
 name = next(l.split(":", 1)[1].strip() for l in lines[1:closing] if l.startswith("name:"))
@@ -512,6 +518,29 @@ got = open(sys.argv[2], encoding="utf-8").read()
 assert got == want.rstrip("\n"), "输出与约定不一致"
 assert got.startswith("# 输出风格：Concise+\n\n"), got[:40]
 assert "\n## 只给结果\n" in got
+assert "\n回答语言：测试语言（xx）。" in got
+# 第 7 条写动作本身，不点宿主的工具名
+assert "{{" not in got and "AskUserQuestion" not in got and "request_user_input" not in got
+assert "让用户直接从选项里点选" in got
+EOF
+  expect_rc 0 "与约定一致"
+}
+
+register style_claude
+case_style_claude() {
+  try python3 "$RRS" --host claude "${STYLE_ARGS[@]}" "$STYLE_TPL"
+  expect_rc 0 "渲染 Claude Code 的输出风格文件"
+  printf '%s' "$OUT" >"$CASE_DIR/got.md"
+  # 期望值：模板原样，frontmatter 与标题层级都不动，只填语言占位符。
+  try python3 - "$STYLE_TPL" "$CASE_DIR/got.md" <<'EOF'
+import sys
+text = open(sys.argv[1], encoding="utf-8").read()
+want = text.replace("{{OUTPUT_LANGUAGE}}", "测试语言（xx）")
+got = open(sys.argv[2], encoding="utf-8").read()
+assert got == want.rstrip("\n"), "除占位符外与模板不一致"
+assert got.startswith("---\nname: Concise+\n")
+assert "{{" not in got and "AskUserQuestion" not in got and "request_user_input" not in got
+assert "让用户直接从选项里点选" in got
 EOF
   expect_rc 0 "与约定一致"
 }
@@ -519,52 +548,72 @@ EOF
 register style_fences
 case_style_fences() {
   put "$CASE_DIR/in.md" --- "name: 测试风格" "description: x" --- "" \
-    "开头一段" "" "# 一级" "## 二级" " # 缩进一格" "   ## 缩进三格" "    # 缩进四格不是标题" "#没有空格不是标题" $'#\t制表符也算' "" \
+    "开头一段" "$STYLE_PH" "" "# 一级" "## 二级" " # 缩进一格" "   ## 缩进三格" "    # 缩进四格不是标题" "#没有空格不是标题" $'#\t制表符也算' "" \
     '```' "# 代码块里" '~~~' "# ~~~ 不收 \`\`\` 块" '```' "" \
     '~~~~' '```' "# 代码块里" '~~~' "# 短的 ~~~ 不收 ~~~~ 块" '~~~~' "" \
     '  ```bash' '  # 缩进的代码块里' '  ```' "" \
     '``` 不是' "# 这行在块里，因为上一行带了文字的 \`\`\` 只是开头" '```' "" \
     "# 结尾"
   put "$CASE_DIR/want.md" "# 输出风格：测试风格" "" \
-    "开头一段" "" "## 一级" "### 二级" " ## 缩进一格" "   ### 缩进三格" "    # 缩进四格不是标题" "#没有空格不是标题" $'##\t制表符也算' "" \
+    "开头一段" "占位测试语言（xx）" "" "## 一级" "### 二级" " ## 缩进一格" "   ### 缩进三格" "    # 缩进四格不是标题" "#没有空格不是标题" $'##\t制表符也算' "" \
     '```' "# 代码块里" '~~~' "# ~~~ 不收 \`\`\` 块" '```' "" \
     '~~~~' '```' "# 代码块里" '~~~' "# 短的 ~~~ 不收 ~~~~ 块" '~~~~' "" \
     '  ```bash' '  # 缩进的代码块里' '  ```' "" \
     '``` 不是' "# 这行在块里，因为上一行带了文字的 \`\`\` 只是开头" '```' "" \
     "## 结尾"
-  try python3 "$RRS" "$CASE_DIR/in.md"
+  try python3 "$RRS" --host codex "${STYLE_ARGS[@]}" "$CASE_DIR/in.md"
   expect_rc 0 "带代码块的模板"
-  python3 "$RRS" "$CASE_DIR/in.md" >"$CASE_DIR/got.md"
+  python3 "$RRS" --host codex "${STYLE_ARGS[@]}" "$CASE_DIR/in.md" >"$CASE_DIR/got.md"
   diff "$CASE_DIR/want.md" "$CASE_DIR/got.md" >"$CASE_DIR/diff" || fail "输出与期望不符：$(tr '\n' '|' <"$CASE_DIR/diff")"
 }
 
 register style_errors
 case_style_errors() {
-  put "$CASE_DIR/unclosed-fence.md" --- "name: x" --- "" "# 标题" '```' "# 块里"
-  try python3 "$RRS" "$CASE_DIR/unclosed-fence.md"
+  local h
+  put "$CASE_DIR/unclosed-fence.md" --- "name: x" --- "" "$STYLE_PH" "# 标题" '```' "# 块里"
+  try python3 "$RRS" --host codex "${STYLE_ARGS[@]}" "$CASE_DIR/unclosed-fence.md"
   expect_script_error render-report-style.py "代码块围栏 \`\`\` 到结尾都没有闭合"
-  put "$CASE_DIR/unclosed-tilde.md" --- "name: x" --- "" '~~~' '```'
-  try python3 "$RRS" "$CASE_DIR/unclosed-tilde.md"
+  put "$CASE_DIR/unclosed-tilde.md" --- "name: x" --- "" "$STYLE_PH" '~~~' '```'
+  try python3 "$RRS" --host codex "${STYLE_ARGS[@]}" "$CASE_DIR/unclosed-tilde.md"
   expect_script_error render-report-style.py "代码块围栏 ~~~ 到结尾都没有闭合"
-  put "$CASE_DIR/no-front.md" "# 标题" "正文"
-  try python3 "$RRS" "$CASE_DIR/no-front.md"
-  expect_script_error render-report-style.py "第一行必须是 frontmatter 的 ---"
-  put "$CASE_DIR/unclosed-front.md" --- "name: x" "# 标题"
-  try python3 "$RRS" "$CASE_DIR/unclosed-front.md"
-  expect_script_error render-report-style.py "frontmatter 没有闭合的 ---"
-  put "$CASE_DIR/no-name.md" --- "description: x" --- "正文"
-  try python3 "$RRS" "$CASE_DIR/no-name.md"
-  expect_script_error render-report-style.py "须有且只有一个非空的 name"
-  put "$CASE_DIR/two-names.md" --- "name: a" "name: b" --- "正文"
-  try python3 "$RRS" "$CASE_DIR/two-names.md"
-  expect_script_error render-report-style.py "须有且只有一个非空的 name"
-  put "$CASE_DIR/too-deep.md" --- "name: x" --- "###### 六级"
-  try python3 "$RRS" "$CASE_DIR/too-deep.md"
+  put "$CASE_DIR/too-deep.md" --- "name: x" --- "$STYLE_PH" "###### 六级"
+  try python3 "$RRS" --host codex "${STYLE_ARGS[@]}" "$CASE_DIR/too-deep.md"
   expect_script_error render-report-style.py "标题下移后超过六级"
-  try python3 "$RRS" "$CASE_DIR/nope.md"
-  expect_script_error render-report-style.py "nope.md"
-  try python3 "$RRS"
+  # 以下两个宿主都要拒绝
+  for h in claude codex; do
+    put "$CASE_DIR/no-front.md" "# 标题" "$STYLE_PH"
+    try python3 "$RRS" --host $h "${STYLE_ARGS[@]}" "$CASE_DIR/no-front.md"
+    expect_script_error render-report-style.py "第一行必须是 frontmatter 的 ---"
+    put "$CASE_DIR/unclosed-front.md" --- "name: x" "$STYLE_PH"
+    try python3 "$RRS" --host $h "${STYLE_ARGS[@]}" "$CASE_DIR/unclosed-front.md"
+    expect_script_error render-report-style.py "frontmatter 没有闭合的 ---"
+    put "$CASE_DIR/no-name.md" --- "description: x" --- "$STYLE_PH"
+    try python3 "$RRS" --host $h "${STYLE_ARGS[@]}" "$CASE_DIR/no-name.md"
+    expect_script_error render-report-style.py "须有且只有一个非空的 name"
+    put "$CASE_DIR/two-names.md" --- "name: a" "name: b" --- "$STYLE_PH"
+    try python3 "$RRS" --host $h "${STYLE_ARGS[@]}" "$CASE_DIR/two-names.md"
+    expect_script_error render-report-style.py "须有且只有一个非空的 name"
+    put "$CASE_DIR/no-lang.md" --- "name: x" --- "没有占位符"
+    try python3 "$RRS" --host $h "${STYLE_ARGS[@]}" "$CASE_DIR/no-lang.md"
+    expect_script_error render-report-style.py "须有且只有一个 {{OUTPUT_LANGUAGE}} 占位符"
+    put "$CASE_DIR/two-langs.md" --- "name: x" --- "$STYLE_PH" "{{OUTPUT_LANGUAGE}}"
+    try python3 "$RRS" --host $h "${STYLE_ARGS[@]}" "$CASE_DIR/two-langs.md"
+    expect_script_error render-report-style.py "须有且只有一个 {{OUTPUT_LANGUAGE}} 占位符"
+    try python3 "$RRS" --host $h "${STYLE_ARGS[@]}" "$CASE_DIR/nope.md"
+    expect_script_error render-report-style.py "nope.md"
+  done
+  try python3 "$RRS" --host codex "${STYLE_ARGS[@]}"
   expect_rc 2 "缺模板参数"
+  try python3 "$RRS" "${STYLE_ARGS[@]}" "$STYLE_TPL"
+  expect_rc 2 "缺 --host"
+  try python3 "$RRS" --host codex "$STYLE_TPL"
+  expect_rc 2 "缺 --language"
+  try python3 "$RRS" --host other "${STYLE_ARGS[@]}" "$STYLE_TPL"
+  expect_rc 2 "未知宿主"
+  try python3 "$RRS" --host codex --language " " "$STYLE_TPL"
+  expect_rc 2 "空白语言"
+  try python3 "$RRS" --host codex --language $'a\nb' "$STYLE_TPL"
+  expect_rc 2 "多行语言"
 }
 
 # ---------------------------------------------------------------------------

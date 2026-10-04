@@ -6,13 +6,10 @@ disable-model-invocation: true
 
 # 安装项目级 git worktree 流程
 
-装三样东西，都只装进当前项目：指令文件里无条件生效的约定（哪些任务要开 worktree、合并前先读 skill、
+装三样东西，都只装进当前项目：指令文件里无条件生效的约定（哪些任务要开 worktree、创建与合并前先读 skill、
 不绕过仓库的检查）、从创建分支到合回目标分支的操作步骤 `git-worktree` skill，
 以及回退闸门——worktree 合并回去的目标分支移动时按内容检查，拒绝改写已发布历史、以及撤销该分支已有改动的更新。
-
-指令文件只写无条件生效的约定，并指向 `git-worktree` skill；创建、对齐远程（切出前与本地合并前都先对齐远程目标分支）、
-压平、rebase、合并、推送（被拒后 fetch 并 rebase 再推、不强推）与闸门处置这些操作细节只写在 skill 里，
-不回写进指令文件。
+指令文件只写这些约定并指向 `git-worktree` skill，操作细节只写在 skill 里，不回写进指令文件。
 
 ## 跨宿主约定
 
@@ -34,9 +31,8 @@ disable-model-invocation: true
 ## 项目级安装
 
 1. **按环境定闸门形态**：闸门的本地一层（reference-transaction）要 git 2.28+，push 一层与闸门预检只要 `python3`。
-   项目里已装过 `git-worktree` skill 时（路径见第 3 步），先记下它里面回退闸门那条的原文（以「仓库装有回退闸门」
-   或「仓库没有装回退闸门」开头）：写法 C 的原文是重装时认出「不要闸门」的依据。再确认两者，按下表处理；
-   表里的写法 B、C 见下方。
+   已装过 `git-worktree` skill 的（路径见第 3 步），先记下其中回退闸门那条的原文（以「仓库装有回退闸门」
+   或「仓库没有装回退闸门」开头），重装时靠写法 C 的原文认出用户上次选了「不要闸门」。再确认两者，按下表处理：
 
    | 环境 | `.githooks/` | `install.sh` | skill 正文 |
    |---|---|---|---|
@@ -50,8 +46,8 @@ disable-model-invocation: true
    mkdir -p .githooks && cp -p "$GATE_DIR/"* .githooks/
    ```
 
-   写法 B、C 都只按各自的表改第 3 步装出的 skill，指令文件那块与其余内容不动。表里「位置」指
-   `git-worktree` skill 模板中以该文字开头的那一条，「原文」是那条里要换掉的文字（一字不差），「整条」指整条删掉。
+   写法 B、C 只按各自的表改第 3 步装出的 skill，指令文件那块与其余内容不动。「位置」指 skill 中以该文字开头的那一条，
+   「原文」是那条里要换掉的文字（一字不差），「整条」指整条删掉。
 
    **写法 B**：
 
@@ -70,7 +66,9 @@ disable-model-invocation: true
    | 以「补装之后按下面的顺序创建」开头的那条 | 「补装之后」 | 删掉 |
    | 从以「仓库装有回退闸门」开头的那条起，到以「确要撤销某个提交」开头的那条为止（共四条） | 这四条整体 | 表下代码块里的两条 |
    | 以「本地合并前必须确认」开头的那条 | 从「闸门预检通过」起到这条末尾为止（含其下的命令块与说明） | 「已按「仓库没有装回退闸门」那条人工核对过。」 |
+   | 以「顺序：」开头的那条 | 「向用户确认 → 闸门预检 → `merge --ff-only`」 | 「向用户确认 → 人工核对 → `merge --ff-only`」 |
    | 以「本地合并在主工作副本里」开头的那条 | 「重跑预检再合」 | 「重新人工核对再合」 |
+   | 以「再重跑预检」开头的那条 | 「再重跑预检、合并」 | 「再重新人工核对、合并」 |
    | 以「推送目标分支被拒」开头的那条 | 「（远端报非快进，或 pre-push 报远程有本地没有的提交）」 | 「（远端报非快进）」 |
 
    ```markdown
@@ -78,8 +76,7 @@ disable-model-invocation: true
    - 确要撤销某个提交，先问用户，同意后在主工作副本里用 `git revert`，不要在目标分支上用 reset、amend 去掉已推送的提交。
    ```
 2. **写指令文件**：Codex 的目标是项目根目录的 `AGENTS.md`，Claude Code 的目标是 `CLAUDE.md`；没有就新建。
-   模板已带本安装器的标记。写入前检查通过后，按「指令文件里的标记」写入下面 `cat` 输出的内容；
-   这块内容与闸门形态无关，三种写法都写入模板原文。
+   模板已带本安装器的标记，按「指令文件里的标记」写入下面 `cat` 输出的内容；这块与闸门形态无关，三种写法都写模板原文。
 
    Codex 只执行这块：
 
@@ -105,7 +102,7 @@ disable-model-invocation: true
    {{include: project-root}}
    : "${TEMPLATE_DIR:?}"
    mkdir -p .agents/skills/git-worktree
-   cp "$TEMPLATE_DIR/git-worktree.md" .agents/skills/git-worktree/SKILL.md
+   cp "$TEMPLATE_DIR/git-worktree/SKILL.template.md" .agents/skills/git-worktree/SKILL.md
    ```
 
    Claude Code 只执行这块：
@@ -114,16 +111,15 @@ disable-model-invocation: true
    {{include: project-root}}
    : "${TEMPLATE_DIR:?}"
    mkdir -p .claude/skills/git-worktree
-   cp "$TEMPLATE_DIR/git-worktree.md" .claude/skills/git-worktree/SKILL.md
+   cp "$TEMPLATE_DIR/git-worktree/SKILL.template.md" .claude/skills/git-worktree/SKILL.md
    ```
 4. **忽略 worktree 目录**：确认 `.gitignore` 已忽略 `.worktrees/`，缺少就添加。
-5. **确认主分支名**：主分支以项目现状为准，第 6 步把它设为常驻守护分支。已装过闸门的，先读出上次的常驻守护分支：
-   以 `.githooks/branches` 为准（忽略空行与 `#` 开头的行）。
-   主分支与旧值的第一个不一致时告知用户；旧值里主分支以外的分支是用户加的，第 6 步一并写回。
-6. **写常驻守护分支列表**：把常驻守护分支写进随仓库提交的 `.githooks/branches`（整个文件重写），每行一个分支，
-   主分支放第一行——闸门预检取的是第一个；其后是第 5 步沿用的其它分支。文件开头写一行 `#` 注释，说明这是回退闸门的
-   常驻守护分支、主分支在第一行，`sh .githooks/install.sh` 不带参数时从这里读。各 worktree 分支按 skill 里记录的
-   目标分支另外自动受守护，不写进来。
+5. **确认主分支名**：主分支以项目现状为准，第 6 步把它设为常驻守护分支。已装过闸门的，先从 `.githooks/branches`
+   读出上次的常驻守护分支（忽略空行与 `#` 开头的行）：主分支与旧值的第一个不一致时告知用户；
+   旧值里主分支以外的分支是用户加的，第 6 步一并写回。
+6. **写常驻守护分支列表**：整个重写随仓库提交的 `.githooks/branches`，每行一个分支，主分支放第一行（闸门预检取第一个），
+   其后是第 5 步沿用的其它分支。文件开头写一行 `#` 注释，说明这是回退闸门的常驻守护分支、主分支在第一行，
+   `sh .githooks/install.sh` 不带参数时从这里读。各 worktree 分支记录的目标分支另外自动受守护，不写进来。
 7. **接 hook 入口**：按「写入前检查」里 hook 入口的冲突结果，三种接法选一：
 
    | 情况 | 做法 |
@@ -144,31 +140,26 @@ disable-model-invocation: true
 8. **告知用户**：
    - 宿主指令文件、skill 目录（Claude Code 是 `.claude/skills/git-worktree/`，Codex 是 `.agents/skills/git-worktree/`）、
      `.gitignore` 与 `.githooks/`（含 `branches`）要提交进版本库才随仓库生效；`.gitignore` 整体忽略了 `.claude/`
-     或 `.agents/` 的项目要为 skill 目录加例外。指令文件在会话开始时读取、新装的 skill 也要重新扫描：
-     Claude Code 重启后生效，Codex 开启新会话后生效；闸门读的是常驻守护分支（通常是主分支）上已提交的脚本，
-     提交进去之后才开始检查。
-   - 操作步骤在 `git-worktree` skill 里，指令文件只留无条件生效的约定并指向它：agent 要做合并、压平、推送这些动作时
-     才读它，日常会话不占篇幅。要改操作步骤改这个 skill，不要把内容搬回指令文件——重装时指令文件那块会整份覆盖。
-   - hook 与常驻守护分支配置在各 clone 的 `.git/` 里，不随仓库生效：其它 clone 各自执行一次
-     `sh .githooks/install.sh`（从 `.githooks/branches` 读常驻守护分支；融入了 husky 等体系、设了 `core.hooksPath` 的，
-     hook 由那套体系接管，改为执行 `sh .githooks/install.sh --branches-only`），同一 clone 的所有 worktree 共用，
-     无需重复；skill 也要求 agent 创建 worktree 前发现没装就补装。改常驻守护分支时改 `.githooks/branches` 并提交，
-     各 clone 重新执行一次同样的命令才生效。
+     或 `.agents/` 的项目要为 skill 目录加例外。Claude Code 重启后生效，Codex 开启新会话后生效；
+     闸门读的是常驻守护分支（通常是主分支）上已提交的脚本，提交进去之后才开始检查。
+   - 操作步骤在 `git-worktree` skill 里，要改就改这个 skill，不要搬回指令文件——重装时指令文件那块会整份覆盖。
+   - hook 与常驻守护分支配置在各 clone 的 `.git/` 里，不随仓库生效：其它 clone 各自执行一次 `sh .githooks/install.sh`
+     （设了 `core.hooksPath`、hook 由 husky 等体系接管的改为 `sh .githooks/install.sh --branches-only`），
+     同一 clone 的所有 worktree 共用；skill 也要求 agent 创建 worktree 前发现没装就补装。
+     改常驻守护分支时改 `.githooks/branches` 并提交，各 clone 重新执行一次同样的命令才生效。
    - 重装时保留的只有：常驻守护分支里主分支以外的分支，以及没有 `python3` 时选过的「不要闸门」（写法 C）。
    - 用了写法 B 或 C 的：这份 skill 随仓库对全队生效；其他成员的环境满足条件（有 `python3`、git 2.28+）时，
      请在那台机器上重装恢复原文。
    - 选了不要闸门、而仓库里原来装过闸门的：仓库里留着闸门脚本，但 skill 按人工核对写；没有 `python3` 时 hook
      直接放行，不影响合并，`.githooks/` 与 hook 入口可自行删除。
-   - git 在每次 ref 更新的每个阶段都会启动一次 hook。不涉及本地分支的调用在 shell 里就放行了，但进程启动
-     本身的开销省不掉：rebase 一长串提交会慢上几秒，一次 fetch 几千个新 tag 或分支可能多出一分钟以上。
+   - git 每次 ref 更新的每个阶段都会启动一次 hook：rebase 一长串提交会慢上几秒，一次 fetch 几千个新 tag 或分支可能多出一分钟以上。
 
 {{include: reinstall}}
 
 本安装器的定制值：
 
-- 回退闸门那条的写法：三选一，由第 1 步的表按当前环境（有没有 `python3`、git 版本）重新确定——
-  模板原文（默认）、写法 B、写法 C；第 3 步写入装出的 skill。第 1 步从已装的 skill 里记下旧原文：写法 C 的原文是
-  重装时认出「不要闸门」的依据，没有 `python3` 时沿用。指令文件那块没有定制值，每次整份重写。
+- 回退闸门那条的写法：模板原文（默认）、写法 B、写法 C 三选一，由第 1 步按当前环境重新确定，第 3 步写入装出的 skill；
+  旧原文在第 1 步读出，是写法 C 的，没有 `python3` 时沿用。指令文件那块没有定制值，每次整份重写。
 - 常驻守护分支（`.githooks/branches`）：主分支由项目现状得出，
   其余分支是用户加的。第 5 步读出，主分支重新确认，其余沿用旧值，第 6、7 步写回。
 

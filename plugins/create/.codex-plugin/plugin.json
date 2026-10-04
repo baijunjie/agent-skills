@@ -1,14 +1,14 @@
 {
   "name": "create",
-  "version": "0.2.2",
-  "description": "创建类规范：agent skill 编写（只写 agent 推不出来的规则，自包含不引用代码，给判断标准而非操作脚本）",
+  "version": "0.2.3",
+  "description": "创建类规范：agent skill 编写（只写 agent 推不出来的规则，定原则与边界、细节交给 agent）",
   "author": { "name": "BaiJunjie" },
   "repository": "https://github.com/baijunjie/agent-skills",
   "skills": "./skills/",
   "interface": {
     "displayName": "Create",
     "shortDescription": "创建 agent skill 的规范",
-    "longDescription": "提供 agent skill 的编写规范：只写 agent 推不出来的规则，保持自包含、不引用代码，给判断标准而非操作脚本。",
+    "longDescription": "提供 agent skill 的编写规范：只写 agent 推不出来的规则，定处理原则与边界、细节交给 agent，不逐条规定情形。",
     "developerName": "BaiJunjie",
     "category": "Productivity",
     "capabilities": ["Read", "Write"],

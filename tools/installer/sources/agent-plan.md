@@ -25,17 +25,15 @@ disable-model-invocation: true
 
 ## 通用步骤
 
-1. **定目录**：只在项目级安装时做。开发计划文档目录项目已有约定的沿用；项目里查不到约定、而已装的旧 skill
-   里写着目录的，那就是上次定下的，沿用它（见「重装」）；都没有则用默认的 `docs/plans/`。
-   只确定目录，不改文件。
+1. **定目录**：只在项目级安装时做；用户级不定目录、不对齐，装出的 skill 运行时按所在项目的约定找。
+   开发计划文档目录项目已有约定的沿用；查不到约定、而已装的旧 skill 里写着目录的，沿用旧值（见「重装」）；
+   都没有用默认的 `docs/plans/`。只确定目录，不改文件。
 2. **写入 skill**：`agent-plan-write`、`agent-plan-exec` 两个都执行所在宿主安装节里的 `cp`，已有的整份覆盖。
-3. **对齐目录**：只在项目级安装时做。目录与默认的 `docs/plans/` 不同时，改的是**项目里已写入的那两份** skill
-   （不是 `$TEMPLATE_DIR` 里的模板），按顺序做：先把两份里「开发计划文档目录默认 `docs/plans/`，项目已有自己的约定时按项目的。」
-   整句改成「本项目的开发计划文档目录是 `<实际目录>`。」；再把其余出现的 `docs/plans/` 改成实际目录，包括 frontmatter 的 `description`，其它路径不动。
+3. **对齐目录**：只在项目级安装、且目录不是默认的 `docs/plans/` 时做。改的是**项目里已写入的那两份** skill，
+   不是 `$TEMPLATE_DIR` 里的模板。先把两份里「开发计划文档目录默认 `docs/plans/`，项目已有自己的约定时按项目的。」
+   整句改成「本项目的开发计划文档目录是 `<实际目录>`。」；再把其余出现的 `docs/plans/` 改成实际目录，
+   包括 frontmatter 的 `description`，其它路径不动。
 4. **告知用户**：除各安装节列的外，说明重装时保留的只有项目级安装时填写的开发计划文档目录。
-
-用户级安装不定目录、不对齐：开发计划文档目录是所在项目的，装出的 skill 在运行时按项目的约定找，
-没有约定用默认的 `docs/plans/`。
 
 ## Claude Code 项目级安装（默认）
 
@@ -43,8 +41,8 @@ disable-model-invocation: true
 {{include: project-root}}
 : "${TEMPLATE_DIR:?}"
 mkdir -p .claude/skills/agent-plan-write .claude/skills/agent-plan-exec
-cp "$TEMPLATE_DIR/agent-plan-write.md" .claude/skills/agent-plan-write/SKILL.md
-cp "$TEMPLATE_DIR/agent-plan-exec.md" .claude/skills/agent-plan-exec/SKILL.md
+cp "$TEMPLATE_DIR/agent-plan-write/SKILL.template.md" .claude/skills/agent-plan-write/SKILL.md
+cp "$TEMPLATE_DIR/agent-plan-exec/SKILL.template.md" .claude/skills/agent-plan-exec/SKILL.md
 ```
 
 **告知用户**：`.claude/skills/agent-plan-write/` 与 `.claude/skills/agent-plan-exec/` 要提交进版本库才随仓库生效；
@@ -60,8 +58,8 @@ cp "$TEMPLATE_DIR/agent-plan-exec.md" .claude/skills/agent-plan-exec/SKILL.md
 : "${TEMPLATE_DIR:?}"
 C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
 mkdir -p "$C/skills/agent-plan-write" "$C/skills/agent-plan-exec"
-cp "$TEMPLATE_DIR/agent-plan-write.md" "$C/skills/agent-plan-write/SKILL.md"
-cp "$TEMPLATE_DIR/agent-plan-exec.md" "$C/skills/agent-plan-exec/SKILL.md"
+cp "$TEMPLATE_DIR/agent-plan-write/SKILL.template.md" "$C/skills/agent-plan-write/SKILL.md"
+cp "$TEMPLATE_DIR/agent-plan-exec/SKILL.template.md" "$C/skills/agent-plan-exec/SKILL.md"
 ```
 
 **告知用户**：装到了哪个用户级配置目录要说清楚（用户可能开着多个）；开发计划文档目录由 skill 在各项目里
@@ -73,8 +71,8 @@ cp "$TEMPLATE_DIR/agent-plan-exec.md" "$C/skills/agent-plan-exec/SKILL.md"
 {{include: project-root}}
 : "${TEMPLATE_DIR:?}"
 mkdir -p .agents/skills/agent-plan-write .agents/skills/agent-plan-exec
-cp "$TEMPLATE_DIR/agent-plan-write.md" .agents/skills/agent-plan-write/SKILL.md
-cp "$TEMPLATE_DIR/agent-plan-exec.md" .agents/skills/agent-plan-exec/SKILL.md
+cp "$TEMPLATE_DIR/agent-plan-write/SKILL.template.md" .agents/skills/agent-plan-write/SKILL.md
+cp "$TEMPLATE_DIR/agent-plan-exec/SKILL.template.md" .agents/skills/agent-plan-exec/SKILL.md
 ```
 
 **告知用户**：`.agents/skills/agent-plan-write/` 与 `.agents/skills/agent-plan-exec/` 要提交进版本库才随仓库生效；
@@ -89,8 +87,8 @@ cp "$TEMPLATE_DIR/agent-plan-exec.md" .agents/skills/agent-plan-exec/SKILL.md
 D1="$HOME/.agents/skills/agent-plan-write"
 D2="$HOME/.agents/skills/agent-plan-exec"
 mkdir -p "$D1" "$D2"
-cp "$TEMPLATE_DIR/agent-plan-write.md" "$D1/SKILL.md"
-cp "$TEMPLATE_DIR/agent-plan-exec.md" "$D2/SKILL.md"
+cp "$TEMPLATE_DIR/agent-plan-write/SKILL.template.md" "$D1/SKILL.md"
+cp "$TEMPLATE_DIR/agent-plan-exec/SKILL.template.md" "$D2/SKILL.md"
 ```
 
 **告知用户**：说明实际写入的用户级配置目录；开发计划文档目录由 skill 在各项目里按项目约定判断。

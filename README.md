@@ -115,7 +115,7 @@ codex plugin add batch-setup@bjj-agent-skills
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `create:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，给判断标准而非操作脚本 | 自动 |
+| `create:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，定原则与边界、细节交给 agent | 自动 |
 
 ### `setup-agent` — 安装 agent 的开发工作方式
 
@@ -128,7 +128,7 @@ codex plugin add batch-setup@bjj-agent-skills
 | `setup-agent:change-check` | 交付前派子代理审查本次改动、只给意见不改文件；装 `change-checker` 子代理 | 项目级（默认）+ 用户级 | 手动 |
 | `setup-agent:docs` | 开工前读、收尾时维护项目地图、产品文档与开发记忆，并规范代码注释；装三个文档写作子代理 | 项目级（默认）+ 用户级 | 手动 |
 | `setup-agent:plan` | 把方案按里程碑写成开发计划文档并按序执行 | 项目级（默认）+ 用户级 | 手动 |
-| `setup-agent:report-style` | 简洁的回答风格 `Concise+`：Claude Code 装成输出风格，Codex 写进 `AGENTS.md` | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:report-style` | 简洁的回答风格 `Concise+`，安装时选回答语言：Claude Code 装成输出风格，Codex 写进 `AGENTS.md` 并在 `config.toml` 开启提问工具 | 项目级（默认）+ 用户级 | 手动 |
 | `setup-agent:subagents` | 把何时、如何分派子代理的规则写进指令文件，并装四个按难度分档的通用子代理 | 项目级（默认）+ 用户级 | 手动 |
 | `setup-agent:unit-test` | 沿用项目现有的测试框架为改动补单元测试、只跑受影响的测试；装 `test-writer` 子代理 | 项目级 | 手动 |
 | `setup-agent:workflow` | 在指令文件里写入「工作流」一节，按已装的专职 skill 编排开工前与交付前的步骤 | 项目级 | 手动 |
@@ -167,7 +167,7 @@ codex plugin add batch-setup@bjj-agent-skills
 
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
-| `batch-setup:project-init` | 初始化项目：按序读取并执行 `setup-agent` 的 `subagents`、`docs`、`change-check`、`bug`、`plan`、`workflow` 与 `setup-git` 的 `worktree`、`pr`，不含 `report-style` 与 `unit-test` | 项目级 | 手动 |
+| `batch-setup:project-init` | 初始化项目：按序读取并执行 `setup-agent` 的 `subagents`、`docs`、`change-check`、`bug`、`plan`，`setup-git` 的 `worktree`、`pr`，最后 `setup-agent` 的 `workflow`，不含 `report-style` 与 `unit-test` | 项目级 | 手动 |
 
 ## 排查
 

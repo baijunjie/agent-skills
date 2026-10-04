@@ -56,9 +56,9 @@ EOF
 chmod +x "$T/bin/mut"
 mut() { "$T/bin/mut" "$@"; }
 
-# 生成物（各安装器的 SKILL.md）的校验和清单，用于判断写模式有没有动过它们。
+# 生成物（各安装器的 SKILL.md，template/ 下的不算）的校验和清单，用于判断写模式有没有动过它们。
 outputs_hash() {
-  (cd "$1" && find plugins -path 'plugins/setup-*/skills/*/SKILL.md' -type f | LC_ALL=C sort | while IFS= read -r f; do
+  (cd "$1" && find plugins -path 'plugins/setup-*/skills/*/SKILL.md' ! -path '*/template/*' -type f | LC_ALL=C sort | while IFS= read -r f; do
     printf '%s %s\n' "$(cksum <"$f")" "$f"
   done)
 }
@@ -114,7 +114,7 @@ bad() {
 
 openai_yaml() { printf '%b' "$1" >"$P/setup-agent/skills/plan/agents/openai.yaml"; }
 CRON_TPL='$P/setup-tools/skills/cron/template/cron/tasks.conf'
-WT_TPL='$P/setup-git/skills/worktree/template/git-worktree.md'
+WT_TPL='$P/setup-git/skills/worktree/template/git-worktree/SKILL.template.md'
 WT_RULES='$P/setup-git/skills/worktree/template/INJECT.md'
 WF_TPL='$P/setup-agent/skills/workflow/template/INJECT.md'
 
@@ -336,12 +336,25 @@ for pair in "root=/" "trailing_slash=/cron/" "dotdot=/.." "dot_segment=/./cron" 
 done
 bad bad_template_dir_missing 'mut sub "$BPY" "{\"template_sub\": \"/cron\"}" "{\"template_sub\": \"/no-such\"}"
   expect_build_fails "TEMPLATE_DIR 指向的目录不存在 plugins/setup-tools/skills/cron/template/no-such"'
-bad bad_skill_targets_template_missing 'rm "$P/setup-git/skills/commit/template/git-commit.md"
-  expect_build_fails "include 了 skill-targets，模板 plugins/setup-git/skills/commit/template/git-commit.md 却不存在"'
-bad bad_skill_template_name_renamed "mut sub \"$WT_TPL\" 'name: git-worktree' 'name: git-worktree-ops'
-  expect_build_fails '模板 plugins/setup-git/skills/worktree/template/git-worktree.md 的 frontmatter name 是 git-worktree-ops' '没有装到 skills/git-worktree-ops 的命令'"
+bad bad_skill_targets_template_missing 'rm "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md"
+  expect_build_fails "include 了 skill-targets，模板 plugins/setup-git/skills/commit/template/git-commit/SKILL.template.md 却不存在"'
+# 模板目录与 name 一起改了、安装命令没跟上
+bad bad_skill_template_name_renamed 'WF=$P/setup-agent/skills/workflow/template
+  mv "$WF/agent-workflow-edit" "$WF/agent-workflow-ed"
+  mut sub "$WF/agent-workflow-ed/SKILL.template.md" "name: agent-workflow-edit" "name: agent-workflow-ed"
+  expect_build_fails "模板 plugins/setup-agent/skills/workflow/template/agent-workflow-ed/SKILL.template.md 的 frontmatter name 是 agent-workflow-ed" "没有装到 skills/agent-workflow-ed 的命令"'
 bad bad_skill_install_path_renamed 'mut sub "$S/agent-workflow.md" "skills/agent-workflow-edit" "skills/agent-workflow-edited" 6
-  expect_build_fails "模板 plugins/setup-agent/skills/workflow/template/agent-workflow-edit.md 的 frontmatter name 是 agent-workflow-edit" "没有装到 skills/agent-workflow-edit 的命令"'
+  expect_build_fails "模板 plugins/setup-agent/skills/workflow/template/agent-workflow-edit/SKILL.template.md 的 frontmatter name 是 agent-workflow-edit" "没有装到 skills/agent-workflow-edit 的命令"'
+# template/ 要体现装出后的目录形态：装成 skill 的模板放成 template/<skill 名>/SKILL.template.md
+bad bad_skill_template_dir_mismatch "mut sub \"$WT_TPL\" 'name: git-worktree' 'name: git-worktree-ops'
+  expect_build_fails 'plugins/setup-git/skills/worktree/template/git-worktree/SKILL.template.md 的 frontmatter name 须为所在目录名 git-worktree'"
+bad bad_template_named_skill_md 'cp "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md" "$P/setup-git/skills/commit/template/git-commit/SKILL.md"
+  expect_build_fails "模板 plugins/setup-git/skills/commit/template/git-commit/SKILL.md 不能叫 SKILL.md"'
+bad bad_skill_template_nested 'mkdir -p "$P/setup-git/skills/commit/template/extra/git-commit"
+  cp "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md" "$P/setup-git/skills/commit/template/extra/git-commit/"
+  expect_build_fails "plugins/setup-git/skills/commit/template/extra/git-commit/SKILL.template.md 须直接放在 template/<skill 名>/ 下"'
+bad bad_skill_template_flat 'mv "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md" "$P/setup-git/skills/commit/template/git-commit.md"
+  expect_build_fails "装成 skill 的模板 plugins/setup-git/skills/commit/template/git-commit.md 要放成 template/git-commit/SKILL.template.md"'
 bad bad_skill_install_cmd_renamed 'mut sub "$S/git-worktree.md" "skills/git-worktree/SKILL.md" "skills/git-wt/SKILL.md" 2
   mut sub "$S/git-worktree.md" "mkdir -p .agents/skills/git-worktree" "mkdir -p .agents/skills/git-wt"
   mut sub "$S/git-worktree.md" "mkdir -p .claude/skills/git-worktree" "mkdir -p .claude/skills/git-wt"
@@ -778,6 +791,10 @@ bad bad_replacement_range_anchor_changed "mut sub \"$WT_TPL\" '- 确要撤销某
   expect_build_fails '位置「确要撤销某个提交」' '有 0 个列表项以它开头'"
 bad bad_replacement_range_count "mut sub \"$WT_TPL\" '- reset 被拦时，' \$'- 插进来的一条\\n- reset 被拦时，'
   expect_build_fails '写的是「共四条」' '却有 5 条同级列表项'"
+bad bad_replacement_order_line_not_item "mut sub \"$WT_TPL\" '- 顺序：对齐远程' '顺序：对齐远程'
+  expect_build_fails '位置「顺序：」' '有 0 个列表项以它开头'"
+bad bad_replacement_rerun_check_changed "mut sub \"$WT_TPL\" '再重跑预检、合并。' '再重跑预检，然后合并。'
+  expect_build_fails '原文「再重跑预检、合并」' '出现了 0 次'"
 bad bad_replacement_range_reversed 'mut sub "$S/git-worktree.md" "从以「仓库装有回退闸门」开头的那条起，到以「确要撤销某个提交」开头的那条为止" "从以「确要撤销某个提交」开头的那条起，到以「仓库装有回退闸门」开头的那条为止"
   expect_build_fails "位置「仓库装有回退闸门」" "不在「确要撤销某个提交」那一条之后"'
 bad bad_replacement_original_outside_item 'mut sub "$S/git-worktree.md" "| 以「reset 被拦时」开头的那条 | 整条 | 删掉 |" "| 以「reset 被拦时」开头的那条 | 「移动时，本地 merge / commit / reset 与 push 都会被自动检查」 | 删掉 |"
@@ -787,7 +804,7 @@ bad bad_replacement_row_columns 'mut sub "$S/git-worktree.md" "| 以「reset 被
 bad bad_replacement_position_unquoted 'mut sub "$S/git-worktree.md" "| 以「reset 被拦时」开头的那条 | 整条 | 删掉 |" "| reset 被拦时那条 | 整条 | 删掉 |"
   expect_build_fails "替换表的「位置」须用「」写出所在列表项的开头"'
 bad bad_replacement_template_missing "rm \"$WT_TPL\"
-  expect_build_fails '正文有替换表，替换的模板 plugins/setup-git/skills/worktree/template/git-worktree.md 却不存在'"
+  expect_build_fails '正文有替换表，替换的模板 plugins/setup-git/skills/worktree/template/git-worktree/SKILL.template.md 却不存在'"
 
 register allow_replacement_table_in_fence
 case_allow_replacement_table_in_fence() {

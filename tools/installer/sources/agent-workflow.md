@@ -7,8 +7,7 @@ disable-model-invocation: true
 # 安装项目工作流
 
 装两样东西，都只装进当前项目：指令文件里的「工作流」一节（开工前与交付前何时调用什么、按什么顺序），
-与规范以后怎么修改这一节的 `agent-workflow-edit` skill。
-不装子代理，也不装工作流里调用的专职 skill——那些各有安装器。
+与规范以后怎么修改这一节的 `agent-workflow-edit` skill。工作流里调用的专职 skill 不在这里装。
 
 ## 跨宿主约定
 
@@ -25,27 +24,25 @@ disable-model-invocation: true
 本安装器另外要查的冲突：
 
 - 指令文件标记范围之外已有开工前、交付前做什么或按什么顺序自检的流程。
-- **这一项不按冲突问**：项目级安装时，当前宿主用户级指令文件里已有同类规则（开工前或交付前流程）的，不改它，告知用户两份都会生效、内容差在哪。
+- **这一项不按冲突问**：当前宿主用户级指令文件里已有开工前或交付前流程的，不改它，告知用户两份都会生效、内容差在哪。
 
 ## 通用步骤
 
 1. **查已装的专职 skill**：用所在宿主安装节里的命令查。工作流只为 `agent-docs`、`agent-unit-test`、
-   `agent-change-check` 安排步骤，且**只认装在当前项目里的**：工作流写进随仓库提交的指令文件，用户级的 skill 不随仓库分发，队友那里没有。
-   - 没装的 skill 对应的步骤整步省略，不写占位，也不顺手装上——没装说明用户没打算做这件事。
-   - 只装在用户级的同样不写进工作流，告知用户是哪几个；要进工作流，先把它装进当前项目再重装本安装器。
-   - 项目里一个都没装时照常往下走：裁剪后还剩开工前确认分支是最新的与交付前的静态检查，这两条不依赖任何 skill；第 5 步告知用户没有可编排的专职 skill。
+   `agent-change-check` 安排步骤，且**只认装在当前项目里的**：工作流随仓库提交，用户级的 skill 队友那里没有。
+   没装的整步省略，不写占位，也不顺手装上；只装在用户级的同样不写进工作流，要进工作流须先装进当前项目再重装本安装器。
+   一个都没装也照常往下走，只留下不依赖 skill 的条目。
 2. **按已装情况裁剪模板**：模板是 `$TEMPLATE_DIR/INJECT.md`。`<!-- if-installed: <skill> -->` 到其后最近的
    `<!-- end-if -->` 是一段可省略的内容：该 skill 已装就保留内容、删掉这两行标记；没装就连内容整段删掉。
-   裁剪后不留 `if-installed` / `end-if` 标记，交付前的步骤按剩下的重新连续编号，顺序不变；这两种标记之外的内容
-   （「工作流」标题与引导句、开工前确认分支是最新的那条、交付前的总规则、静态检查、「本项目」小节与首尾的本安装器标记）始终保留。
-3. **写入指令文件**：写所在宿主安装节里的指令文件，没有就新建。模板已带本安装器的标记。
-   文件里已有这对标记时，先读出标记范围里「本项目」小节的条目。按「指令文件里的标记」
-   写入裁剪后的内容。读出的条目原样填回新的「本项目」小节，替掉占位行；
-   没有条目就留着新模板的占位行。条目锚定的步骤这次被裁掉了的，条目照样填回，告知用户是哪几条。
+   裁剪后不留 `if-installed` / `end-if` 标记，交付前的步骤按剩下的重新连续编号，顺序不变；这两种标记之外的内容始终保留。
+3. **写入指令文件**：写所在宿主安装节里的指令文件，没有就新建；模板已带本安装器的标记。
+   文件里已有这对标记时，先读出标记范围里「本项目」小节的条目，再按「指令文件里的标记」写入裁剪后的内容，
+   把读出的条目原样填回新的「本项目」小节、替掉占位行；没有条目就留着占位行。
+   条目锚定的步骤这次被裁掉了的照样填回，告知用户是哪几条。
 4. **写入 skill**：执行所在宿主安装节里的 `cp`，已有的整份覆盖。
-5. **告知用户**：写进工作流的步骤、因没装而省略的步骤、因只装在用户级而没写的步骤分别列出。
-   再说一句：重装时保留的只有「本项目」小节——「工作流」一节的其余部分每次都按当前已装的 skill 重新生成，
-   `agent-workflow-edit` 也整份覆盖；项目特有的步骤、顺序与跳过条件要写进这个小节。其余见所在宿主安装节。
+5. **告知用户**：分别列出写进工作流的步骤、因没装而省略的步骤、因只装在用户级而没写的步骤（附上「先装进当前项目再重装本安装器」）；
+   一个都没装时说明没有可编排的专职 skill。再说明重装时保留的只有「本项目」小节，「工作流」一节的其余部分
+   按当时已装的 skill 重新生成、`agent-workflow-edit` 整份覆盖，项目特有的步骤、顺序与跳过条件要写进这个小节。其余见所在宿主安装节。
 
 ## Claude Code 项目级安装
 
@@ -75,7 +72,7 @@ done
 {{include: project-root}}
 : "${TEMPLATE_DIR:?}"
 mkdir -p .claude/skills/agent-workflow-edit
-cp "$TEMPLATE_DIR/agent-workflow-edit.md" .claude/skills/agent-workflow-edit/SKILL.md
+cp "$TEMPLATE_DIR/agent-workflow-edit/SKILL.template.md" .claude/skills/agent-workflow-edit/SKILL.md
 ```
 
 **告知用户**：`CLAUDE.md` 与 `.claude/skills/agent-workflow-edit/` 要提交进版本库才随仓库生效；
@@ -102,7 +99,7 @@ done
 {{include: project-root}}
 : "${TEMPLATE_DIR:?}"
 mkdir -p .agents/skills/agent-workflow-edit
-cp "$TEMPLATE_DIR/agent-workflow-edit.md" .agents/skills/agent-workflow-edit/SKILL.md
+cp "$TEMPLATE_DIR/agent-workflow-edit/SKILL.template.md" .agents/skills/agent-workflow-edit/SKILL.md
 ```
 
 **告知用户**：`AGENTS.md` 与 `.agents/skills/agent-workflow-edit/` 要提交进版本库才随仓库生效；
@@ -113,6 +110,6 @@ cp "$TEMPLATE_DIR/agent-workflow-edit.md" .agents/skills/agent-workflow-edit/SKI
 本安装器的定制值：
 
 - 标记范围里「本项目」小节的条目：第 3 步重建前读出，重建后原样填回；小节里只有一行括号括起的占位说明时算空，不读。
-  其余内容是第 2 步按当前已装情况裁剪后的模板，不是模板原文，不读旧值。
+  标记范围的其余内容由第 2 步重新生成，不读旧值。
 
 {{include: state-mismatch}}

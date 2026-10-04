@@ -4,7 +4,7 @@
 
 ## 命名与归属
 
-需要装进项目或用户级配置的，做成 `setup-*` plugin 下的安装器（模板放 skill 自己的 `template/`）；不需要的作为运行时 plugin（如 `dev`、`create`）。
+需要装进项目或用户级配置的，做成 `setup-*` plugin 下的安装器（模板放 skill 自己的 `template/`，目录形态见 `docs/authoring.md`「附带资源与共享模板」）；不需要的作为运行时 plugin（如 `dev`、`create`）。
 
 安装器类 plugin 按领域划分、不按作用域：
 

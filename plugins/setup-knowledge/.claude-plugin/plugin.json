@@ -1,6 +1,6 @@
 {
   "name": "setup-knowledge",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "为 Claude Code 或 Codex 安装知识类规范 skill：多语言 App 界面文案规范；默认装进项目、可选用户级",
   "author": {
     "name": "BaiJunjie"

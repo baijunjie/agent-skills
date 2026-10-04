@@ -26,7 +26,7 @@ plugins/<plugin>/                    # 每个 plugin 都同时分发到 Claude C
 └── skills/<skill>/
     ├── SKILL.md                      # skill 本体；setup-* 下的由 tools/installer 生成
     ├── agents/openai.yaml            # Codex 的调用策略与 UI（可选）
-    └── template/                     # 安装器要装出去的模板（可选）
+    └── template/                     # 安装器要装出去的模板，按装出后的目录形态放（可选）
 ```
 
 Plugin 名即调用前缀：`plugins/dev/skills/discuss/SKILL.md` 在 Claude Code 中对应 `/dev:discuss`，在 Codex 中对应 `$dev:discuss`。
