@@ -1,7 +1,7 @@
 {
   "name": "batch-setup",
-  "version": "0.1.2",
-  "description": "为 Claude Code 或 Codex 一次装好新项目的默认开发配置：按序读取并执行子代理分派、项目文档、改动检查、bug 工单、开发计划、worktree 流程、提交 PR 流程与项目工作流八个安装器，全部只装进项目，不含输出风格与单元测试",
+  "version": "0.2.0",
+  "description": "批量维护配置：一次装好新项目的默认开发配置（八个安装器，只装进项目），更新 Claude Code 与 Codex 里的 bjj-agent-skills plugin，并在 plugin 更新后按最新模板重装用户级与项目级已装的 skill、子代理与指令文件内容",
   "author": {
     "name": "BaiJunjie"
   },

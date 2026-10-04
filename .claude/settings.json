@@ -36,7 +36,10 @@
       "Skill(setup-tools:codex-bridge)",
       "Skill(setup-tools:cron)",
       "Skill(setup-knowledge:i18n-copy)",
-      "Skill(batch-setup:project-init)"
+      "Skill(batch-setup:plugin-update)",
+      "Skill(batch-setup:project-init)",
+      "Skill(batch-setup:project-reinstall)",
+      "Skill(batch-setup:user-reinstall)"
     ],
     "deny": []
   }

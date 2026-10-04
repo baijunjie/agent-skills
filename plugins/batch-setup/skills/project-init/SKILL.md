@@ -28,24 +28,11 @@ disable-model-invocation: true
 ## 项目级安装
 
 1. **确认在 git 仓库里**：当前目录不是 git 仓库时汇报，不装任何东西。
-2. **找到兄弟 plugin**：`setup-agent` 与 `setup-git` 装在本 plugin 的同级目录下，每个 plugin 一层版本目录，缓存里可能残留旧版本。
-   用下面的命令取各自版本号最大的目录；命令输出「找不到 plugin」或退出码非零就汇报并停下，不要自己安装 plugin：
+2. **找到兄弟 plugin**：取 `setup-agent` 与 `setup-git` 各自最新版本的目录；命令报「找不到 plugin」或退出码非零就汇报并停下，不要自己安装 plugin：
 
    ```bash
-   if [ -n "${PLUGIN_ROOT:-}" ]; then
-     SELF="$PLUGIN_ROOT"
-   elif [ -n "${CLAUDE_PLUGIN_ROOT:-}" ]; then
-     SELF="$CLAUDE_PLUGIN_ROOT"
-   else
-     SELF="${SKILL_DIR:?先将 SKILL_DIR 设为当前 SKILL.md 的绝对父目录}/../.."
-   fi
-   BASE=$(cd "$SELF/.." && pwd -P)
-   for p in setup-agent setup-git; do
-     v=$(ls "$BASE/../$p" 2>/dev/null | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
-     [ -n "$v" ] || { echo "找不到 plugin：$p" >&2; rc=1; continue; }
-     echo "$p $(cd "$BASE/../$p/$v" && pwd -P)"
-   done
-   exit "${rc:-0}"
+   ROOT="${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-${SKILL_DIR:?先将 SKILL_DIR 设为当前 SKILL.md 的绝对父目录}/../..}}"
+   bash "$ROOT/scripts/latest-plugins.sh" setup-agent setup-git
    ```
 
 3. **按顺序读取并执行**：对每个安装器，读 `<plugin 目录>/skills/<skill>/SKILL.md`，执行当前宿主对应的**项目级安装**分支，同时遵守：

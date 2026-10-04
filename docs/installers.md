@@ -25,7 +25,7 @@
 
 - 仅用户级的安装器也放进对应领域，如 `setup-tools:codex-bridge`。
 - `setup-<领域>` 下的安装器名不重复领域前缀，装出去的 skill 名带 `<领域>-` 前缀（如 `setup-git:commit` 装出 `git-commit`），避免与其它 skill 重名；`setup-tools` 例外，装出的 skill 不加 `tools-` 前缀。
-- `batch-setup` 不是安装器：它不走 `build.py`、`SKILL.md` 手写，作用是按固定顺序读取并执行多个安装器的 `SKILL.md`（安装器禁止模型调用，不能经 skill 机制触发）。名字不用 `setup-*`，免得被 `build.py` 当成安装器目录。
+- `batch-setup` 不是安装器：它不走 `build.py`、`SKILL.md` 手写，作用是读取并执行多个安装器的 `SKILL.md`（安装器禁止模型调用，不能经 skill 机制触发），另含更新本 marketplace plugin 的 `plugin-update`。两个 `*-reinstall` 写死了要查的 `setup-*` plugin 列表，新增或改名 `setup-*` plugin 时同步。名字不用 `setup-*`，免得被 `build.py` 当成安装器目录。
 
 ## 生成
 

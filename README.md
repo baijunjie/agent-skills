@@ -86,7 +86,7 @@ codex plugin add batch-setup@bjj-agent-skills
 
 ### 已装进项目或用户级的内容
 
-`setup-*` 安装器可重复运行：plugin 更新后，对已装过的项目（或用户级配置）再运行一次对应的安装器，就按新模板重装。
+`setup-*` 安装器可重复运行：plugin 更新后，对已装过的项目（或用户级配置）再运行一次对应的安装器，就按新模板重装；`batch-setup:project-reinstall` / `batch-setup:user-reinstall` 会查出装过哪些、一次重装完。
 `plugin update` 只更新安装器本身，不会改动已装进项目或用户级的内容。
 重装时，安装时填写的定制位置（如默认的 PR 目标分支、文档目录、项目专属的检查项）会保留（能从项目现状重新确定的按现状更新），装出的文件与指令文件标记范围内的其它手改会被覆盖。
 
@@ -161,13 +161,17 @@ codex plugin add batch-setup@bjj-agent-skills
 |-------|------|--------|----------|
 | `setup-knowledge:i18n-copy` | 多语言 App 界面文案规范 | 项目级（默认）+ 用户级 | 手动 |
 
-### `batch-setup` — 一键初始化项目
+### `batch-setup` — 一键初始化与更新
 
-把几个安装器按固定顺序一次装完，不自己写文件；那些安装器禁止模型调用，所以读它们的 `SKILL.md` 照做，要求对应 plugin 已装。
+一次跑多个安装器或更新 plugin，不自己写文件；安装器禁止模型调用，所以读它们的 `SKILL.md` 照做，要求对应 plugin 已装。
+plugin 更新后的典型链路：`batch-setup:plugin-update` → 重启会话 → `batch-setup:user-reinstall` / `batch-setup:project-reinstall`。
 
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
+| `batch-setup:plugin-update` | 刷新 marketplace，把 Claude Code 与 Codex 里已装的 bjj-agent-skills plugin 更新到最新版 | — | 自动 |
 | `batch-setup:project-init` | 初始化项目：按序读取并执行 `setup-agent` 的 `subagents`、`docs`、`change-check`、`bug`、`plan`，`setup-git` 的 `worktree`、`pr`，最后 `setup-agent` 的 `workflow`，不含 `report-style` 与 `unit-test` | 项目级 | 手动 |
+| `batch-setup:project-reinstall` | 查出当前项目在两个宿主上各装过哪些安装器，确认后按最新模板重装 | 项目级 | 自动 |
+| `batch-setup:user-reinstall` | 查出用户级配置在两个宿主上各装过哪些安装器，确认后按最新模板重装 | 用户级 | 自动 |
 
 ## 排查
 
