@@ -1,6 +1,6 @@
 {
   "name": "setup-tools",
-  "version": "0.3.3",
+  "version": "0.4.0",
   "description": "为 Claude Code 或 Codex 安装开发辅助工具：crontab 定时任务安装器，以及给 Codex 装上读取 Claude 规范的 skill；定时任务安装器只装进项目，读取 Claude 规范的 skill 只装进用户级",
   "author": { "name": "BaiJunjie" },
   "repository": "https://github.com/baijunjie/agent-skills",
