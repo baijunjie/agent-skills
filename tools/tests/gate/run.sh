@@ -1474,6 +1474,21 @@ case_check_pr_head_arg() {
   expect_out "fresh"
 }
 
+register check_usage_nonzero
+case_check_usage_nonzero() {
+  fixture
+  local s
+  s=$(git -C "$A" show "origin/main:.githooks/revert-gate.py")
+  # 未知子命令、无参数、预检缺参数都要非零：返回 0 会让调用方把「没跑起来」读成「通过」
+  try run_at "$A" python3 -I -c "$s" no-such-subcommand
+  expect_rc 2 "未知子命令"
+  expect_out "用法不对"
+  try run_at "$A" python3 -I -c "$s"
+  expect_rc 2 "无参数"
+  try run_at "$A" python3 -I -c "$s" check-pr origin/main
+  expect_rc 2 "check-pr 缺参数"
+}
+
 register check_behind
 case_check_behind() {
   fixture

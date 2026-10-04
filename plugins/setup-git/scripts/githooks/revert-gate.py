@@ -69,6 +69,8 @@ hook 模式下拒绝时退出码为 3，调用它的 hook 入口只把 3 当作�
 这个约定不能改。
 hook 模式下闸门自身出错（含脚本跑不起来）时放行，宁可漏检一次，也不能让它卡死所有 ref 更新；
 两个预检模式（check / check-pr）改为退出码 2，让人看见检查没做成。
+未知子命令、无参数与预检的参数个数不对一律退出码 2：新增子命令的升级期，目标分支上的旧脚本不认它，
+调用方靠这个非零退出码分辨「预检没跑起来」与「通过」（旧脚本仍返回 0，调用方也要看输出）。
 设置环境变量 REVERT_GATE_SKIP=1 可临时跳过，仅供人确认过的场合使用。
 reference-transaction 模式依赖 git 2.28+（这个 hook 从 2.28 起才有），pre-push 与 check 模式不依赖。
 """
@@ -744,8 +746,10 @@ def main(argv):
     except Exception as e:  # noqa: BLE001 —— 任何意外都按文件说明里的出错策略处理
         print(f"[revert-gate] 检查出错{'' if mode in CHECK_MODES else '，已放行'}：{e!r}", file=sys.stderr)
         return 2 if mode in CHECK_MODES else 0
+    # 走到这里的只会是未知子命令、无参数或预检的参数个数不对（两个 hook 模式在上面已 return）：
+    # 一律非零。老脚本不认新增的子命令时调用方靠它分辨「没跑起来」与「通过」。
     print(f"[revert-gate] 用法不对：{' '.join(argv[1:]) or '(无参数)'}", file=sys.stderr)
-    return 2 if mode in CHECK_MODES else 0
+    return 2
 
 
 if __name__ == "__main__":

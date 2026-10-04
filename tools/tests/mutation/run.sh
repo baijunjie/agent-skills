@@ -149,6 +149,7 @@ BASELINE_CASES=(
   edge_prepush_pr_no_remote_target
   edge_prepush_pr_parent_without_remote
   check_pr_head_arg
+  check_usage_nonzero
   check_behind
   check_pr_not_rebased
   install_pr_only_keeps_branches
@@ -193,6 +194,14 @@ case_teeth_bases_on_check_pr() {
   teeth revert-gate.py 'return 0 if check_pr(argv[3], argv[2], tip, new, "check-pr",
                                  bases=recorded_forks({argv[3], *branches_at(new)})) else 1' \
     'return 0 if check_pr(argv[3], argv[2], tip, new, "check-pr") else 1' -- check_pr_head_arg
+}
+
+register teeth_usage_nonzero
+case_teeth_usage_nonzero() {
+  # 用法分支返回 0 会让升级期的旧脚本、拼错的子命令被读成「预检通过」
+  teeth revert-gate.py '(无参数)'"'"'}", file=sys.stderr)
+    return 2' '(无参数)'"'"'}", file=sys.stderr)
+    return 0' -- check_usage_nonzero
 }
 
 register teeth_structural_suspects
