@@ -42,7 +42,7 @@ YAML frontmatter 必须位于文件最开头，`---` 是第一行。必填 `name
 
 - skill 携带的脚本、模板放在自己目录下，用 `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}/skills/<skill>/<file>` 引用（安装后路径不可预测，先用 Codex 的 `PLUGIN_ROOT`，回退到 Claude Code 的 `CLAUDE_PLUGIN_ROOT`）。
 - 同一 plugin 内多个 skill 共用的资源放 plugin 级 `scripts/`，不要让一个 skill 引另一个 skill 的 `template/`——单独装其中一个就会读到不属于它的路径。依赖同一 `scripts/` 的 skill 必须留在同一 plugin，plugin 之间不共享文件。安装器怎么引用它见 `docs/installers.md`「生成」与 `build.py` 的 `extra_env`：变量名要让 `RESOURCE_USE` 认得出（`RENDER_*` 或以 `_DIR` / `_ROOT` 结尾），用到它的命令块先写 `: "${<变量>:?}"` 守卫。
-- 安装器的 `template/` 按装出后的目录形态放：装成一个 skill 目录的放成 `template/<skill 名>/`，其中装成 `SKILL.md` 的那份叫 `SKILL.template.md`，附属文件按装出后的相对位置放在同一目录下（如 `setup-tools:codex-bridge` 的 `template/claude/`）；子代理 `agents/<名>.md`、输出风格 `output-styles/…`、cron 的 `cron/…` 本来就与装出的同名同层。仓库里不留直接叫 `SKILL.md` 的模板：与 skill 本体同名，看名字分不出哪份是模板。例外是写进指令文件的那份，它不是装出的文件，固定叫 `INJECT.md`、直接放在 `template/` 下（见 `docs/installers.md`「源文件契约」）。目录形态由 `build.py`「模板」项校验。
+- 安装器的 `template/` 按装出后的目录形态放：装成一个 skill 目录的放成 `template/<skill 名>/`，其中装成 `SKILL.md` 的那份叫 `SKILL.template.md`，附属文件按装出后的相对位置放在同一目录下（如 `setup-tools:codex-bridge` 的 `template/claude/`）；子代理 `agents/<名>.md`、输出风格 `output-styles/…`、cron 与 launchd 的 `cron/…`、`launchd/…` 本来就与装出的同名同层。仓库里不留直接叫 `SKILL.md` 的模板：与 skill 本体同名，看名字分不出哪份是模板。例外是写进指令文件的那份，它不是装出的文件，固定叫 `INJECT.md`、直接放在 `template/` 下（见 `docs/installers.md`「源文件契约」）。目录形态由 `build.py`「模板」项校验。
 - 共享指令正文只维护一份，禁止另建宿主版本或作用域副本，宿主差异由 `plugins/setup-agent/scripts/` 的渲染脚本生成，各脚本生成什么见下面「渲染脚本」。
 - 渲染脚本的写法：有模块 docstring；参数由 argparse 校验；出错时输出 `<脚本名>: <错误信息>` 到 stderr 并以 1 退出，不抛 traceback；自己写的消息用中文。直接写文件的渲染脚本全部渲染成功后才写，替换语义见其 docstring；安装器重装时用 `--replace`，不要先 `rm` 目标再渲染（会把软链换成普通文件，渲染失败时旧文件也没了）。
 

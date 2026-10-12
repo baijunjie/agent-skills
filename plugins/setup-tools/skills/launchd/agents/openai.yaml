@@ -1,0 +1,6 @@
+interface:
+  display_name: "LaunchAgent Setup"
+  short_description: "安装项目级 LaunchAgent 任务管理脚本"
+  default_prompt: "Use $setup-tools:launchd to add a project-level LaunchAgent installer."
+policy:
+  allow_implicit_invocation: false

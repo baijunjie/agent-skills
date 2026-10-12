@@ -146,12 +146,13 @@ codex plugin add batch-setup@bjj-agent-skills
 
 ### `setup-tools` — 安装开发辅助工具
 
-装上开发辅助工具，两个安装器各自独立。
+装上开发辅助工具，三个安装器各自独立。
 
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
 | `setup-tools:codex-bridge` | 让 Codex 开工前读取 Claude 的用户级与项目级配置，照 Claude 那套工具链继续开发 | 用户级 | 手动 |
 | `setup-tools:cron` | 用一份任务清单加安装 / 卸载脚本管理项目的 crontab 定时任务；指令文件里挂一行说明 | 项目级 | 手动 |
+| `setup-tools:launchd` | 用一份任务清单加安装 / 卸载 / 看状态脚本管理项目的 macOS LaunchAgent 定时任务，任务跑在登录会话里；指令文件里挂一行说明 | 项目级 | 手动 |
 
 ### `setup-knowledge` — 安装知识类规范
 

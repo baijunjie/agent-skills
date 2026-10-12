@@ -12,6 +12,7 @@
 | `scripts/` | `plugins/setup-agent/scripts/`、`tools/installer/fragments/project-root.md` | 三个渲染脚本（含其中两个共用的 `markdown_headings.py`），与 `project-root` 那行 shell 在 bash / zsh / sh / dash 下的行为 |
 | `manifest/` | `plugins/` 下的任何文件（内容有变化就牵涉版本号）、两个 marketplace、`tools/tests/manifest/` | `check.py` 的每一项校验各有变异用例，并对真实仓库跑一遍：三份 manifest 的 `version`、`description` 一致，两个 marketplace 登记全部 plugin、`.claude-plugin/marketplace.json` 的 `description` 与 manifest 一致，`interface` 文案非空，相对 `origin/main` 版本只升一次（本地没有 `origin/main` 时该项 SKIP）；不校验的项见 `check.py` 模块 docstring |
 | `cron/` | `plugins/setup-tools/skills/cron/template/cron/` | `setup-tools:cron` 的模板脚本：dry-run、安装与卸载、标记撞车与接管、标记计算、`tasks.conf` 读取、命令字段里 `%` 的转义 |
+| `launchd/` | `plugins/setup-tools/skills/launchd/template/launchd/` | `setup-tools:launchd` 的模板脚本：dry-run、安装与卸载、前缀撞车与接管、前缀计算、`tasks.conf` 读取、cron 表达式到 plist 时间键的映射、`status.sh` 的报告（非 macOS 上整套 SKIP） |
 
 ## 运行
 
@@ -24,6 +25,7 @@ TEST_JOBS=1 bash tools/tests/gate/run.sh                               # 退回�
 BUILD_PY=/path/to/build.py bash tools/tests/build/run.sh               # 测另一份 build.py
 SCRIPTS_DIR=/path/to/scripts bash tools/tests/scripts/run.sh           # 测另一份渲染脚本目录
 CRON_TEMPLATE_DIR=/path/to/cron bash tools/tests/cron/run.sh           # 测另一份 cron 模板
+LAUNCHD_TEMPLATE_DIR=/path/to/launchd bash tools/tests/launchd/run.sh  # 测另一份 launchd 模板
 MANIFEST_CHECK=/path/to/check.py bash tools/tests/manifest/run.sh     # 测另一份 manifest 校验
 ```
 
@@ -33,17 +35,18 @@ MANIFEST_CHECK=/path/to/check.py bash tools/tests/manifest/run.sh     # 测另�
 最后一行 `repo_untouched` 比较运行前后真实仓库的 `HEAD`、`status --porcelain`、全部 ref 与本地配置；
 运行期间有人在改工作副本时它也会报不一致，这时看它打印的差异判断。
 
-依赖：bash（3.2 即可）、git 2.28+、python3（scripts 套件用 `tomllib`，要 3.11+）；scripts 套件另外测系统里有的 zsh、sh、dash，没有的跳过。
+依赖：bash（3.2 即可）、git 2.28+、python3（scripts 套件用 `tomllib`，要 3.11+）；scripts 套件另外测系统里有的 zsh、sh、dash，没有的跳过；launchd 套件要 macOS 的 `launchctl`、`plutil`，别的系统上整套 SKIP。
 
 ## 安全设计
 
 ### 实验与危险命令
 
-跑实验、测试或任何会改 git / crontab 状态的命令时守下面几条；每条冒号前是规则，后面是原因。
+跑实验、测试或任何会改 git / crontab / LaunchAgent 状态的命令时守下面几条；每条冒号前是规则，后面是原因。
 
-- 实验（尤其 git、cron）按 `docs/decisions.md`「不在真实仓库里做 git 实验」，在自己 `mktemp -d` 的目录里做，不用共享的 scratchpad 根目录：共享目录可能被别人清空。
+- 实验（尤其 git、cron、launchd）按 `docs/decisions.md`「不在真实仓库里做 git 实验」，在自己 `mktemp -d` 的目录里做，不用共享的 scratchpad 根目录：共享目录可能被别人清空。
 - 每条 git 命令带 `-C <临时目录内的路径>`，命令块以 `cd … || exit 1` 开头；真实仓库里只做只读查询，不执行 push、commit、reset、rebase、branch 等：曾有子代理在共享目录被清空、`cd` 失败后照常执行，把未发布的提交推到了远程。
 - 涉及 crontab 时在 PATH 前面放假的 `crontab`，确认 `command -v crontab` 不是 `/usr/bin/crontab`：真实 crontab 是用户全局状态。
+- 涉及 launchd 时同样放假的 `launchctl`，并把 plist 目录指向临时目录（`LAUNCHD_AGENT_DIR`）：装进 `~/Library/LaunchAgents` 的任务会真的跑起来。
 
 ### 测试框架的兜底
 
@@ -63,6 +66,8 @@ MANIFEST_CHECK=/path/to/check.py bash tools/tests/manifest/run.sh     # 测另�
 - `cron/` 绝不碰真实 crontab：被测脚本经 `env -i` 运行，`PATH` 只含 `T` 里自建的 bin（必需工具的软链，
   加一个读写用例目录里文件的假 `crontab`）；开跑前核对这份 bin 解析到的 `crontab` 是假脚本、
   另一份不含 `crontab` 的 bin 解析不到它，不符就整套不跑。
+- `launchd/` 同样绝不碰真实的 launchd：假 `launchctl` 只把调用记进用例目录里的文件，`LAUNCHD_AGENT_DIR`
+  指向用例目录，`HOME` 也在 `T` 内；两份 bin 的核对与 `cron/` 相同。
 
 ## 新增用例
 
@@ -119,13 +124,15 @@ bad bad_something 'mut append "$S/agent-plan.md" $'"'"'\n{{no_such_var}}\n'"'"'
 - 命名：`bad_*` 应报错、`allow_*` 看似可疑但应放行、`check_*` 测 `--check` 的比对、`baseline_*` 未破坏的副本。
 - `build.py` 新增或修改校验时在这里补用例；改完可用 `BUILD_PY` 指向删掉该校验的副本，确认对应用例会 FAIL。
 
-### scripts 与 cron 套件
+### scripts、cron 与 launchd 套件
 
 - scripts 的命名按被测对象：`codex_*`、`rules_*`、`style_*`、`root_*`；渲染脚本的报错用 `expect_script_error <脚本名> <片段>...`
   断言（退出码 1、以脚本名开头、没有 traceback）。`render-codex-agent.py` 的写入失败、改名失败经 `patched '<补丁>' <参数>...`
   在加载模块后替换 `mod.os.replace` 等再调用 `main()` 构造。
 - cron 用 `new_project <项目根> [<脚本目录>]` 建项目（脚本目录写入 `$CRON`），`cron_sh [--nocron] [--env K=V]... <脚本> [参数]`
   运行被测脚本，`block_count` / `block_owner` 查假 crontab 里的区块。
+- launchd 同形：`new_project` 的脚本目录写入 `$LD`，`launchd_sh [--nolaunchctl] [--env K=V]... <脚本> [参数]` 运行被测脚本，
+  `plist_count` / `plist_labels` / `plist_owner_of` 查装出的 plist，`loaded_labels` 查假 `launchctl` 认为加载了哪些。
 
 ### manifest 套件
 

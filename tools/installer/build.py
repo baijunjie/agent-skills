@@ -296,6 +296,7 @@ INSTALLERS = {
                                  "gate_peer": "setup-git:pr", "gate_entry_ref": "第 7 步"}),
     "knowledge-i18n-copy": ("project-user", {}),
     "tools-cron": ("project", {"template_sub": "/cron"}),
+    "tools-launchd": ("project", {"template_sub": "/launchd"}),
     "tools-codex-bridge": ("user", {"template_sub": "/claude"}),
 }
 
@@ -570,10 +571,11 @@ def check_markers(name: str, marker: str, text: str, where: str, paired: bool) -
 
 
 def check_marked_heading_level(name: str, text: str, where: str) -> None:
-    """模板里标记范围内最浅的标题须是一级。
+    """模板里标记范围内最浅的标题须是一级；范围内一个标题都没有的放行。
 
-    markers 片段约定写进指令文件的内容顶层节标题用 `#`：顶层写成 `##` 的话，装出来这一节会挂到
-    指令文件上一个 `#` 节底下成为它的子节，而指令文件里不报错、也看不出来。
+    markers 片段约定写进指令文件的内容带节标题时顶层用 `#`：顶层写成 `##` 的话，装出来这一节会挂到
+    指令文件上一个 `#` 节底下成为它的子节，而指令文件里不报错、也看不出来。无标题的整块由标记界定归属，
+    不受这条管。
     """
     lines = text.split("\n")
     begin = end = None
