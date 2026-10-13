@@ -115,7 +115,7 @@ codex plugin add batch-setup@bjj-agent-skills
 
 | Skill | 说明 | 触发方式 |
 |-------|------|----------|
-| `create:skill-authoring` | Skill 编写规范：只写 agent 推不出来的规则，定原则与边界、细节交给 agent | 自动 |
+| `create:skill-authoring` | Skill 编写规范：分规范型与教程型，只写 agent 推不出来的内容，定原则与边界、细节交给 agent | 自动 |
 
 ### `setup-agent` — 安装 agent 的开发工作方式
 
