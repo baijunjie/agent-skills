@@ -35,7 +35,7 @@ MANIFEST_CHECK=/path/to/check.py bash tools/tests/manifest/run.sh     # 测另�
 最后一行 `repo_untouched` 比较运行前后真实仓库的 `HEAD`、`status --porcelain`、全部 ref 与本地配置；
 运行期间有人在改工作副本时它也会报不一致，这时看它打印的差异判断。
 
-依赖：bash（3.2 即可）、git 2.28+、python3（scripts 套件用 `tomllib`，要 3.11+）；scripts 套件另外测系统里有的 zsh、sh、dash，没有的跳过；launchd 套件要 macOS 的 `launchctl`、`plutil`，别的系统上整套 SKIP。
+依赖：bash（3.2 即可）、git 2.28+、python3（scripts 套件有两条用例要解析 TOML：先用 `tomllib`，要 3.11+，没有就回退 `tomli`，两者都没有时这两条报 SKIP）；scripts 套件另外测系统里有的 zsh、sh、dash，没有的跳过；launchd 套件要 macOS 的 `launchctl`、`plutil`，别的系统上整套 SKIP。
 
 ## 安全设计
 

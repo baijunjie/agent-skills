@@ -214,6 +214,14 @@ fail() {
   exit 1
 }
 
+# 跳过这条用例：缺的是环境依赖（解释器版本、外部命令），不是被测对象的问题。
+# 走 .skip 文件而不是退出码：用例退 0 的路径和 PASS 一样，父进程分不出来。
+skip() {
+  echo "$*" >"$CASE_DIR/.skip"
+  echo "[SKIP] $*"
+  exit 0
+}
+
 _on_err() {
   # 只在 errexit 生效时记：try 里关了 errexit，那里的非零退出码是被测结果，不算出错。
   case $- in *e*) ;; *) return 0 ;; esac
@@ -256,7 +264,7 @@ expect_eq() {
   [ "$1" = "$2" ] || fail "${3:-值不符}：期望 $2，实际 $1"
 }
 
-# 跑一条用例，结果写进 $CASE_DIR/.status（"PASS <秒>" 或 "FAIL <原因>"）。
+# 跑一条用例，结果写进 $CASE_DIR/.status（"PASS <秒>"、"SKIP <原因>" 或 "FAIL <原因>"）。
 # 并行时它在子进程里跑，所以只写文件、不碰父进程的计数器。
 _exec_case() {
   local name=$1 start rc
@@ -272,7 +280,9 @@ _exec_case() {
   ) >"$CASE_DIR.log" 2>&1
   rc=$?
   set -e
-  if [ "$rc" = 0 ] && [ ! -f "$CASE_DIR/.reason" ]; then
+  if [ -f "$CASE_DIR/.skip" ]; then
+    echo "SKIP $(cat "$CASE_DIR/.skip")" >"$CASE_DIR/.status"
+  elif [ "$rc" = 0 ] && [ ! -f "$CASE_DIR/.reason" ]; then
     echo "PASS $((SECONDS - start))" >"$CASE_DIR/.status"
   else
     echo "FAIL $(cat "$CASE_DIR/.reason" 2>/dev/null || echo "退出码 $rc")" >"$CASE_DIR/.status"
@@ -290,6 +300,10 @@ _report_case() {
     PASS\ *)
       echo "PASS $name (${status#PASS }s)"
       _PASSED=$((_PASSED + 1))
+      ;;
+    SKIP\ *)
+      echo "SKIP $name: ${status#SKIP }"
+      _SKIPPED=$((_SKIPPED + 1))
       ;;
     *)
       echo "FAIL $name: ${status#FAIL }"
@@ -331,6 +345,7 @@ run_cases() {
     [ "$known" = 1 ] || die "没有这个用例：$name"
   done
   _PASSED=0
+  _SKIPPED=0
   _FAILED=()
   start=$SECONDS
   # 每条用例各用各的 $CASE_DIR 与临时仓库，互不相干，所以可以并行跑；
@@ -361,6 +376,6 @@ run_cases() {
     echo "FAIL safety: 有命令试图在临时根之外执行 git：$(tr '\n' ';' <"$T/.violation")"
     _FAILED+=(safety)
   fi
-  echo "-- ${_PASSED} passed, ${#_FAILED[@]} failed ($((SECONDS - start))s)"
+  echo "-- ${_PASSED} passed, ${#_FAILED[@]} failed$([ "$_SKIPPED" = 0 ] || echo ", ${_SKIPPED} skipped") ($((SECONDS - start))s)"
   [ ${#_FAILED[@]} = 0 ]
 }

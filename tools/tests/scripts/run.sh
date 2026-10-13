@@ -106,7 +106,14 @@ case_codex_render_all_templates() {
   expect_rc 0 "渲染九个子代理"
   expect_eq "$(ls "$OUTD" | wc -l | tr -d ' ')" 9 "生成的 .toml 个数"
   try python3 - "$SRC" "$OUTD" <<'EOF'
-import sys, tomllib
+import sys
+try:
+    import tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as tomllib
+    except ModuleNotFoundError:
+        sys.exit(77)
 from pathlib import Path
 
 src, out = Path(sys.argv[1]), Path(sys.argv[2])
@@ -123,7 +130,8 @@ for md in sorted(src.glob("*.md")):
     assert data.get("model") and data.get("model_reasoning_effort"), f"{md}: 缺 model / model_reasoning_effort"
 print("ok", len(list(src.glob("*.md"))))
 EOF
-  expect_rc 0 "tomllib 解析并与模板比对"
+  [ "$RC" != 77 ] || skip "python3 没有 tomllib（要 3.11+），也没有 tomli"
+  expect_rc 0 "TOML 解析并与模板比对"
   expect_out "ok 9"
 }
 
@@ -206,11 +214,19 @@ case_codex_instructions_with_triple_quotes() {
   put "$SRC/mechanical.md" --- "name: mechanical" 'description: 含 "引号" 与反斜杠 \ 的描述' --- "" "正文里有 ''' 三个单引号" '与 \n 反斜杠'
   try python3 "$RCA" --output-dir "$OUTD" "$SRC/mechanical.md"
   expect_rc 0 "正文含 '''"
-  try python3 -c 'import sys, tomllib
+  try python3 -c 'import sys
+try:
+    import tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as tomllib
+    except ModuleNotFoundError:
+        sys.exit(77)
 d = tomllib.load(open(sys.argv[1], "rb"))
 assert d["description"] == "含 \"引号\" 与反斜杠 \\ 的描述", d["description"]
 assert d["developer_instructions"] == "正文里有 '"'''"' 三个单引号\n与 \\n 反斜杠\n", repr(d["developer_instructions"])' "$OUTD/mechanical.toml"
-  expect_rc 0 "tomllib 解析结果与原文一致"
+  [ "$RC" != 77 ] || skip "python3 没有 tomllib（要 3.11+），也没有 tomli"
+  expect_rc 0 "TOML 解析结果与原文一致"
 }
 
 register codex_duplicate_stem
