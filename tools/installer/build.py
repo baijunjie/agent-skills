@@ -198,6 +198,8 @@ RENDER_RULES = '\nRENDER_RULES="$SETUP_ROOT/scripts/render-subagent-rules.py"'
 RENDER_STYLE = '\nRENDER_STYLE="$SETUP_ROOT/scripts/render-report-style.py"'
 # 回退闸门的脚本由 setup-git 的 pr 与 worktree 两个安装器共用，放在 plugin 级 scripts/ 下。
 GATE_DIR = '\nGATE_DIR="$SETUP_ROOT/scripts/githooks"'
+# 两个 skill 调用的流程脚本（flow-*.sh）同样由这两个安装器共用；与闸门分开放，不要闸门时照样要装。
+FLOW_DIR = '\nFLOW_DIR="$SETUP_ROOT/scripts/flow"'
 
 # 各安装器没声明时取这里的值。
 DEFAULTS = {
@@ -290,9 +292,9 @@ INSTALLERS = {
     "git-commit": ("project-user", {}),
     "git-find-issues": ("project-user", {}),
     # 模板里的占位符本身就是 {{PR_BASE}}，经变量输出以绕开语法检查。
-    "git-pr": ("project", {"pr_base_token": "{{PR_BASE}}", "extra_env": GATE_DIR,
+    "git-pr": ("project", {"pr_base_token": "{{PR_BASE}}", "extra_env": GATE_DIR + FLOW_DIR,
                            "gate_peer": "setup-git:worktree", "gate_entry_ref": "「装回退闸门」里"}),
-    "git-worktree": ("project", {"extra_env": GATE_DIR,
+    "git-worktree": ("project", {"extra_env": GATE_DIR + FLOW_DIR,
                                  "gate_peer": "setup-git:pr", "gate_entry_ref": "第 7 步"}),
     "knowledge-i18n-copy": ("project-user", {}),
     "tools-cron": ("project", {"template_sub": "/cron"}),

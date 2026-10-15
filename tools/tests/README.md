@@ -7,6 +7,7 @@
 | 套件 | 改了这些必跑 | 测什么 |
 |---|---|---|
 | `gate/` | `plugins/setup-git/scripts/githooks/` | 回退闸门：本地一层（reference-transaction）、pre-push 的受守护分支一层与 PR 一层、两个预检 `revert-gate.py check` / `check-pr`、切出点判据、`install.sh`（含 `--pr-only`） |
+| `flow/` | `plugins/setup-git/scripts/flow/` | 流程脚本 `flow-*.sh`：记录目标分支与切出点、在原基点压平与核对（含出错退回、`Reverts:` 行检查）、推送前识别远端别人的提交与自己的改写、对齐后搬分支（含冲突续跑）、清理前提；每条用例在系统里有的 sh、dash、bash 下各跑一次 |
 | `mutation/` | `plugins/setup-git/scripts/githooks/`、`tools/tests/gate/run.sh`（改用例名会让点名落空） | 闸门判据的变异测试：逐处改坏判据，确认指定的 gate 用例会 FAIL——回答「那些用例到底压没压在这段逻辑上」 |
 | `build/` | `tools/installer/` 下的一切（`build.py`、源文件、片段），安装器的 `template/` 与 `agents/openai.yaml` | 安装器构建：基线（构建、`--check`、生成物 frontmatter）、`--check` 的比对，以及每一类校验的变异用例 |
 | `scripts/` | `plugins/setup-agent/scripts/`、`tools/installer/fragments/project-root.md` | 三个渲染脚本（含其中两个共用的 `markdown_headings.py`），与 `project-root` 那行 shell 在 bash / zsh / sh / dash 下的行为 |
@@ -27,6 +28,7 @@ SCRIPTS_DIR=/path/to/scripts bash tools/tests/scripts/run.sh           # 测另�
 CRON_TEMPLATE_DIR=/path/to/cron bash tools/tests/cron/run.sh           # 测另一份 cron 模板
 LAUNCHD_TEMPLATE_DIR=/path/to/launchd bash tools/tests/launchd/run.sh  # 测另一份 launchd 模板
 MANIFEST_CHECK=/path/to/check.py bash tools/tests/manifest/run.sh     # 测另一份 manifest 校验
+FLOW_TEMPLATE_DIR=/path/to/flow bash tools/tests/flow/run.sh           # 测另一份流程脚本
 ```
 
 各套件的入口、输出格式、`-v` 与按名选跑都相同。用例默认并行跑 4 条（每条各用各的临时目录，互不相干），`TEST_JOBS=1` 退回串行、`TEST_JOBS=8` 开大；全套约 3 分钟，其中 mutation 约 70 秒、gate 约 40 秒。
@@ -35,7 +37,7 @@ MANIFEST_CHECK=/path/to/check.py bash tools/tests/manifest/run.sh     # 测另�
 最后一行 `repo_untouched` 比较运行前后真实仓库的 `HEAD`、`status --porcelain`、全部 ref 与本地配置；
 运行期间有人在改工作副本时它也会报不一致，这时看它打印的差异判断。
 
-依赖：bash（3.2 即可）、git 2.28+、python3（scripts 套件有两条用例要解析 TOML：先用 `tomllib`，要 3.11+，没有就回退 `tomli`，两者都没有时这两条报 SKIP）；scripts 套件另外测系统里有的 zsh、sh、dash，没有的跳过；launchd 套件要 macOS 的 `launchctl`、`plutil`，别的系统上整套 SKIP。
+依赖：bash（3.2 即可）、git 2.28+、python3（scripts 套件有两条用例要解析 TOML：先用 `tomllib`，要 3.11+，没有就回退 `tomli`，两者都没有时这两条报 SKIP）；scripts 套件另外测系统里有的 zsh、sh、dash，flow 套件测系统里有的 sh、dash、bash，没有的跳过；launchd 套件要 macOS 的 `launchctl`、`plutil`，别的系统上整套 SKIP。
 
 ## 安全设计
 
@@ -123,6 +125,12 @@ bad bad_something 'mut append "$S/agent-plan.md" $'"'"'\n{{no_such_var}}\n'"'"'
   `expect_build_ok`：两种模式都通过。
 - 命名：`bad_*` 应报错、`allow_*` 看似可疑但应放行、`check_*` 测 `--check` 的比对、`baseline_*` 未破坏的副本。
 - `build.py` 新增或修改校验时在这里补用例；改完可用 `BUILD_PY` 指向删掉该校验的副本，确认对应用例会 FAIL。
+
+### flow 套件
+
+- 夹具：bare remote `$R`、自己的 clone `$A`、同事的 clone `$B`，`new_wt`、`b_push` 搭场景；被测脚本经 `flow <目录> <脚本短名> [参数]...` 执行，结果进 `OUT` / `RC`。
+- 每条 `case_<名字>` 自动对系统里有的 sh、dash、bash 各登记一次，用例名带 `_sh` / `_dash` / `_bash` 后缀，选跑时写全名；脚本在 `LC_ALL=C` 下跑，变量名后紧跟中文而没用 `${…}` 隔开的写法会在 bash 下报错。
+- 命名按被测脚本：`record_*`、`squash_*`、`push_*`、`restack_*`、`cleanup_*`。
 
 ### scripts、cron 与 launchd 套件
 

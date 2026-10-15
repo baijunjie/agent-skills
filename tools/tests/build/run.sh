@@ -713,8 +713,9 @@ register bad_prose_assignment_not_exempt
 case_bad_prose_assignment_not_exempt() {
   fixture
   # 散文里顶格写一行 X= 不算赋值，豁免不掉声明校验
-  mut sub "$BPY" '"extra_env": GATE_DIR,
-                           "gate_peer"' '"gate_peer"'
+  mut sub "$BPY" '"extra_env": GATE_DIR + FLOW_DIR,
+                           "gate_peer"' '"extra_env": FLOW_DIR,
+                           "gate_peer"'
   mut append "$S/git-pr.md" $'\nGATE_DIR=这是散文里顶格的一行，不是 shell\n'
   expect_build_fails "正文用到了 \$GATE_DIR"
 }

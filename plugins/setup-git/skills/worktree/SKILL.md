@@ -7,7 +7,7 @@ disable-model-invocation: true
 # 安装项目级 git worktree 流程
 
 装三样东西，都只装进当前项目：指令文件里无条件生效的约定（哪些任务要开 worktree、创建与合并前先读 skill、
-不绕过仓库的检查）、从创建分支到合回目标分支的操作步骤 `git-worktree` skill，
+不绕过仓库的检查）、从创建分支到合回目标分支的操作步骤 `git-worktree` skill 及它调用的流程脚本，
 以及回退闸门——worktree 合并回去的目标分支移动时按内容检查，拒绝改写已发布历史、以及撤销该分支已有改动的更新。
 指令文件只写这些约定并指向 `git-worktree` skill，操作细节只写在 skill 里，不回写进指令文件。
 
@@ -29,6 +29,7 @@ else
 fi
 TEMPLATE_DIR="$SETUP_ROOT/skills/worktree/template"
 GATE_DIR="$SETUP_ROOT/scripts/githooks"
+FLOW_DIR="$SETUP_ROOT/scripts/flow"
 ```
 
 Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现 Claude Code 用户级配置目录里也有本安装器要装的同名 skill 时，告知用户项目级这份在 Claude Code 中不会生效。
@@ -74,8 +75,8 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
 - hook 入口：`git config core.hooksPath` 已设置，或 `$(git rev-parse --git-common-dir)/hooks/` 下已有不含
   `# revert-gate hook entry` 一行的 `reference-transaction` / `pre-push`。完全覆盖会让原来那套 hook 失效，询问时说明。
   入口里已调用 `.githooks/hook.sh` 的，按第 7 步「融入」那一行处理，不算冲突。
-- `.githooks/` 下的 `revert-gate.py`、`hook.sh`、`install.sh` 由本安装器与 `setup-git:pr` 共同拥有：
-  这三个文件已有同一份闸门不算冲突，照常重装、不问；这三个之外，`.githooks/` 里别的文件只由写它的那个安装器管，不碰。
+- `.githooks/` 下的闸门脚本（`revert-gate.py`、`hook.sh`、`install.sh`）与流程脚本（`flow-*.sh`）由本安装器与 `setup-git:pr` 共同拥有：
+  已有同一套文件不算冲突，照常重装、不问；这些之外，`.githooks/` 里别的文件只由写它的那个安装器管，不碰。
 
 ## 项目级安装
 
@@ -83,11 +84,11 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
    已装过 `git-worktree` skill 的（路径见第 3 步），先记下其中回退闸门那条的原文（以「仓库装有回退闸门」
    或「仓库没有装回退闸门」开头），重装时靠写法 C 的原文认出用户上次选了「不要闸门」。再确认两者，按下表处理：
 
-   | 环境 | `.githooks/` | `install.sh` | skill 正文 |
+   | 环境 | 闸门脚本 | `install.sh` | skill 正文 |
    |---|---|---|---|
    | 有 `python3`、git 2.28+ | 用下面的命令复制到项目根目录的 `.githooks/`：保留可执行位，已有的同名文件直接覆盖，`.githooks/` 里别的文件不动 | 执行，见第 7 步 | 模板原文 |
    | 有 `python3`、git 低于 2.28 | 同上 | 照样执行，见第 7 步：pre-push 一层生效，本地 merge / commit / reset 一层不生效，告知用户 | 写法 B |
-   | 没有 `python3` | 上面记下的原文是写法 C 时，说明用户上次选了不要闸门，沿用、不再问；否则问用户是装 Python 还是不要闸门。装 Python 的装好后按上两行处理；不要闸门的不复制，已有的 `.githooks/` 与 hook 入口也不删 | 选了不要闸门：不执行，跳过第 6、7 步；装了 Python 的按上两行 | 选了不要闸门：写法 C；装了 Python 的按上两行 |
+   | 没有 `python3` | 上面记下的原文是写法 C 时，说明用户上次选了不要闸门，沿用、不再问；否则问用户是装 Python 还是不要闸门。装 Python 的装好后按上两行处理；不要闸门的不复制闸门脚本（流程脚本在第 3 步照装），已有的 `.githooks/` 与 hook 入口也不删 | 选了不要闸门：不执行，跳过第 6、7 步；装了 Python 的按上两行 | 选了不要闸门：写法 C；装了 Python 的按上两行 |
 
    ```bash
    top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
@@ -106,6 +107,8 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
    | 以「reset 被拦时」开头的那条 | 整条 | 删掉 |
    | 以「本地合并前必须确认」开头的那条 | 「merge 被闸门拦下时主工作副本已被写成分支内容，要 `git reset --merge` 复原，所以先预检」 | 「本地 merge 不受闸门检查，所以必须先预检」 |
    | 以「闸门报撤销了已有改动的」开头的那条 | 「对齐远程时 rebase 被拦的，`git rebase --abort` 后重新 rebase；」 | 删掉 |
+   | 以「确要撤销某个提交」开头的那条 | 「闸门拦下这次 reset 时先复原（`--hard` 用 `git reset --merge`），改用下面的做法。」 | 删掉 |
+   | 以「本地合并在主工作副本里」开头的那条 | 「被闸门拦下的，主工作副本已被写成分支内容，先 `git reset --merge` 复原，再按「## 回退与撤销」里「闸门报撤销了已有改动」那一条处理；」 | 删掉 |
 
    **写法 C**：
 
@@ -117,12 +120,13 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
    | 以「本地合并前必须确认」开头的那条 | 从「闸门预检通过」起到这条末尾为止（含其下的命令块与说明） | 「已按「仓库没有装回退闸门」那条人工核对过。」 |
    | 以「顺序：」开头的那条 | 「向用户确认 → 闸门预检 → `merge --ff-only`」 | 「向用户确认 → 人工核对 → `merge --ff-only`」 |
    | 以「本地合并在主工作副本里」开头的那条 | 「重跑预检再合」 | 「重新人工核对再合」 |
+   | 以「本地合并在主工作副本里」开头的那条 | 「被闸门拦下的，主工作副本已被写成分支内容，先 `git reset --merge` 复原，再按「## 回退与撤销」里「闸门报撤销了已有改动」那一条处理；」 | 删掉 |
    | 以「再重跑预检」开头的那条 | 「再重跑预检、合并」 | 「再重新人工核对、合并」 |
    | 以「推送目标分支被拒」开头的那条 | 「（远端报非快进，或 pre-push 报远程有本地没有的提交）」 | 「（远端报非快进）」 |
 
    ```markdown
    - 仓库没有装回退闸门，本地合并前要人工核对：逐个检查切出点之后目标分支上的提交，确认它们的改动在待合并分支里都还在；有改动不见了，说明压平或解冲突出了错，回分支重做。
-   - 确要撤销某个提交，先问用户，同意后在主工作副本里用 `git revert`，不要在目标分支上用 reset、amend 去掉已推送的提交。
+   - 确要撤销某个提交，先问用户。它和它之后的提交都还没推送、都要丢掉、没有别的分支包含它们，且主工作副本干净时，可以在主工作副本里 reset 掉；其余情形不要在目标分支上用 reset、amend 去掉提交，同意后在主工作副本里用 `git revert`。
    ```
 2. **写指令文件**：Codex 的目标是项目根目录的 `AGENTS.md`，Claude Code 的目标是 `CLAUDE.md`；没有就新建。
    模板已带本安装器的标记，按「指令文件里的标记」写入下面 `cat` 输出的内容；这块与闸门形态无关，三种写法都写模板原文。
@@ -162,6 +166,15 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
    mkdir -p .claude/skills/git-worktree
    cp "$TEMPLATE_DIR/git-worktree/SKILL.template.md" .claude/skills/git-worktree/SKILL.md
    ```
+
+   两个宿主都再装 skill 调用的流程脚本：`.githooks/` 下的 `flow-*.sh` 完成记录、压平、搬分支、推送、清理等机械操作，
+   只依赖 sh 与 git，三种写法都要装。保留可执行位，已有的同名文件直接覆盖，`.githooks/` 里别的文件不动：
+
+   ```bash
+   top=$(git rev-parse --show-toplevel) && cd "$top" || exit 1
+   : "${FLOW_DIR:?}"
+   mkdir -p .githooks && cp -p "$FLOW_DIR/"* .githooks/
+   ```
 4. **忽略 worktree 目录**：确认 `.gitignore` 已忽略 `.worktrees/`，缺少就添加。
 5. **确认主分支名**：主分支以项目现状为准，第 6 步把它设为常驻守护分支。已装过闸门的，先从 `.githooks/branches`
    读出上次的常驻守护分支（忽略空行与 `#` 开头的行）：主分支与旧值的第一个不一致时告知用户；
@@ -200,7 +213,7 @@ Claude Code 中同名 skill 是**用户级优先于项目级**：写入前发现
    - 用了写法 B 或 C 的：这份 skill 随仓库对全队生效；其他成员的环境满足条件（有 `python3`、git 2.28+）时，
      请在那台机器上重装恢复原文。
    - 选了不要闸门、而仓库里原来装过闸门的：仓库里留着闸门脚本，但 skill 按人工核对写；没有 `python3` 时 hook
-     直接放行，不影响合并，`.githooks/` 与 hook 入口可自行删除。
+     直接放行，不影响合并，闸门脚本（`.githooks/` 下的 `revert-gate.py`、`hook.sh`、`install.sh`）与 hook 入口可自行删除，`flow-*.sh` 要留着。
    - git 每次 ref 更新的每个阶段都会启动一次 hook：rebase 一长串提交会慢上几秒，一次 fetch 几千个新 tag 或分支可能多出一分钟以上。
 
 ## 重装

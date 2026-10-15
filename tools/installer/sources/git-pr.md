@@ -6,12 +6,12 @@ disable-model-invocation: true
 
 # 安装 git-pr skill
 
-装两样东西：提 PR 的操作步骤 `git-pr` skill（压平、rebase、预检、推送、提 PR、清理），以及回退闸门——
+装三样东西：提 PR 的操作步骤 `git-pr` skill（压平、rebase、预检、推送、提 PR、清理），它调用的流程脚本，以及回退闸门——
 推送记了目标分支（`branch.<分支>.targetBranch`，与 `setup-git:worktree` 共用这个键）的分支时按内容检查，
 拒绝撤销目标分支已有改动的推送，目标分支也因此受守护。装出的 skill 靠 description 自动触发，本安装器不写指令文件。
 
 只做项目级安装：默认的 PR 目标分支因项目而异，要在安装时写进 skill。当前目录不是 git 仓库时汇报并停下。
-闸门脚本由 `setup-git` 下的 `pr` 与 `worktree` 两个安装器共用，装到项目的同一个 `.githooks/`。
+闸门脚本与流程脚本由 `setup-git` 下的 `pr` 与 `worktree` 两个安装器共用，装到项目的同一个 `.githooks/`。
 
 ## 跨宿主约定
 
@@ -56,7 +56,7 @@ disable-model-invocation: true
 |---|---|
 | 有 `python3`、git 2.28+ | 执行复制闸门脚本的命令块，再按下表接 hook 入口 |
 | 有 `python3`、git 低于 2.28 | 同上照做；本地 merge / commit / reset 那一层不生效，告知用户 |
-| 没有 `python3` | 问用户是装 Python 还是不要闸门。装 Python 的装好后照上两行；不要闸门的两个命令块都不执行，已有的 `.githooks/` 与 hook 入口也不删——装出的 skill 自己会查闸门脚本在不在，不在就走人工核对，skill 正文不改写 |
+| 没有 `python3` | 问用户是装 Python 还是不要闸门。装 Python 的装好后照上两行；不要闸门的本节两个命令块都不执行（「通用步骤」里的流程脚本照装），已有的 `.githooks/` 与 hook 入口也不删——装出的 skill 自己会查闸门脚本在不在，不在就走人工核对，skill 正文不改写 |
 
 复制闸门脚本（保留可执行位，已有的同名文件直接覆盖，`.githooks/` 里别的文件不动）：
 
@@ -85,7 +85,7 @@ sh .githooks/install.sh --pr-only
 
 **告知用户**（选了「不要闸门」的只说第三条）：
 
-- `.githooks/` 要提交进版本库才随仓库生效；闸门读的是目标分支上已提交的那份脚本，提交并推送之后才开始检查。
+- 闸门读的是目标分支上已提交的那份脚本，`.githooks/` 提交并推送之后才开始检查。
 - hook 在各 clone 自己的 `.git/` 里、不随仓库生效：其它 clone 各自执行一次 `sh .githooks/install.sh --pr-only`
   （融入了 husky 等体系的改为按上表接进那套体系），同一 clone 的所有 worktree 共用；skill 也要求 agent 推送前发现没装就补装。
 - 选了「不要闸门」的：装出的 skill 会走人工核对；这个选择没有载体，下次重装还会再问。
@@ -93,9 +93,18 @@ sh .githooks/install.sh --pr-only
 
 ## 通用步骤
 
+装流程脚本：装出的 skill 靠 `.githooks/` 下的 `flow-*.sh` 完成压平、推送、清理等机械操作，只依赖 sh 与 git，
+不论装不装闸门都要装。保留可执行位，已有的同名文件直接覆盖，`.githooks/` 里别的文件不动：
+
+```bash
+{{include: project-root}}
+: "${FLOW_DIR:?}"
+mkdir -p .githooks && cp -p "$FLOW_DIR/"* .githooks/
+```
+
 写入时把模板里的 `{{pr_base_token}}` 替换为确定的分支名：先设 `BASE=<分支名>`，分支名含 `&` 或 `|` 时先转义；
 命令块开头断言 `BASE` 非空（为空会把占位符替换成空串、查不出残留），写完确认已无残留占位符。
-告知用户时，除各安装节列的外，说明重装时只有默认目标分支会按项目现状重新确定（确定不了才沿用旧值），其余按模板覆盖。
+告知用户时，除各安装节列的外，说明 `.githooks/` 要提交进版本库才随仓库生效，重装时只有默认目标分支会按项目现状重新确定（确定不了才沿用旧值），其余按模板覆盖。
 
 ## Claude Code 项目级安装
 

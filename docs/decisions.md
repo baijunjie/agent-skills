@@ -105,6 +105,7 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
   为什么共用一套键：两个流程的目标分支本来就是同一个分支，各记一套的后果是只有 worktree 流程能让目标分支受守护——只装 `pr` 的仓库连「不许改写已发布历史」都没有。改键名的代价也记在这里：这两个键在各 clone 自己的 `.git/` 里、不随仓库走，换了名字等于让已有记录静默失效，各 clone 都要重记一遍。
 - `.githooks/branches` 与 `revert-gate.branch`（常驻守护分支）、合并前预检只归 `worktree`；`check-pr` 预检只归 `pr`；pre-push 的 PR 路径由共用脚本提供，两个流程里记了 `targetBranch` 的分支都会走。`pr` 用 `install.sh --pr-only` 只装 hook 入口，不碰常驻守护分支。
 - 单装任一个都完整可用：只装 `pr` 的仓库没有常驻守护分支，闸门脚本从目标分支的本地分支或远端跟踪分支读。
+- 流程脚本（`flow-*.sh`）放 plugin 级 `plugins/setup-git/scripts/flow/`，同样由两个安装器共同拥有、无条件覆盖复制到 `.githooks/`；与闸门脚本分开放，因为用户选了「不要闸门」时它们照样要装。
 
 为什么：git 的每个 hooks 目录只能有一个 `pre-push`，两套入口必然互相去链；检测逻辑与它的回归测试也不能有两份。
 校验：`tools/tests/gate/` 的 `install_pr_only*` 四条（`--pr-only` 只装入口、不碰常驻守护分支、参数互斥、遇 `core.hooksPath` 原子失败）与 `block_prepush_pr_only_clone`；共用资源的引用由 `build.py` 的 `extra_env` 声明与守卫校验兜底。
@@ -114,7 +115,7 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 - 拦下改写受守护分支上已发布的历史。
 - 拦下撤销受守护分支上已有改动的更新：解冲突只取自己一侧按内容判据拦（目标分支那侧删掉的行又重现）；压平换了基点按切出点判据拦（这次移动改了某个文件、而分支自己从切出点起没碰过它；以分支记了 `forkPoint` 为前提），后者不分目标分支那边是新增、删除还是改已有内容，也不要求内容像被还原。
 - 切出点之后才出现的内容被删掉要显式声明（`Reverts:` 或 `git revert`），同样以记了 `forkPoint` 为前提。
-- pre-push 时受守护分支的远端有本地没有的提交就拒绝，防止 `push --force` 覆盖队友刚推的提交。记了 `targetBranch` 的分支自己不受守护，强推盖掉队友推上去的提交闸门不拦，靠 skill 里「只有自己独用的分支才能 `--force-with-lease`、推前先问用户」挡。
+- pre-push 时受守护分支的远端有本地没有的提交就拒绝，防止 `push --force` 覆盖队友刚推的提交。记了 `targetBranch` 的分支自己不受守护，强推盖掉队友推上去的提交闸门不拦，靠流程脚本 `flow-push.sh`（远端有本地没有、也不在本地 reflog 里的提交就不推）与 skill 里「只有自己独用的分支才能强推、推前先问用户」挡。
 - 对齐远程（`git rebase <目标分支>@{u}`）时丢了改动，在 rebase 当场拦下，而不是等到推送。
 - 推送记了 `targetBranch` 的分支时，按内容核对它相对该目标分支远端跟踪尖端有没有撤销已有改动。
 
@@ -141,7 +142,17 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 - 不强推目标分支。
 
 为什么：目标分支上的本地提交会被 rebase 改写，从它切出的分支直接 rebase 会把改写前的提交再搬一遍；强推会覆盖队友的提交，闸门也会拒绝。
-校验：操作步骤原文在 `plugins/setup-git/skills/worktree/template/git-worktree/SKILL.template.md`（写进指令文件的那几条约定在 `template/INJECT.md`），闸门测试见上。
+校验：操作步骤原文在 `plugins/setup-git/skills/worktree/template/git-worktree/SKILL.template.md`（写进指令文件的那几条约定在 `template/INJECT.md`），搬分支由 `plugins/setup-git/scripts/flow/flow-restack.sh` 完成、测试在 `tools/tests/flow/`，闸门测试见上。
+
+## `setup-git` 的流程脚本
+
+- 只把两个 skill 里步骤固定、做错了又不报错的机械操作写成脚本：记录目标分支与切出点、在原基点压平并核对、推送前识别远端别人的提交、对齐后搬分支、清理前的前提核对。判断（提交信息、保留几个提交、解冲突、验证、撤销是否有意、问用户）留在 skill 的提示词里。
+- 只用 POSIX sh 与 git，不依赖 python3；平台操作（查已有 PR、建 PR）不进脚本，照旧由提示词让 agent 用手边的工具完成，不限定平台。
+- 退出码：0 做完；1 停下交给 agent，现场与下一步见输出；2 用法或环境错误。skill 只写什么时候调用、它保证什么、按输出怎么处理，不复述脚本内部怎么做。
+- skill 调用主工作副本里的那份：`.githooks/` 可能还没提交，从目标分支新切出的 worktree 里没有它。
+
+为什么：全量脚本化（连远端推断、PR 平台都收进脚本）要么把 python3 变成安装前提、要么维护文字与脚本两套流程，还会把平台限定成 GitHub，兼容性代价大于收益；只收机械操作，换来的是最容易出错的几步（换基点压平、强推盖掉别人的提交、清理时丢掉没推上去的改写）由脚本保证，而兼容性不变。闸门脚本仍是 Python：按内容判断撤销要解析 diff、比对行与改名，用 sh 重写代码量成倍、在每次 ref 更新都跑的 hook 上更慢，而它本来就可选（没有 python3 时 hook 放行、skill 走人工核对）。
+校验：`tools/tests/flow/`，每条用例在系统里有的 sh、dash、bash 下各跑一次；规则原文见各脚本开头的注释与 `plugins/setup-git/scripts/flow/flow-lib.sh`。
 
 ## `setup-git:pr` 的 PR 流程
 
