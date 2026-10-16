@@ -23,14 +23,21 @@
 <!-- if-installed: agent-unit-test -->
 1. **补单元测试**：按 `agent-unit-test` skill 为本次改动补测试。
 <!-- end-if -->
-2. **静态检查**：执行项目约定的质量检查命令（格式化、类型检查、Lint 等），确认无报错。项目没约定就跳过。
+<!-- if-installed: agent-gallery -->
+2. **gallery**：本次改动涉及 UI、mock 或 mock 依赖的接口契约时，按 `agent-gallery` skill 让 gallery 跟上并跑全量快速检查；都没涉及就跳过。
+<!-- end-if -->
+3. **静态检查**：执行项目约定的质量检查命令（格式化、类型检查、Lint 等），确认无报错。项目没约定就跳过。
 <!-- if-installed: agent-change-check -->
-3. **改动检查**：按 `agent-change-check` skill 审本次改动；按意见改了代码，先重跑静态检查与受影响的测试再复审；
+4. **改动检查**：按 `agent-change-check` skill 审本次改动；按意见改了代码，先重跑静态检查与受影响的测试再复审；
    审查通过、或剩余意见已交给用户定后，才进入下一步。
 <!-- end-if -->
 <!-- if-installed: agent-docs -->
-4. **文档更新**：本次改动要更新给后来者看的文档时，按 `agent-docs` skill 更新；与文档对齐时改了代码，
+5. **文档更新**：本次改动要更新给后来者看的文档时，按 `agent-docs` skill 更新；与文档对齐时改了代码，
    重跑静态检查与受影响的测试。
+<!-- end-if -->
+<!-- if-installed: agent-gallery -->
+6. **UI 预览**：本次改动涉及 UI 时，按 `agent-gallery` skill 从开发分支启动预览，把直达链接写进汇报，等用户确认；
+   用户确认没问题、或同意把分支交出去（合并、推送提 PR 等）后，在交出去之前按它停掉预览、清理预览用的临时数据。没动 UI 就跳过。
 <!-- end-if -->
 
 ## 本项目

@@ -57,6 +57,10 @@ CODEX_AGENT_CONFIGURATION = {
         "model": "gpt-5.6-terra",
         "model_reasoning_effort": "high",
     },
+    "gallery-writer": {
+        "model": "gpt-5.6-terra",
+        "model_reasoning_effort": "high",
+    },
 }
 
 

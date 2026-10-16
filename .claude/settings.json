@@ -24,6 +24,7 @@
       "Skill(setup-agent:bug)",
       "Skill(setup-agent:change-check)",
       "Skill(setup-agent:docs)",
+      "Skill(setup-agent:gallery)",
       "Skill(setup-agent:plan)",
       "Skill(setup-agent:report-style)",
       "Skill(setup-agent:subagents)",

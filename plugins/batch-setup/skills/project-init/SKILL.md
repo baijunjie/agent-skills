@@ -1,6 +1,6 @@
 ---
 name: project-init
-description: 给当前项目一次装上（或更新）一套默认的开发配置：setup-agent 的 subagents、docs、change-check、bug、plan、workflow 与 setup-git 的 worktree、pr 共八个安装器，不含输出风格与单元测试，全部只装进当前项目、随仓库提交。用于"初始化项目""给新项目装默认的 agent 配置""一次装好项目的开发流程""项目 init"等场景。
+description: 给当前项目一次装上（或更新）一套默认的开发配置：setup-agent 的 subagents、docs、change-check、bug、plan、workflow 与 setup-git 的 worktree、pr 共八个安装器，不含输出风格、单元测试与 UI gallery，全部只装进当前项目、随仓库提交。用于"初始化项目""给新项目装默认的 agent 配置""一次装好项目的开发流程""项目 init"等场景。
 disable-model-invocation: true
 ---
 
@@ -22,8 +22,9 @@ disable-model-invocation: true
 7. `setup-git:pr`
 8. `setup-agent:workflow`
 
-**不装**：`setup-agent:report-style`（回答风格是个人偏好，要用单独装）与 `setup-agent:unit-test`
-（项目初始化时还没有可沿用的测试框架，等有了再单独装；装好后重跑 `setup-agent:workflow`，工作流才会写进测试步骤）。
+**不装**：`setup-agent:report-style`（回答风格是个人偏好，要用单独装）、`setup-agent:unit-test`
+（项目初始化时还没有可沿用的测试框架，等有了再单独装）与 `setup-agent:gallery`（只适用于有 UI 的项目、安装时要选型，有了界面再单独装）；
+后两个装好后重跑 `setup-agent:workflow`，工作流才会写进对应的步骤。
 
 ## 项目级安装
 
@@ -43,5 +44,5 @@ disable-model-invocation: true
    - 它停下来问用户的（冲突、软链、要填的定制值如默认 PR 目标分支），原样转给用户，等用户决定、该安装器装完后再读下一个；不替用户回答。
    - 在写入任何文件或配置之前，因用户决定不装或失败而没装成的，记下原因，继续后面的，不回头重试；最后的 `workflow` 照样执行，缺的步骤它自会省略。
    - 已写入部分文件或配置后中途失败、或用户叫停的，停下汇报：列出已写入的，说明半装的 skill 会被 `workflow` 当作已装写进工作流且不报错，由用户决定清理（恢复到这次安装之前的状态，不是把列出的文件一律删掉）、重试还是保留后再继续。
-4. **汇总**：在最终回复里按上面的顺序逐个写清装成、没装成（附原因）、半装后留着没清理的（附已写入的文件），再说明 `report-style` 与 `unit-test` 怎么单独装。
+4. **汇总**：在最终回复里按上面的顺序逐个写清装成、没装成（附原因）、半装后留着没清理的（附已写入的文件），再说明 `report-style`、`unit-test` 与 `gallery` 怎么单独装。
    最后提醒：装出的文件与指令文件的改动都要提交进版本库才随仓库生效。

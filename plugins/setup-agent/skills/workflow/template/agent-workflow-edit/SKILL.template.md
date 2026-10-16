@@ -24,7 +24,7 @@ description: 修改项目指令文件里的「工作流」一节，即开工前�
 ## 改在哪
 
 - 「本项目」小节以外的内容由 `setup-agent:workflow` 安装器按项目里已装的 `agent-docs`、`agent-unit-test`、
-  `agent-change-check` 生成，重装时整体重写。项目特有的步骤、顺序与跳过条件只写进「本项目」小节。
+  `agent-gallery`、`agent-change-check` 生成，重装时整体重写。项目特有的步骤、顺序与跳过条件只写进「本项目」小节。
 - 每条以步骤名为锚点，不用步骤编号（编号随已装的 skill 变化），如「在『改动检查』之后：……」
   「『补单元测试』的跳过条件：……」「『文档更新』改到『改动检查』之前」。锚点所在的步骤或小节当前不在时，汇报。
 - 写第一条时换掉小节里括号括起的占位行；条目全删光时写回这一行：
@@ -36,7 +36,7 @@ description: 修改项目指令文件里的「工作流」一节，即开工前�
 
 ## skill 增删后
 
-- 增删的是 `agent-docs`、`agent-unit-test`、`agent-change-check` 之一：汇报，请用户重新运行 `setup-agent:workflow`
+- 增删的是 `agent-docs`、`agent-unit-test`、`agent-gallery`、`agent-change-check` 之一：汇报，请用户重新运行 `setup-agent:workflow`
   安装器重建「本项目」以外的内容；重建后锚定在已删步骤上的「本项目」条目逐条列给用户，由用户决定改锚点还是删掉。
 - 增删的是其它影响开工前 / 交付前流程的专职 skill：在「本项目」里加一条点名它，写清属于开工前还是交付前、排在哪一步之后、何时跳过；
   删掉的，连同其它条目里提到它的地方一并去掉。只写当前装着的 skill，不留占位。

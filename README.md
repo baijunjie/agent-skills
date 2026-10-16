@@ -119,14 +119,15 @@ codex plugin add batch-setup@bjj-agent-skills
 
 ### `setup-agent` — 安装 agent 的开发工作方式
 
-把 agent 的开发工作方式（子代理分派、输出风格、项目工作流、改动检查、单元测试、项目文档、开发计划与 bug 工单）装进项目或用户级配置。
-八个安装器各自独立安装；`workflow` 只编排已装进项目的专职 skill（`docs`、`unit-test`、`change-check` 装出的），宜最后装，增删这些 skill 后需重跑。
+把 agent 的开发工作方式（子代理分派、输出风格、项目工作流、改动检查、单元测试、UI 状态 gallery、项目文档、开发计划与 bug 工单）装进项目或用户级配置。
+九个安装器各自独立安装；`workflow` 只编排已装进项目的专职 skill（`docs`、`unit-test`、`gallery`、`change-check` 装出的），宜最后装，增删这些 skill 后需重跑。
 
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
 | `setup-agent:bug` | 把缺陷记成只写事实的一次性工单，修复时先复现、定位根因再改 | 项目级（默认）+ 用户级 | 手动 |
 | `setup-agent:change-check` | 交付前派子代理审查本次改动、只给意见不改文件；装 `change-checker` 子代理 | 项目级（默认）+ 用户级 | 手动 |
 | `setup-agent:docs` | 开工前读、收尾时维护项目地图、产品文档与开发记忆，并规范代码注释；装三个文档写作子代理 | 项目级（默认）+ 用户级 | 手动 |
+| `setup-agent:gallery` | 按项目技术栈选型并搭起 UI 状态 gallery 与快速检查，交付时从开发分支预览给用户确认、确认后清理；装 `gallery-writer` 子代理 | 项目级 | 手动 |
 | `setup-agent:plan` | 把方案按里程碑写成开发计划文档并按序执行 | 项目级（默认）+ 用户级 | 手动 |
 | `setup-agent:report-style` | 简洁的回答风格 `Concise+`，安装时选回答语言：Claude Code 装成输出风格，Codex 写进 `AGENTS.md` 并在 `config.toml` 开启提问工具 | 项目级（默认）+ 用户级 | 手动 |
 | `setup-agent:subagents` | 把何时、如何分派子代理的规则写进指令文件，并装四个按难度分档的通用子代理 | 项目级（默认）+ 用户级 | 手动 |
@@ -170,7 +171,7 @@ plugin 更新后的典型链路：`batch-setup:plugin-update` → 重启会话 �
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
 | `batch-setup:plugin-update` | 刷新 marketplace，把 Claude Code 与 Codex 里已装的 bjj-agent-skills plugin 更新到最新版 | — | 自动 |
-| `batch-setup:project-init` | 初始化项目：按序读取并执行 `setup-agent` 的 `subagents`、`docs`、`change-check`、`bug`、`plan`，`setup-git` 的 `worktree`、`pr`，最后 `setup-agent` 的 `workflow`，不含 `report-style` 与 `unit-test` | 项目级 | 手动 |
+| `batch-setup:project-init` | 初始化项目：按序读取并执行 `setup-agent` 的 `subagents`、`docs`、`change-check`、`bug`、`plan`，`setup-git` 的 `worktree`、`pr`，最后 `setup-agent` 的 `workflow`，不含 `report-style`、`unit-test` 与 `gallery` | 项目级 | 手动 |
 | `batch-setup:project-reinstall` | 查出当前项目在两个宿主上各装过哪些安装器，标出需更新与无需更新，确认一次后只重装需更新的 | 项目级 | 自动 |
 | `batch-setup:user-reinstall` | 查出用户级配置在两个宿主上各装过哪些安装器，标出需更新与无需更新，确认一次后只重装需更新的 | 用户级 | 自动 |
 

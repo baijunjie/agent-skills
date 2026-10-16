@@ -36,10 +36,11 @@ put() { # put <文件> <行>...
   printf '%s\n' "${@:2}" >"$1"
 }
 
-# 九个子代理模板，复制进 $T/agents 统一取用，免得测试改到仓库里的模板。
+# 仓库里全部子代理模板，复制进 $T/agents 统一取用，免得测试改到仓库里的模板。
 mkdir -p "$T/agents"
 cp "$AGENT_SKILLS"/*/template/agents/*.md "$T/agents/"
 AGENT_NAMES=$(cd "$T/agents" && ls *.md | sed 's/\.md$//' | tr '\n' ' ')
+AGENT_COUNT=$(ls "$T/agents" | wc -l | tr -d ' ')
 
 # 在 CASE_DIR 下建一个只含给定子代理的模板目录与输出目录：agents_fixture <名>...
 agents_fixture() {
@@ -100,11 +101,12 @@ EOF
 
 register codex_render_all_templates
 case_codex_render_all_templates() {
+  [ "$AGENT_COUNT" -gt 0 ] || fail "仓库里没有收集到子代理模板"
   agents_fixture $AGENT_NAMES
   # shellcheck disable=SC2086
   try python3 "$RCA" --output-dir "$OUTD" "$SRC"/*.md
-  expect_rc 0 "渲染九个子代理"
-  expect_eq "$(ls "$OUTD" | wc -l | tr -d ' ')" 9 "生成的 .toml 个数"
+  expect_rc 0 "渲染全部子代理"
+  expect_eq "$(ls "$OUTD" | wc -l | tr -d ' ')" "$AGENT_COUNT" "生成的 .toml 个数"
   try python3 - "$SRC" "$OUTD" <<'EOF'
 import sys
 try:
@@ -132,7 +134,7 @@ print("ok", len(list(src.glob("*.md"))))
 EOF
   [ "$RC" != 77 ] || skip "python3 没有 tomllib（要 3.11+），也没有 tomli"
   expect_rc 0 "TOML 解析并与模板比对"
-  expect_out "ok 9"
+  expect_out "ok $AGENT_COUNT"
 }
 
 register codex_missing_args

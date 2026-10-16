@@ -1,0 +1,6 @@
+interface:
+  display_name: "UI Gallery Setup"
+  short_description: "安装 UI 状态 gallery skill 与维护子代理"
+  default_prompt: "Use $setup-agent:gallery to set up the UI state gallery."
+policy:
+  allow_implicit_invocation: false

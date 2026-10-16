@@ -287,6 +287,7 @@ INSTALLERS = {
         {"extra_env": RENDER_AGENT, "subagent_rule": fragment("subagent-rule", lead="\n")},
     ),
     "agent-report-style": ("project-user", {"extra_env": RENDER_STYLE}),
+    "agent-gallery": ("project", {"extra_env": RENDER_AGENT}),
     "agent-unit-test": ("project", {"extra_env": RENDER_AGENT}),
     "agent-workflow": ("project", {}),
     "git-commit": ("project-user", {}),

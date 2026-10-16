@@ -29,7 +29,7 @@ disable-model-invocation: true
 ## 通用步骤
 
 1. **查已装的专职 skill**：用所在宿主安装节里的命令查。工作流只为 `agent-docs`、`agent-unit-test`、
-   `agent-change-check` 安排步骤，且**只认装在当前项目里的**：工作流随仓库提交，用户级的 skill 队友那里没有。
+   `agent-gallery`、`agent-change-check` 安排步骤，且**只认装在当前项目里的**：工作流随仓库提交，用户级的 skill 队友那里没有。
    没装的整步省略，不写占位，也不顺手装上；只装在用户级的同样不写进工作流，要进工作流须先装进当前项目再重装本安装器。
    一个都没装也照常往下走，只留下不依赖 skill 的条目。
 2. **按已装情况裁剪模板**：模板是 `$TEMPLATE_DIR/INJECT.md`。`<!-- if-installed: <skill> -->` 到其后最近的
@@ -53,7 +53,7 @@ disable-model-invocation: true
 ```bash
 {{include: project-root}}
 C=${CLAUDE_CONFIG_DIR:-$HOME/.claude}
-for s in agent-docs agent-unit-test agent-change-check; do
+for s in agent-docs agent-unit-test agent-gallery agent-change-check; do
   p=; u=
   [ -f ".claude/skills/$s/SKILL.md" ] && p=1
   [ -f "$C/skills/$s/SKILL.md" ] && u=1
@@ -86,7 +86,7 @@ cp "$TEMPLATE_DIR/agent-workflow-edit/SKILL.template.md" .claude/skills/agent-wo
 
 ```bash
 {{include: project-root}}
-for s in agent-docs agent-unit-test agent-change-check; do
+for s in agent-docs agent-unit-test agent-gallery agent-change-check; do
   if [ -f ".agents/skills/$s/SKILL.md" ]; then echo "$s: 项目"
   elif [ -f "$HOME/.agents/skills/$s/SKILL.md" ]; then echo "$s: 仅用户级"
   fi
