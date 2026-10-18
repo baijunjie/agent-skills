@@ -4,7 +4,8 @@
 用变量 gate_peer 写另一个安装器名、gate_entry_ref 写本安装器里「融入」那一行在哪。
 -->
 
-- hook 入口：`git config core.hooksPath` 已设置，或 `$(git rev-parse --git-common-dir)/hooks/` 下已有不含
+- hook 入口：配置文件里设了 `core.hooksPath`（以 `env -u GIT_CONFIG_COUNT -u GIT_CONFIG_PARAMETERS git config core.hooksPath`
+  有输出为准；`-c` 或环境变量 `GIT_CONFIG_COUNT` 临时给的不算），或 `$(git rev-parse --git-common-dir)/hooks/` 下已有不含
   `# revert-gate hook entry` 一行的 `reference-transaction` / `pre-push`。完全覆盖会让原来那套 hook 失效，询问时说明。
   入口里已调用 `.githooks/hook.sh` 的，按{{gate_entry_ref}}「融入」那一行处理，不算冲突。
 - `.githooks/` 下的闸门脚本（`revert-gate.py`、`hook.sh`、`install.sh`）与流程脚本（`flow-*.sh`）由本安装器与 `{{gate_peer}}` 共同拥有：

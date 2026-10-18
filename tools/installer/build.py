@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把安装器源文件展开成 plugins/setup-<领域>/skills/<skill>/SKILL.md。
+"""把安装器源文件展开成 plugins/setup-<领域>/skills/<skill>/SKILL.md，把模板源文件展开成安装器 template/ 下的模板。
 
 源文件是 sources/<领域>-<skill>.md，公共片段是 fragments/<片段名>.md。语法只有两样，不支持条件与循环：
   {{include: 片段名}}   独占一行，替换为该片段内容；行首有缩进时片段每一行都补上同样的缩进，
@@ -19,9 +19,14 @@
 include 先于变量展开，所以片段里也能用变量。变量值要用 fragments/ 里的文案时经 fragment() 读进来，
 这种值同样展开其中的变量，但不能再 include，也不能引用另一个经 fragment() 注入的变量。
 
+模板源文件是 templates/<plugin>/<skill>/<template/ 下的相对路径>，展开成
+plugins/<plugin>/skills/<skill>/template/<同一相对路径>；只有存在源文件的模板是生成物，其余模板照旧手写。
+模板只展开独占一行的 {{include: 片段名}}（缩进与递归同上），其它 {{…}}（安装时才替换的占位，如 {{PR_BASE}}）
+原样保留，不做变量展开。给模板 include 的片段（含其递归 include 的）里不得有 {{变量}}。
+
 用法：
   build.py           写出全部生成物
-  build.py --check   生成物与源文件不一致时非零退出
+  build.py --check   生成物（含模板生成物）与源文件不一致时非零退出
 """
 # 构建时的校验清单，按类别分组；任一项不过就报错退出。新增或修改校验时同步改这里与 tools/tests/build/。
 #
@@ -31,13 +36,15 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #     报错指出出自源文件还是片段及其行号；经 fragment() 注入的片段同样逐行检查
 #   - 经 fragment() 注入的片段里有 {{include: …}}，或引用了另一个经 fragment() 注入的变量
 #   - 片段开头的说明块没有独占一行的 -->
+#   - 模板源文件：include 的片段不存在、循环 include（同上）；给模板 include 的片段（含递归 include 的）里有 {{变量}}
 #
 # 登记与命名
 #   - sources/ 下有没在 INSTALLERS 登记的源文件，或登记的源文件不存在
 #   - plugins/setup-*/skills/ 下有不对应登记源文件的目录（含只剩 template/ 的残留目录），
 #     或散落的普通文件（名为 .DS_Store 的跳过）
 #   - 源文件名不是 <领域>-<skill>
-#   - fragments/ 下有没被任何源文件 include、也没经 fragment() 引用的片段（全部安装器渲染完后查）
+#   - fragments/ 下有没被任何源文件或模板源文件 include、也没经 fragment() 引用的片段（全部安装器渲染完后查）
+#   - templates/ 下的模板源文件不是放成 templates/<plugin>/<skill>/<相对路径>，或 <plugin>/<skill> 不是已登记安装器的目录
 #
 # INSTALLERS 声明
 #   - scope 不是 SCOPES 里的作用域；声明了推导出的或作用域决定的变量
@@ -47,7 +54,7 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #     （RESOURCE_USE：RENDER_* 与以 _DIR / _ROOT 结尾的大写名，含 ${…} 写法）既不在 BASE_VARS、
 #     也没在正文里赋值、又没在 extra_env 里定义，或 extra_env 定义的变量在正文里没用到
 #
-# 模板
+# 模板（有模板源文件的，下面各项按展开结果查，不按磁盘上可能过期的生成物）
 #   - TEMPLATE_DIR（template/ 加 template_sub）不存在
 #   - include 了 skill-targets，template/<name>/SKILL.template.md 却不存在
 #   - 正文用 cat "$TEMPLATE_DIR/<文件>" >> 整块追加的模板不存在、不叫 INJECT.md，或首行不是空行
@@ -116,12 +123,13 @@ include 先于变量展开，所以片段里也能用变量。变量值要用 fr
 #     用户级 skill 固定写 $HOME/.agents/skills/<名>，项目级的 .agents/skills 与 .codex/agents 不受影响
 #
 # 文案
-#   - sources/ 与 fragments/ 的文件里出现 BANNED_WORDS 里的说法（如「告诉用户」，见 docs/decisions.md「固定用语」）；
-#     templates 里的不查
+#   - sources/、fragments/ 与 templates/ 下的文件里出现 BANNED_WORDS 里的说法（如「告诉用户」，见 docs/decisions.md「固定用语」）；
+#     安装器 template/ 下没有源文件、手写的模板不查
 #
 # 写出
-#   - 写出前先渲染并校验全部安装器，任一报错就一个生成物都不写
-#   - --check 按字节比较生成物（只是换行被改成 CRLF 也算不一致）；源文件与片段读入时 CRLF 与单独的 CR 都归一成 LF
+#   - 写出前先渲染并校验全部模板源文件与安装器，任一报错就一个生成物都不写
+#   - --check 按字节比较生成物与模板生成物（只是换行被改成 CRLF 也算不一致）；源文件、模板源文件与片段读入时
+#     CRLF 与单独的 CR 都归一成 LF
 #
 # 不校验、靠维护者自觉：
 #   - host-conventions、markers 以外各片段的放置位置与适用的源文件（见各片段文件开头的说明）；
@@ -144,6 +152,29 @@ REPO = HERE.parent.parent
 
 # 被 include 或经 fragment() 引用过的片段名，用来找出没人用的孤立片段。
 USED_FRAGMENTS: set[str] = set()
+
+# 模板源文件的目录，与展开后的模板生成物（路径 -> 内容）。render 里查 template/ 的各项按这里的内容查：
+# 改了模板源文件、还没重新写出时，磁盘上的生成物是旧的，按它查就会放过（或误报）展开后的新内容。
+TEMPLATES = HERE / "templates"
+TEMPLATE_OUTPUTS: dict[Path, str] = {}
+
+
+def template_text(path: Path) -> str:
+    """模板的内容：有模板源文件的取展开结果，其余读磁盘。"""
+    if path in TEMPLATE_OUTPUTS:
+        return TEMPLATE_OUTPUTS[path]
+    return path.read_text(encoding="utf-8", errors="ignore")
+
+
+def template_exists(path: Path) -> bool:
+    return path in TEMPLATE_OUTPUTS or path.is_file()
+
+
+def template_files(root: Path, pattern: str = "*") -> list[Path]:
+    """root 下按 pattern 递归匹配到的模板文件，连同还没写出的模板生成物。"""
+    found = {f for f in root.rglob(pattern) if f.is_file()}
+    found |= {f for f in TEMPLATE_OUTPUTS if root in f.parents and f.relative_to(root).match(pattern)}
+    return sorted(found)
 
 
 class Fragment(str):
@@ -681,9 +712,9 @@ def check_replacements(name: str, text: str, template_path: Path) -> None:
             rows.append((i + 1, cells))
     if not rows:
         return
-    if not template_path.is_file():
+    if not template_exists(template_path):
         sys.exit(f"{name}: 正文有替换表，替换的模板 {template_path.relative_to(REPO)} 却不存在")
-    template = template_path.read_text(encoding="utf-8")
+    template = template_text(template_path)
     spans = item_spans(template)
     where = template_path.relative_to(REPO)
     for lineno, cells in rows:
@@ -725,7 +756,7 @@ def check_replacements(name: str, text: str, template_path: Path) -> None:
 
 def template_skill_name(path: Path) -> str:
     """模板 frontmatter 里的 name，没有 frontmatter 或没有 name 时为空串。"""
-    lines = path.read_text(encoding="utf-8").split("\n")
+    lines = template_text(path).split("\n")
     if lines[0] != "---" or "---" not in lines[1:]:
         return ""
     m = re.search(r"^name: (.*)$", "\n".join(lines[1 : lines.index("---", 1)]), re.M)
@@ -758,11 +789,11 @@ def check_appended_templates(name: str, text: str, template_dir: Path) -> None:
     """
     for rel in APPEND_TEMPLATE.findall("\n".join(bash_lines(text))):
         tpl = template_dir / rel
-        if not tpl.is_file():
+        if not template_exists(tpl):
             sys.exit(f"{name}: 正文要追加的模板 {(template_dir / rel).relative_to(REPO)} 不存在")
         if tpl.name != INJECT_TEMPLATE:
             sys.exit(f"{name}: 写进指令文件的模板要命名为 {INJECT_TEMPLATE}，现在是 {tpl.name}")
-        if not tpl.read_text(encoding="utf-8").startswith("\n"):
+        if not template_text(tpl).startswith("\n"):
             sys.exit(f"{name}: 模板 {tpl.relative_to(REPO)} 被整块追加进指令文件，首行必须是空行")
 
 
@@ -772,9 +803,7 @@ def check_template_layout(name: str, template: Path) -> None:
     目录名对不上 frontmatter name，看模板就看不出装到哪；直接叫 SKILL.md 则与 skill 本体同名，看名字分不出哪份是模板。
     template/ 下直接放着的带 frontmatter name 的 *.md 是没按目录形态放的 skill 模板（子代理在 agents/ 下，不在此列）。
     """
-    for f in sorted(template.rglob("*")):
-        if not f.is_file():
-            continue
+    for f in template_files(template):
         where = f.relative_to(REPO)
         if f.name == "SKILL.md":
             sys.exit(f"{name}: 模板 {where} 不能叫 SKILL.md，装成 skill 目录的那份叫 {SKILL_TEMPLATE}")
@@ -795,7 +824,7 @@ def check_installed_skill_names(name: str, text: str, template: Path) -> None:
     指令文件里指向它的入口也跟着指空。子代理、输出风格模板装到别处，不在此列。
     """
     commands = "\n".join(bash_lines(text))
-    for tpl in sorted(template.glob(f"*/{SKILL_TEMPLATE}")):
+    for tpl in (f for f in template_files(template, SKILL_TEMPLATE) if f.parent.parent == template):
         skill_name = template_skill_name(tpl)
         if not skill_name:
             continue
@@ -849,8 +878,9 @@ def check_codex_skill_dir(name: str, text: str) -> None:
 
 
 def check_banned_words() -> None:
-    """sources/ 与 fragments/ 里不得出现已禁用的说法。"""
-    for path in sorted((HERE / "sources").glob("*.md")) + sorted((HERE / "fragments").glob("*.md")):
+    """sources/、fragments/ 与 templates/ 里不得出现已禁用的说法。"""
+    templates = sorted(p for p in (HERE / "templates").rglob("*") if p.is_file())
+    for path in sorted((HERE / "sources").glob("*.md")) + sorted((HERE / "fragments").glob("*.md")) + templates:
         for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             for word, fix in BANNED_WORDS.items():
                 if word in line:
@@ -1019,13 +1049,13 @@ def render(name: str, scope: str, declared: dict) -> str:
     check_installed_skill_names(name, text, template)
     check_appended_templates(name, text, template_dir)
     if includes["skill-targets"]:
-        if not (template / name / SKILL_TEMPLATE).is_file():
+        if not template_exists(template / name / SKILL_TEMPLATE):
             sys.exit(f"{name}: include 了 skill-targets，模板 {(template / name / SKILL_TEMPLATE).relative_to(REPO)} 却不存在")
-    for f in sorted(template.rglob("*")):
+    for f in template_files(template):
         # .DS_Store 由 Finder 自动生成、不进版本库，不按模板检查
-        if f.is_file() and f.name != ".DS_Store":
+        if f.name != ".DS_Store":
             where = f"{f.relative_to(REPO)} "
-            text_f = f.read_text(encoding="utf-8", errors="ignore")
+            text_f = template_text(f)
             if check_markers(name, marker, text_f, where, paired=True):
                 writes_instruction_file = True
                 check_marked_heading_level(name, text_f, where)
@@ -1053,10 +1083,38 @@ def check_registry() -> None:
             sys.exit(f"{path.relative_to(REPO)} 没有对应的登记源文件（安装器 SKILL.md 不得手写，残留目录要删掉）")
 
 
+def render_templates() -> None:
+    """展开 templates/ 下的模板源文件，结果记进 TEMPLATE_OUTPUTS。
+
+    只展开 include：模板里别的 {{…}} 是装出时才替换的占位，原样保留。片段里的 {{变量}} 在这里没有值可填，
+    留下来会被当成占位装出去，所以给模板 include 的片段不得含变量。
+    """
+    if not TEMPLATES.is_dir():
+        return
+    installers = {locate(n) for n in INSTALLERS}
+    for path in sorted(TEMPLATES.rglob("*")):
+        # .DS_Store 由 Finder 自动生成、不进版本库，不算模板源文件
+        if not path.is_file() or path.name == ".DS_Store":
+            continue
+        rel = path.relative_to(HERE).as_posix()
+        parts = path.relative_to(TEMPLATES).parts
+        if len(parts) < 3:
+            sys.exit(f"{rel}: 模板源文件须放成 templates/<plugin>/<skill>/<template/ 下的相对路径>")
+        plugin, skill, *rest = parts
+        if (plugin, skill) not in installers:
+            sys.exit(f"{rel}: {plugin}/{skill} 不是已登记安装器的目录，模板源文件只能放在已登记安装器的目录下")
+        lines = expand(rel, rel, "", (), Counter())
+        for line, origin in lines:
+            if origin.startswith("fragments/") and VARIABLE.search(line):
+                sys.exit(f"{rel}: 给模板 include 的片段不得含 {{{{变量}}}}，{origin}：{line.strip()}")
+        target = REPO / "plugins" / plugin / "skills" / skill / "template" / Path(*rest)
+        TEMPLATE_OUTPUTS[target] = "\n".join(line for line, _ in lines)
+
+
 def check_orphans() -> None:
-    """全部安装器渲染完后调用：fragments/ 下的片段都须被 include 或经 fragment() 引用过。"""
+    """全部安装器渲染完后调用：fragments/ 下的片段都须被源文件或模板源文件 include，或经 fragment() 引用过。"""
     for stem in sorted({p.stem for p in (HERE / "fragments").glob("*.md")} - USED_FRAGMENTS):
-        sys.exit(f"fragments/{stem}.md 没有被任何源文件 include，也没有经 fragment() 引用")
+        sys.exit(f"fragments/{stem}.md 没有被任何源文件 include（模板源文件的也算），也没有经 fragment() 引用")
 
 
 def main() -> int:
@@ -1066,8 +1124,11 @@ def main() -> int:
         return 2
     check_registry()
     check_banned_words()
+    # 模板先展开：render 里查 template/ 的各项要按展开后的内容查
+    render_templates()
     # 全部渲染、校验通过后才写，免得后面的安装器报错时留下一半已更新的生成物
     outputs = [(target_of(name), render(name, scope, declared)) for name, (scope, declared) in INSTALLERS.items()]
+    outputs += sorted(TEMPLATE_OUTPUTS.items())
     check_orphans()
     stale = []
     for path, content in outputs:

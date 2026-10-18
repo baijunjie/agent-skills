@@ -100,7 +100,7 @@ mkdir -p .agents/skills/agent-unit-test
 cp "$TEMPLATE_DIR/agent-unit-test/SKILL.template.md" .agents/skills/agent-unit-test/SKILL.md
 ```
 
-装子代理（第 5 步）：用渲染脚本的 `--replace` 替换同名旧 `.toml`，目标是软链时它会整批拒绝写入。
+装子代理（第 5 步）：用渲染脚本的 `--replace` 替换同名旧 `.toml`。
 
 ```bash
 {{include: project-root}}
@@ -115,7 +115,7 @@ python3 "$RENDER_AGENT" --replace --output-dir .codex/agents "$TEMPLATE_DIR/agen
 
 {{include: reinstall}}
 
-本安装器的定制值：「本项目约定」一节整节，第 1 步读出，第 7 步填回。
+本安装器的定制值：「本项目约定」一节整节，第 1 步读出，第 7 步填回。约定的表还只剩 `<…>`、填的框架已不在项目依赖里、或其中的命令本身执行不了时，不算无变更，照常重装并重新确定这些位置。
 
 - 表：按第 2、3、6、7 步从项目现状重新确定，确定不了的才沿用旧表。
 - 表下「已有与源码同目录的测试（按语言惯例放的除外）怎么处理」：按第 3 步确定，旧值是三个选项之一就沿用。

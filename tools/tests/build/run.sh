@@ -4,6 +4,7 @@
 # 环境变量 BUILD_PY 可指向另一份 build.py（如故意删掉某项校验的副本），默认测仓库里的那份。
 #
 # 基础夹具是真实工作副本里 tools/installer/ 与 plugins/setup-*/ 的一份拷贝（build.py 只读写这两处）。
+# 生成物包括各安装器的 SKILL.md 与 tools/installer/templates/ 下模板源文件对应的模板生成物。
 # 每个用例再复制出独立的副本 $W，施加一处破坏，在副本里运行 build.py：
 #   bad_*    写模式与 --check 都报错退出（退出码 1）且输出含关键片段，写模式报错后生成物一个不变
 #   allow_*  看似可疑、但按约定应放行的写法：写模式与 --check 都通过
@@ -56,11 +57,22 @@ EOF
 chmod +x "$T/bin/mut"
 mut() { "$T/bin/mut" "$@"; }
 
-# 生成物（各安装器的 SKILL.md，template/ 下的不算）的校验和清单，用于判断写模式有没有动过它们。
+# 生成物的校验和清单，用于判断写模式有没有动过它们：各安装器的 SKILL.md，加上基础夹具里有模板源文件的
+# 模板生成物（清单在 build_base 里定下，用例新加的模板源文件不进清单，要查的在用例里单独断言）。
+# 没有源文件的手写模板不算：有的用例要改它们。
 outputs_hash() {
-  (cd "$1" && find plugins -path 'plugins/setup-*/skills/*/SKILL.md' ! -path '*/template/*' -type f | LC_ALL=C sort | while IFS= read -r f; do
-    printf '%s %s\n' "$(cksum <"$f")" "$f"
-  done)
+  (cd "$1" && { find plugins -path 'plugins/setup-*/skills/*/SKILL.md' ! -path '*/template/*' -type f; printf '%s\n' "$TEMPLATE_OUTPUTS"; } |
+    LC_ALL=C sort | while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      if [ -f "$f" ]; then printf '%s %s\n' "$(cksum <"$f")" "$f"; else printf 'missing %s\n' "$f"; fi
+    done)
+}
+
+# 模板源文件 tools/installer/templates/<plugin>/<skill>/<相对路径> 对应的生成物路径，每行一个。
+template_outputs() {
+  (cd "$1" && [ ! -d tools/installer/templates ] ||
+    find tools/installer/templates -type f ! -name .DS_Store |
+      sed -E 's#^tools/installer/templates/([^/]+)/([^/]+)/#plugins/\1/skills/\2/template/#')
 }
 
 build_base() {
@@ -69,29 +81,33 @@ build_base() {
   cp -R "$REPO_ROOT/plugins/"setup-* "$base/plugins/"
   cp -R "$REPO_ROOT/tools/installer" "$base/tools/installer"
   cp "$BUILD_PY_SRC" "$base/tools/installer/build.py"
+  TEMPLATE_OUTPUTS=$(template_outputs "$base")
   BASE_HASH=$(outputs_hash "$base")
 }
 
-# 每个用例的副本：W 根目录，I 安装器目录，S 源文件，F 片段，P plugins，BPY 副本里的 build.py。
+# 每个用例的副本：W 根目录，I 安装器目录，S 源文件，F 片段，TS 模板源文件，P plugins，BPY 副本里的 build.py。
 fixture() {
   W=$CASE_DIR/w
   cp -R "$T/base" "$W"
   I=$W/tools/installer
   S=$I/sources
   F=$I/fragments
+  TS=$I/templates
   P=$W/plugins
   BPY=$I/build.py
 }
 
 build() { try run_at "$W" python3 tools/installer/build.py "$@"; }
 
-# 写模式与 --check 都报错退出且输出含给定的全部片段；写模式报错后生成物一个不变。
+# 写模式与 --check 都报错退出且输出含给定的全部片段；写模式报错后生成物一个不变（与运行前比：
+# 有的用例为了破坏要删掉某个模板生成物）。
 expect_build_fails() {
-  local s
+  local s before
+  before=$(outputs_hash "$W")
   build
   expect_rc 1 "build.py"
   for s in "$@"; do expect_out "$s" "build.py"; done
-  expect_eq "$(outputs_hash "$W")" "$BASE_HASH" "写模式报错后生成物应一个不变"
+  expect_eq "$(outputs_hash "$W")" "$before" "写模式报错后生成物应一个不变"
   build --check
   expect_rc 1 "build.py --check"
   for s in "$@"; do expect_out "$s" "build.py --check"; done
@@ -114,9 +130,14 @@ bad() {
 
 openai_yaml() { printf '%b' "$1" >"$P/setup-agent/skills/plan/agents/openai.yaml"; }
 CRON_TPL='$P/setup-tools/skills/cron/template/cron/tasks.conf'
-WT_TPL='$P/setup-git/skills/worktree/template/git-worktree/SKILL.template.md'
+# 有模板源文件的模板改它的源文件（render 里的模板检查按展开结果查），WT_OUT 是生成物
+WT_TPL='$TS/setup-git/worktree/git-worktree/SKILL.template.md'
+WT_OUT='$P/setup-git/skills/worktree/template/git-worktree/SKILL.template.md'
 WT_RULES='$P/setup-git/skills/worktree/template/INJECT.md'
-WF_TPL='$P/setup-agent/skills/workflow/template/INJECT.md'
+WF_TPL='$TS/setup-agent/workflow/INJECT.md'
+# 有模板源文件的模板：源文件与生成物
+GL_SRC='$TS/setup-agent/gallery/agent-gallery/SKILL.template.md'
+GL_OUT='$P/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md'
 
 # ---------------------------------------------------------------------------
 # 基线
@@ -318,6 +339,123 @@ bad bad_orphan_fragment 'printf "没人用的片段\n" >"$F/unused-fragment.md"
   expect_build_fails "fragments/unused-fragment.md 没有被任何源文件 include"'
 
 # ---------------------------------------------------------------------------
+# 模板源文件：tools/installer/templates/<plugin>/<skill>/<相对路径> -> plugins/<plugin>/skills/<skill>/template/<相对路径>
+
+register baseline_template_outputs
+case_baseline_template_outputs() {
+  fixture
+  # 夹具里应有模板源文件，否则下面这组用例测的是空集合
+  [ -n "$TEMPLATE_OUTPUTS" ] || fail "基础夹具里没有模板源文件"
+  local f
+  while IFS= read -r f; do
+    [ -f "$W/$f" ] || fail "模板生成物不存在：$f"
+  done <<<"$TEMPLATE_OUTPUTS"
+}
+
+register check_template_output_hand_edited
+case_check_template_output_hand_edited() {
+  fixture
+  eval "mut append \"$GL_OUT\" \$'\\n手改的一行\\n'"
+  build --check
+  expect_rc 1 "手改模板生成物"
+  expect_out "生成物过期：plugins/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md"
+  build
+  expect_rc 0 "重新生成"
+  expect_eq "$(outputs_hash "$W")" "$BASE_HASH" "重新生成后应恢复原样"
+}
+
+register check_template_output_missing
+case_check_template_output_missing() {
+  fixture
+  eval "rm \"$GL_OUT\""
+  build --check
+  expect_rc 1 "模板生成物缺失"
+  expect_out "生成物过期：plugins/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md"
+  build
+  expect_rc 0 "重新生成"
+  expect_eq "$(outputs_hash "$W")" "$BASE_HASH" "重新生成后应补回"
+}
+
+register check_template_stale_after_source_edit
+case_check_template_stale_after_source_edit() {
+  fixture
+  eval "mut sub \"$GL_SRC\" '# UI 状态 gallery' '# UI 状态 gallery（改过）'"
+  build --check
+  expect_rc 1 "模板源文件改过、生成物未重新生成"
+  expect_out "生成物过期：plugins/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md"
+  expect_not_out "生成物过期：plugins/setup-agent/skills/gallery/SKILL.md"
+  build
+  expect_rc 0 "重新生成"
+  eval "grep -q '# UI 状态 gallery（改过）' \"$GL_OUT\"" || fail "重新生成后模板生成物应带上改动"
+}
+
+# 正常展开：include 换成片段正文（缩进照补、片段说明块去掉），模板里别的 {{…}} 占位原样保留
+register allow_template_include_and_placeholders
+case_allow_template_include_and_placeholders() {
+  fixture
+  local src=$TS/setup-git/pr/git-pr/SKILL.template.md out=$P/setup-git/skills/pr/template/git-pr/SKILL.template.md
+  mkdir -p "$(dirname "$src")"
+  cp "$out" "$src"
+  grep -q '{{PR_BASE}}' "$src" || fail "git-pr 模板里应有 {{PR_BASE}} 占位"
+  mut append "$src" $'\n- 列表项\n\n  {{include: companion-subagents}}\n\n占位 {{pr_base_token}}、{{ 半截 }} 与 {{include: x}} 后面有字的都原样保留\n'
+  expect_build_ok
+  python3 - "$out" "$F/companion-subagents.md" <<'PY' || fail "模板生成物的展开结果不对"
+import sys
+out = open(sys.argv[1], encoding="utf-8").read()
+frag = open(sys.argv[2], encoding="utf-8").read().split("\n")
+body = frag[frag.index("-->") + 1:] if frag[0] == "<!--" else frag
+body = [l for l in body if l]
+assert body, "片段正文为空"
+assert "{{PR_BASE}}" in out, "{{PR_BASE}} 应保留"
+assert "占位 {{pr_base_token}}、{{ 半截 }} 与 {{include: x}} 后面有字的都原样保留" in out, "其它 {{…}} 应原样保留"
+assert "{{include: companion-subagents}}" not in out, "独占一行的 include 应展开"
+lines = out.split("\n")
+for line in body:
+    assert "  " + line in lines, f"片段行应补上缩进：{line}"
+assert "<!--" not in out.split("- 列表项")[-1], "片段说明块不应进生成物"
+PY
+}
+
+bad bad_template_source_unregistered_dir 'mkdir -p "$TS/setup-agent/no-such" && printf "x\n" >"$TS/setup-agent/no-such/x.md"
+  expect_build_fails "templates/setup-agent/no-such/x.md" "setup-agent/no-such 不是已登记安装器的目录"
+  [ ! -e "$P/setup-agent/skills/no-such" ] || fail "不该写出未登记目录下的模板"'
+bad bad_template_source_unknown_plugin 'mkdir -p "$TS/setup-nope/gallery" && printf "x\n" >"$TS/setup-nope/gallery/x.md"
+  expect_build_fails "setup-nope/gallery 不是已登记安装器的目录"'
+bad bad_template_source_too_shallow 'printf "x\n" >"$TS/setup-agent/x.md"
+  expect_build_fails "templates/setup-agent/x.md: 模板源文件须放成 templates/<plugin>/<skill>/"'
+bad bad_template_missing_fragment "mut append \"$GL_SRC\" \$'\\n{{include: no-such-fragment}}\\n'
+  expect_build_fails '片段不存在 no-such-fragment' 'templates/setup-agent/gallery/agent-gallery/SKILL.template.md 第'"
+bad bad_template_missing_fragment_nested 'mut append "$F/companion-subagents.md" $'"'"'\n{{include: no-such-fragment}}\n'"'"'
+  expect_build_fails "片段不存在 no-such-fragment" "fragments/companion-subagents.md 第"'
+bad bad_template_include_cycle 'mut append "$F/companion-subagents.md" $'"'"'\n{{include: project-conventions}}\n'"'"'
+  mut append "$F/project-conventions.md" $'"'"'\n{{include: companion-subagents}}\n'"'"'
+  expect_build_fails "循环 include" "templates/setup-agent/"'
+bad bad_template_fragment_variable 'mut append "$F/companion-subagents.md" $'"'"'\n含变量 {{skill}}\n'"'"'
+  expect_build_fails "给模板 include 的片段不得含 {{变量}}" "fragments/companion-subagents.md 第"'
+register bad_template_fragment_variable_nested
+case_bad_template_fragment_variable_nested() {
+  fixture
+  # 经片段递归 include 进模板的片段同样不得含变量，报错指回那个片段
+  printf '嵌套的 {{marker}}\n' >"$F/nested-var.md"
+  mut append "$F/project-conventions.md" $'\n{{include: nested-var}}\n'
+  expect_build_fails "给模板 include 的片段不得含 {{变量}}" "fragments/nested-var.md 第 1 行"
+}
+# 只被模板 include 的片段，模板不再 include 它就成了孤立片段
+register bad_template_orphan_fragment
+case_bad_template_orphan_fragment() {
+  fixture
+  local f
+  for f in "$TS"/*/*/*/SKILL.template.md; do
+    python3 -c 'import sys, pathlib; p = pathlib.Path(sys.argv[1]); p.write_text(p.read_text(encoding="utf-8").replace("{{include: companion-subagents}}\n", ""), encoding="utf-8")' "$f"
+  done
+  ! grep -rq "include: companion-subagents" "$S" "$F" "$TS" || fail "还有地方 include companion-subagents"
+  expect_build_fails "fragments/companion-subagents.md 没有被任何源文件 include"
+}
+# 「模板」项的校验按展开结果查：只改模板源文件、不重新写出，也要拦下
+bad bad_template_checks_use_rendered "mut sub \"$GL_SRC\" 'name: agent-gallery' 'name: agent-gallery-x'
+  expect_build_fails 'plugins/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md 的 frontmatter name 须为所在目录名 agent-gallery'"
+
+# ---------------------------------------------------------------------------
 # INSTALLERS
 
 bad bad_unreferenced_variable 'mut sub "$BPY" "\"agent-plan\": (\"project-user\", {})," "\"agent-plan\": (\"project-user\", {\"foo\": \"bar\"}),"
@@ -336,10 +474,10 @@ for pair in "root=/" "trailing_slash=/cron/" "dotdot=/.." "dot_segment=/./cron" 
 done
 bad bad_template_dir_missing 'mut sub "$BPY" "{\"template_sub\": \"/cron\"}" "{\"template_sub\": \"/no-such\"}"
   expect_build_fails "TEMPLATE_DIR 指向的目录不存在 plugins/setup-tools/skills/cron/template/no-such"'
-bad bad_skill_targets_template_missing 'rm "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md"
+bad bad_skill_targets_template_missing 'rm "$TS/setup-git/commit/git-commit/SKILL.template.md" "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md"
   expect_build_fails "include 了 skill-targets，模板 plugins/setup-git/skills/commit/template/git-commit/SKILL.template.md 却不存在"'
 # 模板目录与 name 一起改了、安装命令没跟上
-bad bad_skill_template_name_renamed 'WF=$P/setup-agent/skills/workflow/template
+bad bad_skill_template_name_renamed 'WF=$TS/setup-agent/workflow
   mv "$WF/agent-workflow-edit" "$WF/agent-workflow-ed"
   mut sub "$WF/agent-workflow-ed/SKILL.template.md" "name: agent-workflow-edit" "name: agent-workflow-ed"
   expect_build_fails "模板 plugins/setup-agent/skills/workflow/template/agent-workflow-ed/SKILL.template.md 的 frontmatter name 是 agent-workflow-ed" "没有装到 skills/agent-workflow-ed 的命令"'
@@ -353,7 +491,7 @@ bad bad_template_named_skill_md 'cp "$P/setup-git/skills/commit/template/git-com
 bad bad_skill_template_nested 'mkdir -p "$P/setup-git/skills/commit/template/extra/git-commit"
   cp "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md" "$P/setup-git/skills/commit/template/extra/git-commit/"
   expect_build_fails "plugins/setup-git/skills/commit/template/extra/git-commit/SKILL.template.md 须直接放在 template/<skill 名>/ 下"'
-bad bad_skill_template_flat 'mv "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md" "$P/setup-git/skills/commit/template/git-commit.md"
+bad bad_skill_template_flat 'mv "$TS/setup-git/commit/git-commit/SKILL.template.md" "$TS/setup-git/commit/git-commit.md"
   expect_build_fails "装成 skill 的模板 plugins/setup-git/skills/commit/template/git-commit.md 要放成 template/git-commit/SKILL.template.md"'
 bad bad_skill_install_cmd_renamed 'mut sub "$S/git-worktree.md" "skills/git-worktree/SKILL.md" "skills/git-wt/SKILL.md" 2
   mut sub "$S/git-worktree.md" "mkdir -p .agents/skills/git-worktree" "mkdir -p .agents/skills/git-wt"
@@ -776,6 +914,8 @@ bad bad_banned_word_source 'mut append "$S/agent-plan.md" $'"'"'\n装完告诉�
   expect_build_fails "sources/agent-plan.md 第" "用了「告诉用户」"'
 bad bad_banned_word_fragment 'mut append "$F/state-mismatch.md" $'"'"'\n出错时告诉用户。\n'"'"'
   expect_build_fails "fragments/state-mismatch.md 第" "用了「告诉用户」"'
+bad bad_banned_word_template_source 'mut append "'"$GL_SRC"'" $'"'"'\n预览好了就告诉用户。\n'"'"'
+  expect_build_fails "templates/setup-agent/gallery/agent-gallery/SKILL.template.md 第" "用了「告诉用户」"'
 
 # ---------------------------------------------------------------------------
 # 替换表（git-worktree 的写法 B / C）
@@ -804,7 +944,7 @@ bad bad_replacement_row_columns 'mut sub "$S/git-worktree.md" "| 以「reset 被
   expect_build_fails "替换表行须有 位置 / 原文 / 改成 三列"'
 bad bad_replacement_position_unquoted 'mut sub "$S/git-worktree.md" "| 以「reset 被拦时」开头的那条 | 整条 | 删掉 |" "| reset 被拦时那条 | 整条 | 删掉 |"
   expect_build_fails "替换表的「位置」须用「」写出所在列表项的开头"'
-bad bad_replacement_template_missing "rm \"$WT_TPL\"
+bad bad_replacement_template_missing "rm \"$WT_TPL\" \"$WT_OUT\"
   expect_build_fails '正文有替换表，替换的模板 plugins/setup-git/skills/worktree/template/git-worktree/SKILL.template.md 却不存在'"
 
 register allow_replacement_table_in_fence

@@ -7,7 +7,7 @@ description: 把当前分支的改动提交为指向目标分支的 PR（已有�
 
 `<分支>` 指承载本次 PR 的分支：第 1 步另建了分支的是新分支，否则是当前分支。
 `<推送目标>` 指 `<分支>` 在 `<推送远端>`（见「目标分支」）上对应的分支名：已有开放 PR 的取它的 head 分支，否则同 `<分支>`。
-「汇报」指停下说明情况、等用户指示；下文没写到、又拿不准的情形一律汇报。
+拿不准就汇报：停下，写清要定的事（有哪些选项）或缺的信息，连同已查明的情况一起报出，由收到汇报的一方（用户，或由派发者转给用户）决定后再继续，不要自行决定。
 
 ## 流程脚本
 
@@ -53,7 +53,7 @@ sh "$(git worktree list --porcelain | sed -n '1s/^worktree //p')/.githooks/flow-
 4. **推送前预检**：工作树里没有 `.githooks/revert-gate.py`（仓库没有回退闸门）的，直接做下面的「人工核对」；有的，先确认 hook 入口、再跑预检。
 
    **hook 入口**：它管第 5 步推送时的自动检查，缺了不影响预检。
-   - 设了 `core.hooksPath` 的：它指向的 `pre-push` 里没有调用 `.githooks/hook.sh` 就告知用户，继续往下做，不执行 `install.sh`。
+   - 配置文件里设了 `core.hooksPath` 的（以 `env -u GIT_CONFIG_COUNT -u GIT_CONFIG_PARAMETERS git config core.hooksPath` 有输出为准；`-c` 或环境变量 `GIT_CONFIG_COUNT` 临时给的不算）：它指向的 `pre-push` 里没有调用 `.githooks/hook.sh` 就告知用户，继续往下做，不执行 `install.sh`。
    - 没设的：`$(git rev-parse --git-common-dir)/hooks/pre-push` 里没有 `# revert-gate hook entry` 一行，就在仓库（或当前 worktree）根目录执行
      `sh .githooks/install.sh` 补装并告知用户；仓库里没有 `.githooks/branches` 时加 `--pr-only`。
 

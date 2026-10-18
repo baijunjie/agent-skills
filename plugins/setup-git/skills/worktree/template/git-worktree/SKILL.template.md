@@ -5,7 +5,8 @@ description: 在独立 worktree 的分支上开发并合并回目标分支时的
 
 # worktree 分支的操作
 
-下文「分支」指在 worktree 里开发的分支，「目标分支」指它合回去的分支。「汇报」指停下说明情况、等用户指示；下文没写到、又拿不准的情形一律汇报。
+下文「分支」指在 worktree 里开发的分支，「目标分支」指它合回去的分支。
+拿不准就汇报：停下，写清要定的事（有哪些选项）或缺的信息，连同已查明的情况一起报出，由收到汇报的一方（用户，或由派发者转给用户）决定后再继续，不要自行决定。
 
 分支合并回哪、从哪切出，从它自己的 git config 读（怎么记见「## 创建」）：目标分支（`targetBranch`）读不出来、切出点（`forkPoint`）缺失，
 或指定的 worktree 没有分支（临时的 `--detach` worktree），都汇报，不要按分支名猜，也不要自己估一个补上。
@@ -28,7 +29,7 @@ sh "$(git worktree list --porcelain | sed -n '1s/^worktree //p')/.githooks/flow-
 - 分支名按变更类型取 `feat/`、`fix/`、`refactor/`、`docs/` 前缀；worktree 放在仓库内的 `.worktrees/<分支短名>/`，分支短名是分支名去掉这类前缀的部分（`feat/login-retry` 放在 `.worktrees/login-retry/`）。
 - 只为验证而临时注入代码时，可另开不建分支的临时 worktree（`git worktree add --detach`），里面的改动不提交、验完即删。
 - 创建 worktree 前，先看主工作副本里有没有 `.githooks/revert-gate.py`：没有就视为不用闸门，跳过这条和合并前的闸门预检；有就补装闸门（它的 hook 与常驻守护分支配置在各 clone 自己的 `.git/` 里，不随仓库带来）：
-  - 在主工作副本根目录执行 `git config --get-all revert-gate.branch >/dev/null || sh .githooks/install.sh $(git config core.hooksPath >/dev/null && echo --branches-only)`：已装过的什么也不做，没装的按随仓库提交的 `.githooks/branches` 补装；设了 `core.hooksPath`（hook 由 husky 等体系接管）的只补写常驻守护分支（始终受闸门守护的分支，通常是主分支）配置。
+  - 在主工作副本根目录执行 `git config --get-all revert-gate.branch >/dev/null || sh .githooks/install.sh $(env -u GIT_CONFIG_COUNT -u GIT_CONFIG_PARAMETERS git config core.hooksPath >/dev/null && echo --branches-only)`：已装过的什么也不做，没装的按随仓库提交的 `.githooks/branches` 补装；配置文件里设了 `core.hooksPath`（hook 由 husky 等体系接管；`-c` 或环境变量 `GIT_CONFIG_COUNT` 临时给的不算）的只补写常驻守护分支（始终受闸门守护的分支，通常是主分支）配置。
   - 命令实际执行了安装的告知用户；报错时汇报，不自行处理。
 - 补装之后按下面的顺序创建：
   1. 按「## 对齐远程的目标分支」把目标分支对齐；领先远端（有未推送的提交）是正常的，不用处理。对齐不了就汇报，不要在旧位置上切出。

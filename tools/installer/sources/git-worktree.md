@@ -156,7 +156,7 @@ disable-model-invocation: true
      闸门读的是常驻守护分支（通常是主分支）上已提交的脚本，提交进去之后才开始检查。
    - 操作步骤在 `git-worktree` skill 里，要改就改这个 skill，不要搬回指令文件——重装时指令文件那块会整份覆盖。
    - hook 与常驻守护分支配置在各 clone 的 `.git/` 里，不随仓库生效：其它 clone 各自执行一次 `sh .githooks/install.sh`
-     （设了 `core.hooksPath`、hook 由 husky 等体系接管的改为 `sh .githooks/install.sh --branches-only`），
+     （配置文件里设了 `core.hooksPath`、hook 由 husky 等体系接管的改为 `sh .githooks/install.sh --branches-only`），
      同一 clone 的所有 worktree 共用；skill 也要求 agent 创建 worktree 前发现没装就补装。
      改常驻守护分支时改 `.githooks/branches` 并提交，各 clone 重新执行一次同样的命令才生效。
    - 重装时保留的只有：常驻守护分支里主分支以外的分支，以及没有 `python3` 时选过的「不要闸门」（写法 C）。

@@ -29,15 +29,17 @@
 
 ## 生成
 
-安装器 `SKILL.md` 是生成物、不得手改，见 AGENTS.md「硬规则」。改了 `tools/installer/` 或安装器的 `template/`、`agents/openai.yaml` 后，运行 `python3 tools/installer/build.py` 重新生成（任一安装器校验不过就一个文件都不写），提交前再跑 `python3 tools/installer/build.py --check`（生成物与源文件不一致时非零退出并列出文件）。
+安装器 `SKILL.md` 与有模板源文件的模板是生成物、不得手改，见 AGENTS.md「硬规则」。改了 `tools/installer/` 或安装器的 `template/`、`agents/openai.yaml` 后，运行 `python3 tools/installer/build.py` 重新生成（任一安装器或模板源文件校验不过就一个文件都不写），提交前再跑 `python3 tools/installer/build.py --check`（生成物与源文件不一致时非零退出并列出文件）。
 
 - 语法（`{{include: 片段名}}`、`{{变量}}`）、变量来源与 `INSTALLERS` 的写法见 `build.py` 模块 docstring 与注释。`INSTALLERS` 只声明 `scope` 与有差异的变量，生成物路径、`skill`、`name`、`marker` 由源文件名推导。
 - 片段每个文件开头的说明块写它做什么、哪类源文件引用、放在哪；改片段前先看它，新增片段照同样格式写说明块。
-- 安装器的 `agents/openai.yaml` 与 `template/` 手工维护，不由构建生成。
+- 模板源文件放 `tools/installer/templates/<plugin>/<skill>/<template/ 下的相对路径>`，生成 `plugins/<plugin>/skills/<skill>/template/<同一相对路径>`，如 `templates/setup-agent/gallery/agent-gallery/SKILL.template.md` 生成 `plugins/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md`。`<plugin>/<skill>` 须是已登记安装器的目录。有源文件的模板改源文件，生成物不得手改；没有源文件的模板照旧在 `template/` 里手写。
+- 模板只展开独占一行的 `{{include: 片段名}}`（缩进、递归与片段说明块的处理同安装器），其它 `{{…}}`（安装时才替换的占位，如 `{{PR_BASE}}`）原样保留，不做变量展开。模板与安装器共用 `fragments/`；给模板 include 的片段（含它再 include 的）不得含 `{{变量}}`。
+- 安装器的 `agents/openai.yaml` 与没有源文件的 `template/` 手工维护，不由构建生成。
 
 ## 源文件契约
 
-源文件只写本安装器独有的步骤与顺序，片段里的规则不复述。要点：
+源文件只写本安装器独有的步骤与顺序，片段里的规则不复述；模板源文件同样只写本 skill 独有的规则，多份装出的 skill 共用的规则写成片段 include。要点：
 
 - frontmatter 写在源文件里，设 `disable-model-invocation: true`；`description` 以 `{{scope_lead}}` 开头，末句写成 `{{scope_tail}}用于……等场景。`。
 - `description` 只写一句话：装出什么、用于什么场景（装到哪由 `{{scope_tail}}` 说）。安装器都禁止模型调用
@@ -49,6 +51,7 @@
 - 装出的模板里安装时要填写的位置，写明它记录什么、来自哪里（项目现状 / 用户选定 / 用户提供），有固定选项的逐项列出并标出默认值。
 - 要写进指令文件（`CLAUDE.md` / `AGENTS.md`）的那份模板固定命名为 `INJECT.md`，不论是 `cat … >>` 追加还是经渲染脚本写入：`template/` 下别的文件装的是 skill、子代理、输出风格，看名字就要分得出哪份会进指令文件。追加写入的由 `build.py` 校验，渲染写入的靠约定。
 - 用「第 N 步」引用步骤时，步骤写成编号列表项，范围与并列写成「第 N–M 步」「第 N、M 步」。
+- 模板源文件（`tools/installer/templates/` 下）里只有 `{{include: …}}` 会展开，别的 `{{…}}` 原样进模板；它 include 的片段不得含 `{{变量}}`，位置与展开规则见「生成」。改有源文件的模板一律改源文件，不改 `template/` 下的生成物。
 - 要求装出后改写模板原文的，写成表头为 `| 位置 | 原文 | 改成 |` 的替换表：「位置」用「」写出所在列表项的开头，「原文」用「」写出一字不差的原文（整条删掉写「整条」）。
 - 整体替换连续多条时，「位置」写成两段「」的区间（「从以 A 开头的那条起，到以 B 开头的那条为止（共 N 条）」），后一个锚点须在前一个之后，「共 N 条」按区间内同级列表项核对；「原文」此时写「这 N 条整体」，或用「」给出要替换的起点原文。`build.py` 校验这几项。
 

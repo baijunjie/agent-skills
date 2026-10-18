@@ -13,10 +13,11 @@ docs/                                # 面向维护者，不随 plugin 分发
 ├── authoring.md                      # 新增 skill 与 plugin、frontmatter、参数传递、附带资源与共享模板
 ├── installers.md                     # 安装器的命名与归属、生成、源文件契约
 └── release.md                        # 分发与发布、版本规则
-tools/installer/                     # 安装器 SKILL.md 的生成机制，不随 plugin 分发
+tools/installer/                     # 安装器 SKILL.md 与部分模板的生成机制，不随 plugin 分发
 ├── build.py                          # 生成与校验脚本，INSTALLERS 在这里登记
 ├── sources/<领域>-<skill>.md         # 安装器源文件
-└── fragments/<片段名>.md             # 安装器公共片段
+├── templates/<plugin>/<skill>/…      # 安装器 template/ 下模板的源文件（只有部分模板有）
+└── fragments/<片段名>.md             # 安装器与模板共用的公共片段
 tools/tests/                         # 仓库级回归测试，不随 plugin 分发
 plugins/<plugin>/                    # 每个 plugin 都同时分发到 Claude Code 与 Codex
 ├── plugin.json                       # Codex plugin 元信息
@@ -26,7 +27,7 @@ plugins/<plugin>/                    # 每个 plugin 都同时分发到 Claude C
 └── skills/<skill>/
     ├── SKILL.md                      # skill 本体；setup-* 下的由 tools/installer 生成
     ├── agents/openai.yaml            # Codex 的调用策略与 UI（可选）
-    └── template/                     # 安装器要装出去的模板，按装出后的目录形态放（可选）
+    └── template/                     # 安装器要装出去的模板，按装出后的目录形态放（可选）；有源文件的由 tools/installer 生成
 ```
 
 Plugin 名即调用前缀：`plugins/dev/skills/discuss/SKILL.md` 在 Claude Code 中对应 `/dev:discuss`，在 Codex 中对应 `$dev:discuss`。
@@ -37,7 +38,7 @@ Plugin 名即调用前缀：`plugins/dev/skills/discuss/SKILL.md` 在 Claude Cod
 
 - 不在真实仓库里做 git 实验、不动真实 crontab 与真实 LaunchAgent（`~/Library/LaunchAgents`）；具体约束见 `tools/tests/README.md`「安全设计」的「实验与危险命令」。
 - 已推送的提交不 amend、不强推，对它的整改另起提交：改写已推送的历史会让别处的 clone 与 marketplace 快照对不上。
-- `setup-*` 下的安装器 `SKILL.md` 由 `tools/installer/build.py` 从源文件 `sources/<领域>-<skill>.md` 与公共片段 `fragments/*.md` 生成，生成物提交进仓库，**不得手改**。怎么生成与校验见 `docs/installers.md`「生成」。
+- `setup-*` 下的安装器 `SKILL.md` 由 `tools/installer/build.py` 从源文件 `sources/<领域>-<skill>.md` 与公共片段 `fragments/*.md` 生成，`tools/installer/templates/` 下有源文件的模板也由它生成到对应安装器的 `template/`，生成物提交进仓库，**不得手改**。怎么生成与校验见 `docs/installers.md`「生成」。
 - 指令文件（`CLAUDE.md` / `AGENTS.md`）里开工前与交付前的工作流只写在「工作流」一节，只由 `setup-agent:workflow` 写入；其它安装器与装出的 skill 不得自己往指令文件里写工作流内容。
 
 ## 什么时候读什么

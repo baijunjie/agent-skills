@@ -116,6 +116,12 @@ make_tmp() {
   export GIT_EDITOR=true
   export GIT_MERGE_AUTOEDIT=no
   unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_COMMON_DIR REVERT_GATE_SKIP || true
+  # 调用者的 -c 与 GIT_CONFIG_COUNT 条目（如启动 agent 会话的上层工具注入的 core.hooksPath）同样会改变被测行为。
+  unset GIT_CONFIG_PARAMETERS GIT_CONFIG_COUNT || true
+  local v
+  for v in $(compgen -v | grep -E '^GIT_CONFIG_(KEY|VALUE)_[0-9]+$' || true); do
+    unset "$v"
+  done
   export GIT_AUTHOR_NAME=tester GIT_AUTHOR_EMAIL=tester@example.invalid
   export GIT_COMMITTER_NAME=tester GIT_COMMITTER_EMAIL=tester@example.invalid
   cat >"$GIT_CONFIG_GLOBAL" <<'EOF'

@@ -9,7 +9,7 @@
 | `gate/` | `plugins/setup-git/scripts/githooks/` | 回退闸门：本地一层（reference-transaction）、pre-push 的受守护分支一层与 PR 一层、两个预检 `revert-gate.py check` / `check-pr`、切出点判据、`install.sh`（含 `--pr-only`） |
 | `flow/` | `plugins/setup-git/scripts/flow/` | 流程脚本 `flow-*.sh`：记录目标分支与切出点、在原基点压平与核对（含出错退回、`Reverts:` 行检查）、推送前识别远端别人的提交与自己的改写、对齐后搬分支（含冲突续跑）、清理前提；每条用例在系统里有的 sh、dash、bash 下各跑一次 |
 | `mutation/` | `plugins/setup-git/scripts/githooks/`、`tools/tests/gate/run.sh`（改用例名会让点名落空） | 闸门判据的变异测试：逐处改坏判据，确认指定的 gate 用例会 FAIL——回答「那些用例到底压没压在这段逻辑上」 |
-| `build/` | `tools/installer/` 下的一切（`build.py`、源文件、片段），安装器的 `template/` 与 `agents/openai.yaml` | 安装器构建：基线（构建、`--check`、生成物 frontmatter）、`--check` 的比对，以及每一类校验的变异用例 |
+| `build/` | `tools/installer/` 下的一切（`build.py`、源文件、模板源文件、片段），安装器的 `template/` 与 `agents/openai.yaml` | 安装器构建：基线（构建、`--check`、生成物 frontmatter）、`--check` 的比对（含模板生成物），以及每一类校验的变异用例 |
 | `scripts/` | `plugins/setup-agent/scripts/`、`tools/installer/fragments/project-root.md` | 三个渲染脚本（含其中两个共用的 `markdown_headings.py`），与 `project-root` 那行 shell 在 bash / zsh / sh / dash 下的行为 |
 | `manifest/` | `plugins/` 下的任何文件（内容有变化就牵涉版本号）、两个 marketplace、`tools/tests/manifest/` | `check.py` 的每一项校验各有变异用例，并对真实仓库跑一遍：三份 manifest 的 `version`、`description` 一致，两个 marketplace 登记全部 plugin、`.claude-plugin/marketplace.json` 的 `description` 与 manifest 一致，`interface` 文案非空，相对 `origin/main` 版本只升一次（本地没有 `origin/main` 时该项 SKIP）；不校验的项见 `check.py` 模块 docstring |
 | `cron/` | `plugins/setup-tools/skills/cron/template/cron/` | `setup-tools:cron` 的模板脚本：dry-run、安装与卸载、标记撞车与接管、标记计算、`tasks.conf` 读取、命令字段里 `%` 的转义 |
@@ -55,7 +55,7 @@ FLOW_TEMPLATE_DIR=/path/to/flow bash tools/tests/flow/run.sh           # 测另�
 测试会大量执行 reset、rebase、push 等改写操作，绝不能落到真实仓库上。`lib/common.sh` 负责兜底：
 
 - `make_tmp` 用 `mktemp -d` 建临时根 `T` 并 `cd` 进去，退出时只删自己建的那个目录；
-  同时隔离环境：`HOME`、`GIT_CONFIG_GLOBAL` 指向 `T` 内，`GIT_CONFIG_SYSTEM=/dev/null`，
+  同时隔离环境：`HOME`、`GIT_CONFIG_GLOBAL` 指向 `T` 内，`GIT_CONFIG_SYSTEM=/dev/null`，清掉 `GIT_CONFIG_PARAMETERS`、`GIT_CONFIG_COUNT` 与 `GIT_CONFIG_KEY_<n>` / `GIT_CONFIG_VALUE_<n>`，
   `GIT_CEILING_DIRECTORIES` 设为 `T` 的父目录（git 向上找不到 `T` 外的仓库），`GIT_TERMINAL_PROMPT=0`。
 - 测试里的 `git` 是包装函数：必须带 `-C <目录>`，目录与当前目录都必须在 `T` 之内，否则记下违规并退出；
   有违规时套件整体判失败。
@@ -112,7 +112,7 @@ case_block_something() {
 
 ### build 套件
 
-每个用例从基础夹具复制出副本 `$W`（`$S` 源文件、`$F` 片段、`$P` plugins、`$BPY` 副本里的 build.py），
+每个用例从基础夹具复制出副本 `$W`（`$S` 源文件、`$F` 片段、`$TS` 模板源文件、`$P` plugins、`$BPY` 副本里的 build.py），
 用 `mut sub <文件> <原文> <新文> [<次数>]`、`mut append` 等施加一处破坏——原文出现次数不符时 `mut` 报错，
 免得源文件改动后破坏悄悄落空。只有一两行的用例用 `bad <名字> '<函数体>'` 登记（体前自动 `fixture`）：
 

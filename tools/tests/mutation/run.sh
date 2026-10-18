@@ -158,6 +158,7 @@ BASELINE_CASES=(
   install_from_branches_file
   install_typo_branch
   install_from_subdir
+  install_injected_hookspath
 )
 
 register baseline_unmutated
@@ -464,6 +465,18 @@ case_teeth_install_branch_exists() {
   # 拼错的分支名要挡住：本地或某个远端得有这个分支
   teeth install.sh '    git rev-parse --verify -q "refs/heads/${branch}" >/dev/null ||' '    true ||' \
     -- install_typo_branch
+}
+
+register teeth_install_hookspath_scope
+case_teeth_install_hookspath_scope() {
+  # 判「hook 由别的体系接管」只认配置文件：GIT_CONFIG_COUNT 注入的也算进去，注入了 core.hooksPath 的会话里就装不上 hook
+  teeth install.sh 'env -u GIT_CONFIG_COUNT ' 'env ' -- install_injected_hookspath
+}
+
+register teeth_install_hookspath_cli
+case_teeth_install_hookspath_cli() {
+  # -c 经 GIT_CONFIG_PARAMETERS 传给 install.sh，同样不算
+  teeth install.sh ' -u GIT_CONFIG_PARAMETERS git config' ' git config' -- install_injected_hookspath
 }
 
 register teeth_install_repo_root

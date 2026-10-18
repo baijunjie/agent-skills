@@ -5,7 +5,7 @@
 # （每行一个分支，主分支在第一行，# 开头的行与空行忽略）。闸门运行时只读 git 配置、不读这个文件：
 # 工作区里的文件会被待合并的分支改掉，不能让它影响闸门判定。
 # --branches-only：只写常驻守护分支配置、不装 hook，用于 hook 由 husky 等体系接管
-# （core.hooksPath 已设置、在那套体系里调用 .githooks/hook.sh）的 clone。
+# （配置文件里设了 core.hooksPath、在那套体系里调用 .githooks/hook.sh）的 clone。
 # --pr-only：只装 hook，不读 .githooks/branches、不碰 revert-gate.branch，用于只装了 PR 流程的仓库
 # （那里没有常驻守护分支，闸门靠各分支记的 PR 目标分支触发）；与 --branches-only 互斥，不接分支参数。
 # 每个 clone 执行一次，可重复执行；所有 worktree 共用公共 hooks 目录。
@@ -34,8 +34,12 @@ root=$(git rev-parse --show-toplevel)
 hooks="$(git rev-parse --git-common-dir)/hooks"
 list="${root}/.githooks/branches"
 
-if [ "${hooks_too}" = 1 ] && [ -n "$(git config core.hooksPath || true)" ]; then
-  echo "core.hooksPath 已设置为 $(git config core.hooksPath)，公共 hooks 目录不会生效；请在那套 hook 体系里调用 sh .githooks/hook.sh <reference-transaction|pre-push> \"\$@\"。要写常驻守护分支的再执行 sh .githooks/install.sh --branches-only；只装 PR 流程的不用再执行什么。" >&2
+# 只认配置文件里（含 include 进来的）的 core.hooksPath。-c（经 GIT_CONFIG_PARAMETERS 传下来）与 GIT_CONFIG_COUNT
+# 给的是临时条目，只对那一棵进程树生效（如启动 agent 会话的上层工具注入、指向转调本 clone 原有 hook 的 dispatcher），
+# 照它判会只写常驻守护分支、不装 hook，闸门静默不生效。
+hookspath=$(env -u GIT_CONFIG_COUNT -u GIT_CONFIG_PARAMETERS git config core.hooksPath || true)
+if [ "${hooks_too}" = 1 ] && [ -n "${hookspath}" ]; then
+  echo "core.hooksPath 已设置为 ${hookspath}，公共 hooks 目录不会生效；请在那套 hook 体系里调用 sh .githooks/hook.sh <reference-transaction|pre-push> \"\$@\"。要写常驻守护分支的再执行 sh .githooks/install.sh --branches-only；只装 PR 流程的不用再执行什么。" >&2
   exit 1
 fi
 

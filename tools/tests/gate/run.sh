@@ -1749,6 +1749,29 @@ case_install_hookspath_set() {
   expect_eq "$(gate_branches)" "main " revert-gate.branch
 }
 
+register install_injected_hookspath
+case_install_injected_hookspath() {
+  # -c 与 GIT_CONFIG_COUNT 给的 core.hooksPath（如启动 agent 会话的上层工具注入的 dispatcher）不算接管
+  fresh_clone
+  local inject=(env GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0="$D/dispatch")
+  try run_at "$C" "${inject[@]}" sh .githooks/install.sh
+  expect_rc 0 "GIT_CONFIG_COUNT 注入 core.hooksPath"
+  expect_installed
+  expect_eq "$(gate_branches)" "main " revert-gate.branch
+  rm "$HOOKS/reference-transaction" "$HOOKS/pre-push"
+  try run_at "$C" env GIT_CONFIG_PARAMETERS="'core.hooksPath'='$D/dispatch'" sh .githooks/install.sh --pr-only
+  expect_rc 0 "-c 注入 core.hooksPath"
+  expect_installed
+  # 配置文件里设了的仍算接管，报的是配置文件里的值
+  rm "$HOOKS/reference-transaction" "$HOOKS/pre-push"
+  git -C "$C" config --unset-all revert-gate.branch
+  git -C "$C" config core.hooksPath .husky
+  try run_at "$C" "${inject[@]}" sh .githooks/install.sh
+  expect_rc 1 "配置文件里设了 core.hooksPath、另有注入"
+  expect_out "已设置为 .husky，"
+  expect_nothing_written
+}
+
 register install_from_subdir
 case_install_from_subdir() {
   fresh_clone
