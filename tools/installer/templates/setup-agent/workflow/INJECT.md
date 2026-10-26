@@ -26,7 +26,7 @@
 1. **补单元测试**：按 `agent-unit-test` skill 为本次改动补测试。
 <!-- end-if -->
 <!-- if-installed: agent-gallery -->
-2. **gallery**：按 `agent-gallery` skill 让 gallery 跟上并跑快速检查，要不要做、跑哪个范围以它的判定为准。
+2. **gallery**：按 `agent-gallery` skill 让 gallery 跟上，要不要做、快速检查跑不跑、跑哪个范围以它的判定为准。
 3. **UI 预览**：上一步做完就按 `agent-gallery` skill 给用户预览，不等后面各步；要不要预览、要不要等确认以它的判定为准，
    用户说过要先过目的界面也在这一步给，不在自检前先报。要等确认、或要等用户答复临时场景留不留的，得到答复后才进入下一步：
    用户可能还要改界面或留下场景，先跑后面各步会白跑。
