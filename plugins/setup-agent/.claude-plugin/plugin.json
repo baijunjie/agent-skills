@@ -1,6 +1,6 @@
 {
   "name": "setup-agent",
-  "version": "0.10.7",
+  "version": "0.10.8",
   "description": "为 Claude Code 或 Codex 安装 agent 的开发工作方式：子代理分派规则与通用子代理、输出风格、项目工作流、改动检查、单元测试、UI 状态 gallery、项目文档、开发计划与 bug 工单流程；项目工作流、单元测试与 UI 状态 gallery 只装进项目，其余默认装进项目、可选用户级",
   "author": {
     "name": "BaiJunjie"
