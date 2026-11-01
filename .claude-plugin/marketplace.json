@@ -26,48 +26,48 @@
       "category": "productivity"
     },
     {
-      "name": "setup-agent",
+      "name": "bjj-setup-agent",
       "description": "为 Claude Code 或 Codex 安装 agent 的开发工作方式：子代理分派规则与通用子代理、输出风格、项目工作流、改动检查、单元测试、UI 状态 gallery、项目文档、开发计划与 bug 工单流程；项目工作流、单元测试与 UI 状态 gallery 只装进项目，其余默认装进项目、可选用户级",
       "author": {
         "name": "BaiJunjie"
       },
-      "source": "./plugins/setup-agent",
+      "source": "./plugins/bjj-setup-agent",
       "category": "productivity"
     },
     {
-      "name": "setup-git",
+      "name": "bjj-setup-git",
       "description": "为 Claude Code 或 Codex 安装 Git 相关规范与流程：提交规范、Issue/PR 检索、提交 PR 流程、worktree 流程与回退闸门；后三者只装进项目，其余默认装进项目、可选用户级",
       "author": {
         "name": "BaiJunjie"
       },
-      "source": "./plugins/setup-git",
+      "source": "./plugins/bjj-setup-git",
       "category": "productivity"
     },
     {
-      "name": "setup-tools",
+      "name": "bjj-setup-tools",
       "description": "为 Claude Code 或 Codex 安装开发辅助工具：crontab 与 macOS LaunchAgent 两套定时任务安装器，以及给 Codex 装上读取 Claude 规范的 skill；定时任务安装器只装进项目，读取 Claude 规范的 skill 只装进用户级",
       "author": {
         "name": "BaiJunjie"
       },
-      "source": "./plugins/setup-tools",
+      "source": "./plugins/bjj-setup-tools",
       "category": "productivity"
     },
     {
-      "name": "setup-knowledge",
+      "name": "bjj-setup-knowledge",
       "description": "为 Claude Code 或 Codex 安装知识类规范 skill：多语言 App 界面文案规范；默认装进项目、可选用户级",
       "author": {
         "name": "BaiJunjie"
       },
-      "source": "./plugins/setup-knowledge",
+      "source": "./plugins/bjj-setup-knowledge",
       "category": "productivity"
     },
     {
-      "name": "batch-setup",
+      "name": "bjj-batch-setup",
       "description": "批量维护配置：一次装好新项目的默认开发配置（九个安装器，只装进项目），更新 Claude Code 与 Codex 里的 bjj-agent-skills plugin，并在 plugin 更新后按最新模板重装用户级与项目级已装的 skill、子代理与指令文件内容",
       "author": {
         "name": "BaiJunjie"
       },
-      "source": "./plugins/batch-setup",
+      "source": "./plugins/bjj-batch-setup",
       "category": "productivity"
     }
   ]

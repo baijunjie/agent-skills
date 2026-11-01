@@ -9,7 +9,7 @@ disable-model-invocation: true
 装两样东西，都只装进当前项目：指令文件里无条件生效的约定（哪些任务要开 worktree、创建与合并前先读 skill、
 不绕过仓库的检查），以及从创建分支到合回目标分支的操作步骤 `git-worktree` skill 及它调用的流程脚本。
 指令文件只写这些约定并指向 `git-worktree` skill，操作细节只写在 skill 里，不回写进指令文件。
-要回退闸门的另装 `setup-git:revert-gate`。
+要回退闸门的另装 `bjj-setup-git:revert-gate`。
 
 ## 跨宿主约定
 
@@ -83,7 +83,7 @@ disable-model-invocation: true
      `.gitignore` 与 `.githooks/` 下的流程脚本要提交进版本库才随仓库生效；`.gitignore` 整体忽略了 `.claude/`
      或 `.agents/` 的项目要为 skill 目录加例外。Claude Code 重启后生效，Codex 开启新会话后生效。
    - 操作步骤在 `git-worktree` skill 里，要改就改这个 skill，不要搬回指令文件——重装时指令文件那块会整份覆盖。
-   - 要在合并时拦下压平、解冲突撤销了目标分支已有改动的，另装 `setup-git:revert-gate`。
+   - 要在合并时拦下压平、解冲突撤销了目标分支已有改动的，另装 `bjj-setup-git:revert-gate`。
 
 {{include: reinstall}}
 

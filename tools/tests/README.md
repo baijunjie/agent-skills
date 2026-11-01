@@ -6,14 +6,14 @@
 
 | 套件 | 改了这些必跑 | 测什么 |
 |---|---|---|
-| `gate/` | `plugins/setup-git/skills/revert-gate/template/githooks/` | 回退闸门：本地一层（reference-transaction）、pre-push 的受守护分支一层与 PR 一层、两个预检 `revert-gate.py check` / `check-pr`、切出点判据、`install.sh`（含不写常驻守护分支的 `--pr-only`） |
-| `flow/` | `plugins/setup-git/scripts/flow/` | 流程脚本 `flow-*.sh`：记录目标分支与切出点（含本 clone 没接上回退闸门时的提示）、在原基点压平与核对（含出错退回、`Reverts:` 行检查）、推送前识别远端别人的提交与自己的改写、对齐后搬分支（含冲突续跑）、清理前提；每条用例在系统里有的 sh、dash、bash 下各跑一次 |
-| `mutation/` | `plugins/setup-git/skills/revert-gate/template/githooks/`、`tools/tests/gate/run.sh`（改用例名会让点名落空） | 闸门判据的变异测试：逐处改坏判据，确认指定的 gate 用例会 FAIL——回答「那些用例到底压没压在这段逻辑上」 |
+| `gate/` | `plugins/bjj-setup-git/skills/revert-gate/template/githooks/` | 回退闸门：本地一层（reference-transaction）、pre-push 的受守护分支一层与 PR 一层、两个预检 `revert-gate.py check` / `check-pr`、切出点判据、`install.sh`（含不写常驻守护分支的 `--pr-only`） |
+| `flow/` | `plugins/bjj-setup-git/scripts/flow/` | 流程脚本 `flow-*.sh`：记录目标分支与切出点（含本 clone 没接上回退闸门时的提示）、在原基点压平与核对（含出错退回、`Reverts:` 行检查）、推送前识别远端别人的提交与自己的改写、对齐后搬分支（含冲突续跑）、清理前提；每条用例在系统里有的 sh、dash、bash 下各跑一次 |
+| `mutation/` | `plugins/bjj-setup-git/skills/revert-gate/template/githooks/`、`tools/tests/gate/run.sh`（改用例名会让点名落空） | 闸门判据的变异测试：逐处改坏判据，确认指定的 gate 用例会 FAIL——回答「那些用例到底压没压在这段逻辑上」 |
 | `build/` | `tools/installer/` 下的一切（`build.py`、源文件、模板源文件、片段），安装器的 `template/` 与 `agents/openai.yaml` | 安装器构建：基线（构建、`--check`、生成物 frontmatter）、`--check` 的比对（含模板生成物），以及每一类校验的变异用例 |
-| `scripts/` | `plugins/setup-agent/scripts/`、`tools/installer/fragments/project-root.md` | 三个渲染脚本（含其中两个共用的 `markdown_headings.py`），与 `project-root` 那行 shell 在 bash / zsh / sh / dash 下的行为 |
+| `scripts/` | `plugins/bjj-setup-agent/scripts/`、`tools/installer/fragments/project-root.md` | 三个渲染脚本（含其中两个共用的 `markdown_headings.py`），与 `project-root` 那行 shell 在 bash / zsh / sh / dash 下的行为 |
 | `manifest/` | `plugins/` 下的任何文件（内容有变化就牵涉版本号）、两个 marketplace、`tools/tests/manifest/` | `check.py` 的每一项校验各有变异用例，并对真实仓库跑一遍：三份 manifest 的 `version`、`description` 一致，两个 marketplace 登记全部 plugin、`.claude-plugin/marketplace.json` 的 `description` 与 manifest 一致，`interface` 文案非空，相对 `origin/main` 版本只升一次（本地没有 `origin/main` 时该项 SKIP）；不校验的项见 `check.py` 模块 docstring |
-| `cron/` | `plugins/setup-tools/skills/cron/template/cron/` | `setup-tools:cron` 的模板脚本：dry-run、安装与卸载、标记撞车与接管、标记计算、`tasks.conf` 读取、命令字段里 `%` 的转义 |
-| `launchd/` | `plugins/setup-tools/skills/launchd/template/launchd/` | `setup-tools:launchd` 的模板脚本：dry-run、安装与卸载、前缀撞车与接管、前缀计算、`tasks.conf` 读取、cron 表达式到 plist 时间键的映射、`status.sh` 的报告（非 macOS 上整套 SKIP） |
+| `cron/` | `plugins/bjj-setup-tools/skills/cron/template/cron/` | `bjj-setup-tools:cron` 的模板脚本：dry-run、安装与卸载、标记撞车与接管、标记计算、`tasks.conf` 读取、命令字段里 `%` 的转义 |
+| `launchd/` | `plugins/bjj-setup-tools/skills/launchd/template/launchd/` | `bjj-setup-tools:launchd` 的模板脚本：dry-run、安装与卸载、前缀撞车与接管、前缀计算、`tasks.conf` 读取、cron 表达式到 plist 时间键的映射、`status.sh` 的报告（非 macOS 上整套 SKIP） |
 
 ## 运行
 
@@ -61,7 +61,7 @@ FLOW_TEMPLATE_DIR=/path/to/flow bash tools/tests/flow/run.sh           # 测另�
   有违规时套件整体判失败。
 - 依赖当前目录的命令（`install.sh`、闸门脚本）只经 `run_at <T 内的目录> <命令>` 执行。
 - 对真实仓库只做只读查询（`repo_snapshot`），不依赖共享的临时目录。
-- `build/` 只在 `T` 里那份 `tools/installer/` 与 `plugins/setup-*/` 的拷贝上运行 `build.py`（它按自身位置定位仓库根），
+- `build/` 只在 `T` 里那份 `tools/installer/` 与 `plugins/bjj-setup-*/` 的拷贝上运行 `build.py`（它按自身位置定位仓库根），
   真实工作副本只被复制、不被写。
 - `manifest/` 的变异用例在 `T` 里那份 `plugins/` 与 marketplace 的拷贝上运行（拷贝自带 git 仓库与 `T` 内的 bare remote，
   `origin/main` 即拷贝时的状态）；对真实仓库只经 `check.py` 做只读的 `rev-parse`、`show`、`diff --name-only`、`ls-files`。

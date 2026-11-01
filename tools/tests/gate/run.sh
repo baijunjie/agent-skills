@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 回退闸门（plugins/setup-git/skills/revert-gate/template/githooks/）的回归测试。
+# 回退闸门（plugins/bjj-setup-git/skills/revert-gate/template/githooks/）的回归测试。
 #   bash tools/tests/gate/run.sh [-v] [<用例名>...]
 # 环境变量 GATE_TEMPLATE_DIR 可指向另一份 githooks 目录（如故意改坏的副本），默认测仓库里的那份。
 #
@@ -12,7 +12,7 @@
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)/lib/common.sh"
 
-GATE_SRC=${GATE_TEMPLATE_DIR:-$REPO_ROOT/plugins/setup-git/skills/revert-gate/template/githooks}
+GATE_SRC=${GATE_TEMPLATE_DIR:-$REPO_ROOT/plugins/bjj-setup-git/skills/revert-gate/template/githooks}
 GATE_SRC=$(cd "$GATE_SRC" && pwd -P)
 [ -f "$GATE_SRC/revert-gate.py" ] || die "找不到闸门脚本：$GATE_SRC"
 

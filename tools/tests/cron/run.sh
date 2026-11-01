@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup-tools:cron 装出的 crontab 安装脚本（plugins/setup-tools/skills/cron/template/cron/）的测试。
+# bjj-setup-tools:cron 装出的 crontab 安装脚本（plugins/bjj-setup-tools/skills/cron/template/cron/）的测试。
 #   bash tools/tests/cron/run.sh [-v] [<用例名>...]
 # 环境变量 CRON_TEMPLATE_DIR 可指向另一份 cron 模板目录（如故意改坏的副本），默认测仓库里的那份。
 #
@@ -12,7 +12,7 @@
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)/lib/common.sh"
 
-CRON_SRC=${CRON_TEMPLATE_DIR:-$REPO_ROOT/plugins/setup-tools/skills/cron/template/cron}
+CRON_SRC=${CRON_TEMPLATE_DIR:-$REPO_ROOT/plugins/bjj-setup-tools/skills/cron/template/cron}
 CRON_SRC=$(cd "$CRON_SRC" && pwd -P)
 for f in common.sh install.sh uninstall.sh tasks.conf; do
   [ -f "$CRON_SRC/$f" ] || die "找不到 cron 模板文件：$CRON_SRC/$f"

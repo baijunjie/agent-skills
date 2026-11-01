@@ -1,6 +1,6 @@
 <!--
 Claude Code / Codex × 项目级（默认）/ 用户级四个安装节，把 template/<name>/SKILL.template.md 装成同名 skill。
-只装一个 skill 的 project-user 作用域源文件 include；setup-tools 的源文件不能用（装出的 skill 不带领域前缀）。
+只装一个 skill 的 project-user 作用域源文件 include；bjj-setup-tools 的源文件不能用（装出的 skill 不带领域前缀）。
 -->
 
 ## Claude Code 项目级安装（默认）

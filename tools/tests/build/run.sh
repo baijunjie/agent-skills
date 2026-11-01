@@ -3,7 +3,7 @@
 #   bash tools/tests/build/run.sh [-v] [<用例名>...]
 # 环境变量 BUILD_PY 可指向另一份 build.py（如故意删掉某项校验的副本），默认测仓库里的那份。
 #
-# 基础夹具是真实工作副本里 tools/installer/ 与 plugins/setup-*/ 的一份拷贝（build.py 只读写这两处）。
+# 基础夹具是真实工作副本里 tools/installer/ 与 plugins/bjj-setup-*/ 的一份拷贝（build.py 只读写这两处）。
 # 生成物包括各安装器的 SKILL.md 与 tools/installer/templates/ 下模板源文件对应的模板生成物。
 # 每个用例再复制出独立的副本 $W，施加一处破坏，在副本里运行 build.py：
 #   bad_*    写模式与 --check 都报错退出（退出码 1）且输出含关键片段，写模式报错后生成物一个不变
@@ -61,7 +61,7 @@ mut() { "$T/bin/mut" "$@"; }
 # 模板生成物（清单在 build_base 里定下，用例新加的模板源文件不进清单，要查的在用例里单独断言）。
 # 没有源文件的手写模板不算：有的用例要改它们。
 outputs_hash() {
-  (cd "$1" && { find plugins -path 'plugins/setup-*/skills/*/SKILL.md' ! -path '*/template/*' -type f; printf '%s\n' "$TEMPLATE_OUTPUTS"; } |
+  (cd "$1" && { find plugins -path 'plugins/bjj-setup-*/skills/*/SKILL.md' ! -path '*/template/*' -type f; printf '%s\n' "$TEMPLATE_OUTPUTS"; } |
     LC_ALL=C sort | while IFS= read -r f; do
       [ -n "$f" ] || continue
       if [ -f "$f" ]; then printf '%s %s\n' "$(cksum <"$f")" "$f"; else printf 'missing %s\n' "$f"; fi
@@ -78,7 +78,7 @@ template_outputs() {
 build_base() {
   local base=$T/base
   mkdir -p "$base/tools" "$base/plugins"
-  cp -R "$REPO_ROOT/plugins/"setup-* "$base/plugins/"
+  cp -R "$REPO_ROOT/plugins/"bjj-setup-* "$base/plugins/"
   cp -R "$REPO_ROOT/tools/installer" "$base/tools/installer"
   cp "$BUILD_PY_SRC" "$base/tools/installer/build.py"
   TEMPLATE_OUTPUTS=$(template_outputs "$base")
@@ -128,16 +128,16 @@ bad() {
   eval "case_$1() { fixture; $2; }"
 }
 
-openai_yaml() { printf '%b' "$1" >"$P/setup-agent/skills/plan/agents/openai.yaml"; }
-CRON_TPL='$P/setup-tools/skills/cron/template/cron/tasks.conf'
+openai_yaml() { printf '%b' "$1" >"$P/bjj-setup-agent/skills/plan/agents/openai.yaml"; }
+CRON_TPL='$P/bjj-setup-tools/skills/cron/template/cron/tasks.conf'
 # 有模板源文件的模板改它的源文件（render 里的模板检查按展开结果查），WT_OUT 是生成物
-WT_TPL='$TS/setup-git/worktree/git-worktree/SKILL.template.md'
-WT_OUT='$P/setup-git/skills/worktree/template/git-worktree/SKILL.template.md'
-WT_RULES='$P/setup-git/skills/worktree/template/INJECT.md'
-WF_TPL='$TS/setup-agent/workflow/INJECT.md'
+WT_TPL='$TS/bjj-setup-git/worktree/git-worktree/SKILL.template.md'
+WT_OUT='$P/bjj-setup-git/skills/worktree/template/git-worktree/SKILL.template.md'
+WT_RULES='$P/bjj-setup-git/skills/worktree/template/INJECT.md'
+WF_TPL='$TS/bjj-setup-agent/workflow/INJECT.md'
 # 有模板源文件的模板：源文件与生成物
-GL_SRC='$TS/setup-agent/gallery/agent-gallery/SKILL.template.md'
-GL_OUT='$P/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md'
+GL_SRC='$TS/bjj-setup-agent/gallery/agent-gallery/SKILL.template.md'
+GL_OUT='$P/bjj-setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md'
 
 # ---------------------------------------------------------------------------
 # 基线
@@ -159,8 +159,19 @@ case_baseline_build_and_check() {
     expect_eq "$first" "---" "$f 的首行"
     name=$(awk 'NR > 1 && $0 == "---" { exit } NR > 1 && /^name: / { sub(/^name: /, ""); print }' "$f")
     expect_eq "$name" "$dir" "$f 的 name"
-  done < <(find "$P" -path '*/setup-*/skills/*/SKILL.md' -type f)
+  done < <(find "$P" -path '*/bjj-setup-*/skills/*/SKILL.md' -type f)
   expect_eq "$n" "$sources" "生成物个数应等于源文件个数"
+}
+
+register baseline_plugin_namespace_and_stable_markers
+case_baseline_plugin_namespace_and_stable_markers() {
+  fixture
+  build --check
+  expect_rc 0 "带前缀的安装器应通过校验"
+  [ -d "$P/bjj-setup-agent" ] || fail "应生成到 bjj-setup-agent"
+  [ ! -e "$P/setup-agent" ] || fail "不应生成无前缀的 plugin 目录"
+  grep -Fq '<!-- setup-agent:workflow:begin -->' "$P/bjj-setup-agent/skills/workflow/SKILL.md" || fail "plugin 命名不应改变标记身份"
+  grep -Fq '/skills/agent-workflow-edit' "$P/bjj-setup-agent/skills/workflow/SKILL.md" || fail "装出的 skill 名应保持不变"
 }
 
 register check_usage
@@ -176,8 +187,8 @@ case_check_stale_after_source_edit() {
   mut sub "$S/agent-plan.md" "本安装器另外要查的冲突：无。" "本安装器另外要查的冲突：无（改过）。"
   build --check
   expect_rc 1 "源文件改过、生成物未重新生成"
-  expect_out "生成物过期：plugins/setup-agent/skills/plan/SKILL.md"
-  expect_not_out "生成物过期：plugins/setup-git"
+  expect_out "生成物过期：plugins/bjj-setup-agent/skills/plan/SKILL.md"
+  expect_not_out "生成物过期：plugins/bjj-setup-git"
   build
   expect_rc 0 "重新生成"
   build --check
@@ -187,10 +198,10 @@ case_check_stale_after_source_edit() {
 register check_generated_hand_edited
 case_check_generated_hand_edited() {
   fixture
-  mut append "$P/setup-agent/skills/plan/SKILL.md" $'\n手改的一行\n'
+  mut append "$P/bjj-setup-agent/skills/plan/SKILL.md" $'\n手改的一行\n'
   build --check
   expect_rc 1 "手改生成物"
-  expect_out "生成物过期：plugins/setup-agent/skills/plan/SKILL.md"
+  expect_out "生成物过期：plugins/bjj-setup-agent/skills/plan/SKILL.md"
   build
   expect_rc 0 "重新生成"
   expect_eq "$(outputs_hash "$W")" "$BASE_HASH" "重新生成后应恢复原样"
@@ -199,10 +210,10 @@ case_check_generated_hand_edited() {
 register check_generated_crlf
 case_check_generated_crlf() {
   fixture
-  mut crlf "$P/setup-git/skills/commit/SKILL.md"
+  mut crlf "$P/bjj-setup-git/skills/commit/SKILL.md"
   build --check
   expect_rc 1 "生成物改成 CRLF"
-  expect_out "生成物过期：plugins/setup-git/skills/commit/SKILL.md"
+  expect_out "生成物过期：plugins/bjj-setup-git/skills/commit/SKILL.md"
   build
   expect_rc 0 "重新生成"
   expect_eq "$(outputs_hash "$W")" "$BASE_HASH" "重新生成后应恢复成 LF"
@@ -211,10 +222,10 @@ case_check_generated_crlf() {
 register check_generated_missing
 case_check_generated_missing() {
   fixture
-  rm "$P/setup-tools/skills/cron/SKILL.md"
+  rm "$P/bjj-setup-tools/skills/cron/SKILL.md"
   build --check
   expect_rc 1 "生成物缺失"
-  expect_out "生成物过期：plugins/setup-tools/skills/cron/SKILL.md"
+  expect_out "生成物过期：plugins/bjj-setup-tools/skills/cron/SKILL.md"
   build
   expect_rc 0 "重新生成"
   expect_eq "$(outputs_hash "$W")" "$BASE_HASH" "重新生成后应补回"
@@ -248,7 +259,7 @@ for node in tree.body:
   mut sub "$S/$last.md" $'\n{{undeclared_at_last}}\n' ""
   build
   expect_rc 0 "修好后写模式"
-  case $(cat "$P/setup-agent/skills/plan/SKILL.md") in
+  case $(cat "$P/bjj-setup-agent/skills/plan/SKILL.md") in
     *"无（改过）"*) ;;
     *) fail "修好后 plan 的生成物应写出改动" ;;
   esac
@@ -358,7 +369,7 @@ case_check_template_output_hand_edited() {
   eval "mut append \"$GL_OUT\" \$'\\n手改的一行\\n'"
   build --check
   expect_rc 1 "手改模板生成物"
-  expect_out "生成物过期：plugins/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md"
+  expect_out "生成物过期：plugins/bjj-setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md"
   build
   expect_rc 0 "重新生成"
   expect_eq "$(outputs_hash "$W")" "$BASE_HASH" "重新生成后应恢复原样"
@@ -370,7 +381,7 @@ case_check_template_output_missing() {
   eval "rm \"$GL_OUT\""
   build --check
   expect_rc 1 "模板生成物缺失"
-  expect_out "生成物过期：plugins/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md"
+  expect_out "生成物过期：plugins/bjj-setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md"
   build
   expect_rc 0 "重新生成"
   expect_eq "$(outputs_hash "$W")" "$BASE_HASH" "重新生成后应补回"
@@ -382,8 +393,8 @@ case_check_template_stale_after_source_edit() {
   eval "mut sub \"$GL_SRC\" '# UI 状态 gallery' '# UI 状态 gallery（改过）'"
   build --check
   expect_rc 1 "模板源文件改过、生成物未重新生成"
-  expect_out "生成物过期：plugins/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md"
-  expect_not_out "生成物过期：plugins/setup-agent/skills/gallery/SKILL.md"
+  expect_out "生成物过期：plugins/bjj-setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md"
+  expect_not_out "生成物过期：plugins/bjj-setup-agent/skills/gallery/SKILL.md"
   build
   expect_rc 0 "重新生成"
   eval "grep -q '# UI 状态 gallery（改过）' \"$GL_OUT\"" || fail "重新生成后模板生成物应带上改动"
@@ -393,7 +404,7 @@ case_check_template_stale_after_source_edit() {
 register allow_template_include_and_placeholders
 case_allow_template_include_and_placeholders() {
   fixture
-  local src=$TS/setup-git/pr/git-pr/SKILL.template.md out=$P/setup-git/skills/pr/template/git-pr/SKILL.template.md
+  local src=$TS/bjj-setup-git/pr/git-pr/SKILL.template.md out=$P/bjj-setup-git/skills/pr/template/git-pr/SKILL.template.md
   mkdir -p "$(dirname "$src")"
   cp "$out" "$src"
   grep -q '{{PR_BASE}}' "$src" || fail "git-pr 模板里应有 {{PR_BASE}} 占位"
@@ -416,20 +427,20 @@ assert "<!--" not in out.split("- 列表项")[-1], "片段说明块不应进生�
 PY
 }
 
-bad bad_template_source_unregistered_dir 'mkdir -p "$TS/setup-agent/no-such" && printf "x\n" >"$TS/setup-agent/no-such/x.md"
-  expect_build_fails "templates/setup-agent/no-such/x.md" "setup-agent/no-such 不是已登记安装器的目录"
-  [ ! -e "$P/setup-agent/skills/no-such" ] || fail "不该写出未登记目录下的模板"'
-bad bad_template_source_unknown_plugin 'mkdir -p "$TS/setup-nope/gallery" && printf "x\n" >"$TS/setup-nope/gallery/x.md"
-  expect_build_fails "setup-nope/gallery 不是已登记安装器的目录"'
-bad bad_template_source_too_shallow 'printf "x\n" >"$TS/setup-agent/x.md"
-  expect_build_fails "templates/setup-agent/x.md: 模板源文件须放成 templates/<plugin>/<skill>/"'
+bad bad_template_source_unregistered_dir 'mkdir -p "$TS/bjj-setup-agent/no-such" && printf "x\n" >"$TS/bjj-setup-agent/no-such/x.md"
+  expect_build_fails "templates/bjj-setup-agent/no-such/x.md" "bjj-setup-agent/no-such 不是已登记安装器的目录"
+  [ ! -e "$P/bjj-setup-agent/skills/no-such" ] || fail "不该写出未登记目录下的模板"'
+bad bad_template_source_unknown_plugin 'mkdir -p "$TS/bjj-setup-nope/gallery" && printf "x\n" >"$TS/bjj-setup-nope/gallery/x.md"
+  expect_build_fails "bjj-setup-nope/gallery 不是已登记安装器的目录"'
+bad bad_template_source_too_shallow 'printf "x\n" >"$TS/bjj-setup-agent/x.md"
+  expect_build_fails "templates/bjj-setup-agent/x.md: 模板源文件须放成 templates/<plugin>/<skill>/"'
 bad bad_template_missing_fragment "mut append \"$GL_SRC\" \$'\\n{{include: no-such-fragment}}\\n'
-  expect_build_fails '片段不存在 no-such-fragment' 'templates/setup-agent/gallery/agent-gallery/SKILL.template.md 第'"
+  expect_build_fails '片段不存在 no-such-fragment' 'templates/bjj-setup-agent/gallery/agent-gallery/SKILL.template.md 第'"
 bad bad_template_missing_fragment_nested 'mut append "$F/companion-subagents.md" $'"'"'\n{{include: no-such-fragment}}\n'"'"'
   expect_build_fails "片段不存在 no-such-fragment" "fragments/companion-subagents.md 第"'
 bad bad_template_include_cycle 'mut append "$F/companion-subagents.md" $'"'"'\n{{include: project-conventions}}\n'"'"'
   mut append "$F/project-conventions.md" $'"'"'\n{{include: companion-subagents}}\n'"'"'
-  expect_build_fails "循环 include" "templates/setup-agent/"'
+  expect_build_fails "循环 include" "templates/bjj-setup-agent/"'
 bad bad_template_fragment_variable 'mut append "$F/companion-subagents.md" $'"'"'\n含变量 {{skill}}\n'"'"'
   expect_build_fails "给模板 include 的片段不得含 {{变量}}" "fragments/companion-subagents.md 第"'
 register bad_template_fragment_variable_nested
@@ -453,7 +464,7 @@ case_bad_template_orphan_fragment() {
 }
 # 「模板」项的校验按展开结果查：只改模板源文件、不重新写出，也要拦下
 bad bad_template_checks_use_rendered "mut sub \"$GL_SRC\" 'name: agent-gallery' 'name: agent-gallery-x'
-  expect_build_fails 'plugins/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md 的 frontmatter name 须为所在目录名 agent-gallery'"
+  expect_build_fails 'plugins/bjj-setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md 的 frontmatter name 须为所在目录名 agent-gallery'"
 
 # ---------------------------------------------------------------------------
 # INSTALLERS
@@ -473,26 +484,26 @@ for pair in "root=/" "trailing_slash=/cron/" "dotdot=/.." "dot_segment=/./cron" 
   expect_build_fails 'template_sub 须形如'"
 done
 bad bad_template_dir_missing 'mut sub "$BPY" "{\"template_sub\": \"/cron\"}" "{\"template_sub\": \"/no-such\"}"
-  expect_build_fails "TEMPLATE_DIR 指向的目录不存在 plugins/setup-tools/skills/cron/template/no-such"'
-bad bad_skill_targets_template_missing 'rm "$TS/setup-git/commit/git-commit/SKILL.template.md" "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md"
-  expect_build_fails "include 了 skill-targets，模板 plugins/setup-git/skills/commit/template/git-commit/SKILL.template.md 却不存在"'
+  expect_build_fails "TEMPLATE_DIR 指向的目录不存在 plugins/bjj-setup-tools/skills/cron/template/no-such"'
+bad bad_skill_targets_template_missing 'rm "$TS/bjj-setup-git/commit/git-commit/SKILL.template.md" "$P/bjj-setup-git/skills/commit/template/git-commit/SKILL.template.md"
+  expect_build_fails "include 了 skill-targets，模板 plugins/bjj-setup-git/skills/commit/template/git-commit/SKILL.template.md 却不存在"'
 # 模板目录与 name 一起改了、安装命令没跟上
-bad bad_skill_template_name_renamed 'WF=$TS/setup-agent/workflow
+bad bad_skill_template_name_renamed 'WF=$TS/bjj-setup-agent/workflow
   mv "$WF/agent-workflow-edit" "$WF/agent-workflow-ed"
   mut sub "$WF/agent-workflow-ed/SKILL.template.md" "name: agent-workflow-edit" "name: agent-workflow-ed"
-  expect_build_fails "模板 plugins/setup-agent/skills/workflow/template/agent-workflow-ed/SKILL.template.md 的 frontmatter name 是 agent-workflow-ed" "没有装到 skills/agent-workflow-ed 的命令"'
+  expect_build_fails "模板 plugins/bjj-setup-agent/skills/workflow/template/agent-workflow-ed/SKILL.template.md 的 frontmatter name 是 agent-workflow-ed" "没有装到 skills/agent-workflow-ed 的命令"'
 bad bad_skill_install_path_renamed 'mut sub "$S/agent-workflow.md" "skills/agent-workflow-edit" "skills/agent-workflow-edited" 6
-  expect_build_fails "模板 plugins/setup-agent/skills/workflow/template/agent-workflow-edit/SKILL.template.md 的 frontmatter name 是 agent-workflow-edit" "没有装到 skills/agent-workflow-edit 的命令"'
+  expect_build_fails "模板 plugins/bjj-setup-agent/skills/workflow/template/agent-workflow-edit/SKILL.template.md 的 frontmatter name 是 agent-workflow-edit" "没有装到 skills/agent-workflow-edit 的命令"'
 # template/ 要体现装出后的目录形态：装成 skill 的模板放成 template/<skill 名>/SKILL.template.md
 bad bad_skill_template_dir_mismatch "mut sub \"$WT_TPL\" 'name: git-worktree' 'name: git-worktree-ops'
-  expect_build_fails 'plugins/setup-git/skills/worktree/template/git-worktree/SKILL.template.md 的 frontmatter name 须为所在目录名 git-worktree'"
-bad bad_template_named_skill_md 'cp "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md" "$P/setup-git/skills/commit/template/git-commit/SKILL.md"
-  expect_build_fails "模板 plugins/setup-git/skills/commit/template/git-commit/SKILL.md 不能叫 SKILL.md"'
-bad bad_skill_template_nested 'mkdir -p "$P/setup-git/skills/commit/template/extra/git-commit"
-  cp "$P/setup-git/skills/commit/template/git-commit/SKILL.template.md" "$P/setup-git/skills/commit/template/extra/git-commit/"
-  expect_build_fails "plugins/setup-git/skills/commit/template/extra/git-commit/SKILL.template.md 须直接放在 template/<skill 名>/ 下"'
-bad bad_skill_template_flat 'mv "$TS/setup-git/commit/git-commit/SKILL.template.md" "$TS/setup-git/commit/git-commit.md"
-  expect_build_fails "装成 skill 的模板 plugins/setup-git/skills/commit/template/git-commit.md 要放成 template/git-commit/SKILL.template.md"'
+  expect_build_fails 'plugins/bjj-setup-git/skills/worktree/template/git-worktree/SKILL.template.md 的 frontmatter name 须为所在目录名 git-worktree'"
+bad bad_template_named_skill_md 'cp "$P/bjj-setup-git/skills/commit/template/git-commit/SKILL.template.md" "$P/bjj-setup-git/skills/commit/template/git-commit/SKILL.md"
+  expect_build_fails "模板 plugins/bjj-setup-git/skills/commit/template/git-commit/SKILL.md 不能叫 SKILL.md"'
+bad bad_skill_template_nested 'mkdir -p "$P/bjj-setup-git/skills/commit/template/extra/git-commit"
+  cp "$P/bjj-setup-git/skills/commit/template/git-commit/SKILL.template.md" "$P/bjj-setup-git/skills/commit/template/extra/git-commit/"
+  expect_build_fails "plugins/bjj-setup-git/skills/commit/template/extra/git-commit/SKILL.template.md 须直接放在 template/<skill 名>/ 下"'
+bad bad_skill_template_flat 'mv "$TS/bjj-setup-git/commit/git-commit/SKILL.template.md" "$TS/bjj-setup-git/commit/git-commit.md"
+  expect_build_fails "装成 skill 的模板 plugins/bjj-setup-git/skills/commit/template/git-commit.md 要放成 template/git-commit/SKILL.template.md"'
 bad bad_skill_install_cmd_renamed 'mut sub "$S/git-worktree.md" "skills/git-worktree/SKILL.md" "skills/git-wt/SKILL.md" 2
   mut sub "$S/git-worktree.md" "mkdir -p .agents/skills/git-worktree" "mkdir -p .agents/skills/git-wt"
   mut sub "$S/git-worktree.md" "mkdir -p .claude/skills/git-worktree" "mkdir -p .claude/skills/git-wt"
@@ -501,7 +512,7 @@ register bad_inject_template_name
 case_bad_inject_template_name() {
   fixture
   # 写进指令文件的模板必须叫 INJECT.md
-  cp "$P/setup-git/skills/worktree/template/INJECT.md" "$P/setup-git/skills/worktree/template/rules.md"
+  cp "$P/bjj-setup-git/skills/worktree/template/INJECT.md" "$P/bjj-setup-git/skills/worktree/template/rules.md"
   mut sub "$S/git-worktree.md" 'INJECT.md" >> CLAUDE.md' 'rules.md" >> CLAUDE.md'
   expect_build_fails "要命名为 INJECT.md" "现在是 rules.md"
 }
@@ -510,18 +521,18 @@ register bad_appended_template_missing
 case_bad_appended_template_missing() {
   fixture
   mut sub "$S/git-worktree.md" 'INJECT.md" >> CLAUDE.md' 'no-such.md" >> CLAUDE.md'
-  expect_build_fails "正文要追加的模板 plugins/setup-git/skills/worktree/template/no-such.md 不存在"
+  expect_build_fails "正文要追加的模板 plugins/bjj-setup-git/skills/worktree/template/no-such.md 不存在"
 }
 
 bad bad_instruction_template_no_leading_blank "tail -n +2 \"$WT_RULES\" >\"$WT_RULES.new\" && mv \"$WT_RULES.new\" \"$WT_RULES\"
-  expect_build_fails '模板 plugins/setup-git/skills/worktree/template/INJECT.md 被整块追加进指令文件，首行必须是空行'"
+  expect_build_fails '模板 plugins/bjj-setup-git/skills/worktree/template/INJECT.md 被整块追加进指令文件，首行必须是空行'"
 
 # 子目录下的模板装到别处（子代理、输出风格），不按装出的 skill 查
 register allow_subdir_template_name
 case_allow_subdir_template_name() {
   fixture
-  mkdir -p "$P/setup-git/skills/worktree/template/agents"
-  printf -- '---\nname: never-installed\ndescription: x\n---\n' >"$P/setup-git/skills/worktree/template/agents/never-installed.md"
+  mkdir -p "$P/bjj-setup-git/skills/worktree/template/agents"
+  printf -- '---\nname: never-installed\ndescription: x\n---\n' >"$P/bjj-setup-git/skills/worktree/template/agents/never-installed.md"
   expect_build_ok
 }
 
@@ -568,18 +579,18 @@ bad bad_registered_source_missing 'rm "$S/git-pr.md"
 bad bad_source_name_without_domain 'cp "$S/agent-plan.md" "$S/nodomain.md"
   mut sub "$BPY" "\"agent-plan\": (\"project-user\", {})," "\"agent-plan\": (\"project-user\", {}), \"nodomain\": (\"project\", {}),"
   expect_build_fails "nodomain: 源文件名须为 <领域>-<skill>"'
-bad bad_registry_residual_dir 'mkdir -p "$P/setup-git/skills/old-skill/template" && : >"$P/setup-git/skills/old-skill/template/x.md"
-  expect_build_fails "plugins/setup-git/skills/old-skill 没有对应的登记源文件"'
-bad bad_registry_stray_file ': >"$P/setup-git/skills/notes.md"
-  expect_build_fails "plugins/setup-git/skills/notes.md 散落在 skills/ 下"'
+bad bad_registry_residual_dir 'mkdir -p "$P/bjj-setup-git/skills/old-skill/template" && : >"$P/bjj-setup-git/skills/old-skill/template/x.md"
+  expect_build_fails "plugins/bjj-setup-git/skills/old-skill 没有对应的登记源文件"'
+bad bad_registry_stray_file ': >"$P/bjj-setup-git/skills/notes.md"
+  expect_build_fails "plugins/bjj-setup-git/skills/notes.md 散落在 skills/ 下"'
 
 register allow_ds_store
 case_allow_ds_store() {
   fixture
-  : >"$P/setup-git/skills/.DS_Store"
-  mkdir -p "$P/setup-agent/skills/.DS_Store"
+  : >"$P/bjj-setup-git/skills/.DS_Store"
+  mkdir -p "$P/bjj-setup-agent/skills/.DS_Store"
   # template/ 里的 .DS_Store 不按模板查标记
-  printf '<!-- setup-bogus\n' >"$P/setup-tools/skills/cron/template/.DS_Store"
+  printf '<!-- setup-bogus\n' >"$P/bjj-setup-tools/skills/cron/template/.DS_Store"
   expect_build_ok
 }
 
@@ -627,8 +638,8 @@ bad bad_disable_model_invocation_false 'mut sub "$S/agent-plan.md" "disable-mode
   expect_build_fails "源文件 frontmatter 须有 disable-model-invocation: true"'
 bad bad_disable_model_invocation_in_body 'mut sub "$S/agent-plan.md" $'"'"'disable-model-invocation: true\n---\n'"'"' $'"'"'---\ndisable-model-invocation: true\n'"'"'
   expect_build_fails "源文件 frontmatter 须有 disable-model-invocation: true"'
-bad bad_openai_yaml_missing 'rm "$P/setup-agent/skills/plan/agents/openai.yaml"
-  expect_build_fails "缺少 plugins/setup-agent/skills/plan/agents/openai.yaml"'
+bad bad_openai_yaml_missing 'rm "$P/bjj-setup-agent/skills/plan/agents/openai.yaml"
+  expect_build_fails "缺少 plugins/bjj-setup-agent/skills/plan/agents/openai.yaml"'
 bad bad_openai_yaml_not_under_policy 'openai_yaml "interface:\n  display_name: \"x\"\n  allow_implicit_invocation: false\npolicy:\n  other: 1\n"
   expect_build_fails "须设 policy.allow_implicit_invocation: false"'
 bad bad_openai_yaml_top_level 'openai_yaml "allow_implicit_invocation: false\n"
@@ -726,7 +737,7 @@ bad bad_dup_include_via_fragment 'mut append "$F/scope-select.md" $'"'"'\n\n{{in
 bad bad_dup_include_fragment_call_and_direct 'mut sub "$S/agent-change-check.md" $'"'"'{{include: skill-priority}}\n'"'"' $'"'"'{{include: skill-priority}}\n\n{{include: subagent-rule}}\n'"'"'
   expect_build_fails "agent-change-check: subagent-rule 在展开结果里被 include 了 2 次"'
 bad bad_tools_skill_targets 'mut sub "$S/tools-codex-bridge.md" "{{include: reinstall}}" $'"'"'{{include: skill-targets}}\n\n{{include: reinstall}}'"'"'
-  expect_build_fails "setup-tools 装出的 skill 不带领域前缀，不能 include skill-targets"'
+  expect_build_fails "bjj-setup-tools 装出的 skill 不带领域前缀，不能 include skill-targets"'
 bad bad_host_conventions_wrong_section 'mut sub "$S/tools-cron.md" $'"'"'## 跨宿主约定\n'"'"' $'"'"'## 约定\n'"'"'
   expect_build_fails "host-conventions 须放在「## 跨宿主约定」之下，现在所在的节是 ## 约定"'
 bad bad_host_conventions_heading_in_fence 'mut sub "$S/tools-cron.md" $'"'"'## 跨宿主约定\n'"'"' $'"'"'## 约定\n\n```\n## 跨宿主约定\n```\n'"'"'
@@ -770,7 +781,7 @@ bad bad_markers_without_writing 'mut sub "$S/agent-plan.md" "{{include: pre-writ
 register allow_template_marker_pair_new_file
 case_allow_template_marker_pair_new_file() {
   fixture
-  printf '<!-- setup-tools:cron:begin -->\n说明\n<!-- setup-tools:cron:end -->\n' >"$P/setup-tools/skills/cron/template/cron/notes.md"
+  printf '<!-- setup-tools:cron:begin -->\n说明\n<!-- setup-tools:cron:end -->\n' >"$P/bjj-setup-tools/skills/cron/template/cron/notes.md"
   expect_build_ok
 }
 
@@ -784,7 +795,7 @@ case_bad_marked_heading_level_only_fenced_top() {
   fixture
   # 代码块里的 # 不是标题：范围里真正最浅的标题是 `## 小节`，照样要报错
   printf '<!-- setup-tools:cron:begin -->\n\n```\n# 代码块里不是标题\n```\n\n## 小节\n\n<!-- setup-tools:cron:end -->\n' \
-    >"$P/setup-tools/skills/cron/template/cron/notes.md"
+    >"$P/bjj-setup-tools/skills/cron/template/cron/notes.md"
   expect_build_fails "标记范围里最浅的标题是 2 级"
 }
 
@@ -792,7 +803,7 @@ register allow_marked_heading_level_with_subsections
 case_allow_marked_heading_level_with_subsections() {
   fixture
   printf '<!-- setup-tools:cron:begin -->\n\n# 顶层\n\n## 小节\n\n### 更深\n\n<!-- setup-tools:cron:end -->\n' \
-    >"$P/setup-tools/skills/cron/template/cron/notes.md"
+    >"$P/bjj-setup-tools/skills/cron/template/cron/notes.md"
   expect_build_ok
 }
 
@@ -869,7 +880,7 @@ case_allow_locally_assigned_resource_var() {
 register bad_extra_env_var_unguarded
 case_bad_extra_env_var_unguarded() {
   fixture
-  # extra_env 定义的变量（这里是 setup-git 共用流程脚本的 FLOW_DIR）同样要守卫
+  # extra_env 定义的变量（这里是 bjj-setup-git 共用流程脚本的 FLOW_DIR）同样要守卫
   mut sub "$S/git-pr.md" $': "${FLOW_DIR:?}"\nmkdir' 'mkdir'
   expect_build_fails "bash 代码块在第" "用到 \$FLOW_DIR 之前没有"
 }
@@ -915,7 +926,7 @@ bad bad_banned_word_source 'mut append "$S/agent-plan.md" $'"'"'\n装完告诉�
 bad bad_banned_word_fragment 'mut append "$F/state-mismatch.md" $'"'"'\n出错时告诉用户。\n'"'"'
   expect_build_fails "fragments/state-mismatch.md 第" "用了「告诉用户」"'
 bad bad_banned_word_template_source 'mut append "'"$GL_SRC"'" $'"'"'\n预览好了就告诉用户。\n'"'"'
-  expect_build_fails "templates/setup-agent/gallery/agent-gallery/SKILL.template.md 第" "用了「告诉用户」"'
+  expect_build_fails "templates/bjj-setup-agent/gallery/agent-gallery/SKILL.template.md 第" "用了「告诉用户」"'
 
 # ---------------------------------------------------------------------------
 # 替换表：现有安装器都不用它，往 git-worktree 的源文件里追加一张指向其模板的表来测
@@ -964,7 +975,7 @@ bad bad_replacement_row_columns 'wt_table; mut sub "$S/git-worktree.md" "| 以�
 bad bad_replacement_position_unquoted 'wt_table; mut sub "$S/git-worktree.md" "| 以「分支名按变更类型取」开头的那条 | 整条 | 删掉 |" "| 分支名按变更类型取那条 | 整条 | 删掉 |"
   expect_build_fails "替换表的「位置」须用「」写出所在列表项的开头"'
 bad bad_replacement_template_missing "wt_table; rm \"$WT_TPL\" \"$WT_OUT\"
-  expect_build_fails '正文有替换表，替换的模板 plugins/setup-git/skills/worktree/template/git-worktree/SKILL.template.md 却不存在'"
+  expect_build_fails '正文有替换表，替换的模板 plugins/bjj-setup-git/skills/worktree/template/git-worktree/SKILL.template.md 却不存在'"
 
 register allow_replacement_table_in_fence
 case_allow_replacement_table_in_fence() {

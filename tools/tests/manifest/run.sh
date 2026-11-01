@@ -150,8 +150,8 @@ bad bad_manifest_unparsable 'printf "{\n" >"$P/create/plugin.json"
 # ---------------------------------------------------------------------------
 # marketplace 登记
 
-bad bad_claude_marketplace_missing 'jset "$W/.claude-plugin/marketplace.json" "d[\"plugins\"] = [p for p in d[\"plugins\"] if p[\"name\"] != \"setup-tools\"]"
-  expect_check_fails "marketplace .claude-plugin/marketplace.json" "漏登记：setup-tools"'
+bad bad_claude_marketplace_missing 'jset "$W/.claude-plugin/marketplace.json" "d[\"plugins\"] = [p for p in d[\"plugins\"] if p[\"name\"] != \"bjj-setup-tools\"]"
+  expect_check_fails "marketplace .claude-plugin/marketplace.json" "漏登记：bjj-setup-tools"'
 
 bad bad_codex_marketplace_missing 'jset "$W/.agents/plugins/marketplace.json" "d[\"plugins\"] = [p for p in d[\"plugins\"] if p[\"name\"] != \"dev\"]"
   expect_check_fails "marketplace .agents/plugins/marketplace.json" "漏登记：dev"'
@@ -175,11 +175,11 @@ bad bad_claude_marketplace_description 'jset "$W/.claude-plugin/marketplace.json
 # ---------------------------------------------------------------------------
 # interface
 
-bad bad_interface_missing 'jset "$P/setup-git/.codex-plugin/plugin.json" "del d[\"interface\"]"
-  expect_check_fails "interface setup-git" "没有 interface"'
+bad bad_interface_missing 'jset "$P/bjj-setup-git/.codex-plugin/plugin.json" "del d[\"interface\"]"
+  expect_check_fails "interface bjj-setup-git" "没有 interface"'
 
-bad bad_interface_empty_text 'jset "$P/setup-git/.codex-plugin/plugin.json" "d[\"interface\"][\"longDescription\"] = \" \""
-  expect_check_fails "interface setup-git" "longDescription"'
+bad bad_interface_empty_text 'jset "$P/bjj-setup-git/.codex-plugin/plugin.json" "d[\"interface\"][\"longDescription\"] = \" \""
+  expect_check_fails "interface bjj-setup-git" "longDescription"'
 
 # ---------------------------------------------------------------------------
 # 版本只升一次（相对 origin/main）

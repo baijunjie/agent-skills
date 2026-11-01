@@ -6,7 +6,7 @@
 
 ### 新增 skill
 
-1. 写 skill 本体：运行时 skill 手写 `plugins/<plugin>/skills/<skill>/SKILL.md`；`setup-*` 安装器不手写 `SKILL.md`，按 `docs/installers.md` 写源文件、登记、生成。
+1. 写 skill 本体：运行时 skill 手写 `plugins/<plugin>/skills/<skill>/SKILL.md`；`bjj-setup-*` 安装器不手写 `SKILL.md`，按 `docs/installers.md` 写源文件、登记、生成。
 2. 在 `README.md` 对应 plugin 的表格中补一行，说明列只写一句话（装什么、解决什么问题、有无改指令文件或装子代理之类的特殊影响），安装器还要填与 `scope` 一致的作用域列。新增安装器或改 `scope` 时，该 plugin 三个 manifest 与 `.claude-plugin/marketplace.json` 的 `description` 里的作用域摘要、`README.md` 里的安装器个数一起同步。
 3. 在 `.claude/settings.json` 的 `permissions.allow` 中加入 `Skill(<plugin>:<skill>)`，按 plugin 分组，组的顺序同 `.claude-plugin/marketplace.json` 的 `plugins` 数组，组内按字母序。
 4. 禁止隐式调用或需要 Codex UI 的 skill，创建 `agents/openai.yaml`；禁止隐式调用的设 `policy.allow_implicit_invocation: false`。
@@ -42,9 +42,9 @@ YAML frontmatter 必须位于文件最开头，`---` 是第一行。必填 `name
 
 - skill 携带的脚本、模板放在自己目录下，用 `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}/skills/<skill>/<file>` 引用（安装后路径不可预测，先用 Codex 的 `PLUGIN_ROOT`，回退到 Claude Code 的 `CLAUDE_PLUGIN_ROOT`）。
 - 同一 plugin 内多个 skill 共用的资源放 plugin 级 `scripts/`，不要让一个 skill 引另一个 skill 的 `template/`——单独装其中一个就会读到不属于它的路径。依赖同一 `scripts/` 的 skill 必须留在同一 plugin，plugin 之间不共享文件。安装器怎么引用它见 `docs/installers.md`「生成」与 `build.py` 的 `extra_env`：变量名要让 `RESOURCE_USE` 认得出（`RENDER_*` 或以 `_DIR` / `_ROOT` 结尾），用到它的命令块先写 `: "${<变量>:?}"` 守卫。
-- 安装器的 `template/` 按装出后的目录形态放：装成一个 skill 目录的放成 `template/<skill 名>/`，其中装成 `SKILL.md` 的那份叫 `SKILL.template.md`，附属文件按装出后的相对位置放在同一目录下（如 `setup-tools:codex-bridge` 的 `template/claude/`）；子代理 `agents/<名>.md`、输出风格 `output-styles/…`、cron 与 launchd 的 `cron/…`、`launchd/…` 本来就与装出的同名同层。仓库里不留直接叫 `SKILL.md` 的模板：与 skill 本体同名，看名字分不出哪份是模板。例外是写进指令文件的那份，它不是装出的文件，固定叫 `INJECT.md`、直接放在 `template/` 下（见 `docs/installers.md`「源文件契约」）。目录形态由 `build.py`「模板」项校验。
+- 安装器的 `template/` 按装出后的目录形态放：装成一个 skill 目录的放成 `template/<skill 名>/`，其中装成 `SKILL.md` 的那份叫 `SKILL.template.md`，附属文件按装出后的相对位置放在同一目录下（如 `bjj-setup-tools:codex-bridge` 的 `template/claude/`）；子代理 `agents/<名>.md`、输出风格 `output-styles/…`、cron 与 launchd 的 `cron/…`、`launchd/…` 本来就与装出的同名同层。仓库里不留直接叫 `SKILL.md` 的模板：与 skill 本体同名，看名字分不出哪份是模板。例外是写进指令文件的那份，它不是装出的文件，固定叫 `INJECT.md`、直接放在 `template/` 下（见 `docs/installers.md`「源文件契约」）。目录形态由 `build.py`「模板」项校验。
 - 多份装出的 skill、子代理模板共用的通用规则（如「本项目约定」只由安装器填写、随 skill 装出的子代理找不到时怎么办）写成 `tools/installer/fragments/` 里的片段，由模板源文件 include，不在各模板里各写一遍；模板源文件的位置与展开规则见 `docs/installers.md`「生成」。
-- 共享指令正文只维护一份，禁止另建宿主版本或作用域副本，宿主差异由 `plugins/setup-agent/scripts/` 的渲染脚本生成，各脚本生成什么见下面「渲染脚本」。
+- 共享指令正文只维护一份，禁止另建宿主版本或作用域副本，宿主差异由 `plugins/bjj-setup-agent/scripts/` 的渲染脚本生成，各脚本生成什么见下面「渲染脚本」。
 - 渲染脚本的写法：有模块 docstring；参数由 argparse 校验；出错时输出 `<脚本名>: <错误信息>` 到 stderr 并以 1 退出，不抛 traceback；自己写的消息用中文。直接写文件的渲染脚本全部渲染成功后才写，替换语义见其 docstring；安装器重装时用 `--replace`，不要先 `rm` 目标再渲染（会把软链换成普通文件，渲染失败时旧文件也没了）。
 
 ### 渲染脚本
@@ -52,8 +52,8 @@ YAML frontmatter 必须位于文件最开头，`---` 是第一行。必填 `name
 | 渲染脚本 | 生成什么 | 备注 |
 |---|---|---|
 | `render-codex-agent.py` | Agent 模板的 Codex 版 | 模型与 reasoning effort 在其中集中映射，新增 agent 时必须同时补齐；Claude 版的模型配置写在模板 frontmatter |
-| `render-subagent-rules.py` | `setup-agent:subagents` 的规则 | 按宿主与去处定层级，三种形态见其 docstring |
-| `render-report-style.py` | `setup-agent:report-style` 的 Claude Code 输出风格文件与 Codex 那一节 | 两个宿主共用一份模板，填回答语言 |
+| `render-subagent-rules.py` | `bjj-setup-agent:subagents` 的规则 | 按宿主与去处定层级，三种形态见其 docstring |
+| `render-report-style.py` | `bjj-setup-agent:report-style` 的 Claude Code 输出风格文件与 Codex 那一节 | 两个宿主共用一份模板，填回答语言 |
 
 同目录的 `markdown_headings.py` 不是渲染脚本，是 `render-subagent-rules.py` 与 `render-report-style.py` 共用的模块：把模板里的标题层级平移到写进指令文件
 该有的层级（见 `docs/decisions.md`「写进指令文件的内容顶层用一级标题」），代码块里的 `#` 不动、平移出 1–6 级就报错。

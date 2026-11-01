@@ -1,19 +1,19 @@
 # 安装器
 
-`setup-*` 安装器的命名与归属、生成、源文件契约；面向新增或修改安装器、片段、`build.py` 的维护者与 agent，什么时候读见 AGENTS.md「什么时候读什么」。
+`bjj-setup-*` 安装器的命名与归属、生成、源文件契约；面向新增或修改安装器、片段、`build.py` 的维护者与 agent，什么时候读见 AGENTS.md「什么时候读什么」。
 
 ## 命名与归属
 
-需要装进项目或用户级配置的，做成 `setup-*` plugin 下的安装器（模板放 skill 自己的 `template/`，目录形态见 `docs/authoring.md`「附带资源与共享模板」）；不需要的作为运行时 plugin（如 `dev`、`create`）。
+需要装进项目或用户级配置的，做成 `bjj-setup-*` plugin 下的安装器（模板放 skill 自己的 `template/`，目录形态见 `docs/authoring.md`「附带资源与共享模板」）；不需要的作为运行时 plugin（如 `dev`、`create`）。
 
 安装器类 plugin 按领域划分、不按作用域：
 
 | plugin | 领域 |
 |---|---|
-| `setup-agent` | agent 的开发工作方式 |
-| `setup-git` | Git 规范与流程 |
-| `setup-tools` | 开发辅助工具 |
-| `setup-knowledge` | 知识类规范 |
+| `bjj-setup-agent` | agent 的开发工作方式 |
+| `bjj-setup-git` | Git 规范与流程 |
+| `bjj-setup-tools` | 开发辅助工具 |
+| `bjj-setup-knowledge` | 知识类规范 |
 
 作用域是安装器自己的属性，在 `INSTALLERS` 声明：
 
@@ -23,17 +23,18 @@
 | `project-user` | 默认装进当前项目，也可装进用户级配置 |
 | `user` | 只装进用户级配置 |
 
-- 仅用户级的安装器也放进对应领域，如 `setup-tools:codex-bridge`。
-- `setup-<领域>` 下的安装器名不重复领域前缀，装出去的 skill 名带 `<领域>-` 前缀（如 `setup-git:commit` 装出 `git-commit`），避免与其它 skill 重名；`setup-tools` 例外，装出的 skill 不加 `tools-` 前缀。
-- `batch-setup` 不是安装器：它不走 `build.py`、`SKILL.md` 手写，作用是读取并执行多个安装器的 `SKILL.md`（安装器禁止模型调用，不能经 skill 机制触发），另含更新本 marketplace plugin 的 `plugin-update`。两个 `*-reinstall` 写死了要查的 `setup-*` plugin 列表，新增或改名 `setup-*` plugin 时同步。名字不用 `setup-*`，免得被 `build.py` 当成安装器目录。
+- 仅用户级的安装器也放进对应领域，如 `bjj-setup-tools:codex-bridge`。
+- 安装器 plugin 统一以 `bjj-setup-` 开头，避免与其它 plugin 的安装入口重名。
+- `bjj-setup-<领域>` 下的安装器名不重复领域前缀，装出去的 skill 名带 `<领域>-` 前缀（如 `bjj-setup-git:commit` 装出 `git-commit`），避免与其它 skill 重名；`bjj-setup-tools` 例外，装出的 skill 不加 `tools-` 前缀。
+- `bjj-batch-setup` 不是安装器：它不走 `build.py`、`SKILL.md` 手写，作用是读取并执行多个安装器的 `SKILL.md`（安装器禁止模型调用，不能经 skill 机制触发），另含更新本 marketplace plugin 的 `plugin-update`。两个 `*-reinstall` 写死了要查的 `bjj-setup-*` plugin 列表，新增或改名 `bjj-setup-*` plugin 时同步。名字不用 `bjj-setup-*`，免得被 `build.py` 当成安装器目录。
 
 ## 生成
 
 安装器 `SKILL.md` 与有模板源文件的模板是生成物、不得手改，见 AGENTS.md「硬规则」。改了 `tools/installer/` 或安装器的 `template/`、`agents/openai.yaml` 后，运行 `python3 tools/installer/build.py` 重新生成（任一安装器或模板源文件校验不过就一个文件都不写），提交前再跑 `python3 tools/installer/build.py --check`（生成物与源文件不一致时非零退出并列出文件）。
 
-- 语法（`{{include: 片段名}}`、`{{变量}}`）、变量来源与 `INSTALLERS` 的写法见 `build.py` 模块 docstring 与注释。`INSTALLERS` 只声明 `scope` 与有差异的变量，生成物路径、`skill`、`name`、`marker` 由源文件名推导。
+- 语法（`{{include: 片段名}}`、`{{变量}}`）、变量来源与 `INSTALLERS` 的写法见 `build.py` 模块 docstring 与注释。`INSTALLERS` 只声明 `scope` 与有差异的变量，生成物路径、`skill`、`name`、`marker` 由源文件名推导；`marker` 固定为 `setup-<领域>:<skill>`，独立于 plugin 名。
 - 片段每个文件开头的说明块写它做什么、哪类源文件引用、放在哪；改片段前先看它，新增片段照同样格式写说明块。
-- 模板源文件放 `tools/installer/templates/<plugin>/<skill>/<template/ 下的相对路径>`，生成 `plugins/<plugin>/skills/<skill>/template/<同一相对路径>`，如 `templates/setup-agent/gallery/agent-gallery/SKILL.template.md` 生成 `plugins/setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md`。`<plugin>/<skill>` 须是已登记安装器的目录。有源文件的模板改源文件，生成物不得手改；没有源文件的模板照旧在 `template/` 里手写。
+- 模板源文件放 `tools/installer/templates/<plugin>/<skill>/<template/ 下的相对路径>`，生成 `plugins/<plugin>/skills/<skill>/template/<同一相对路径>`，如 `templates/bjj-setup-agent/gallery/agent-gallery/SKILL.template.md` 生成 `plugins/bjj-setup-agent/skills/gallery/template/agent-gallery/SKILL.template.md`。`<plugin>/<skill>` 须是已登记安装器的目录。有源文件的模板改源文件，生成物不得手改；没有源文件的模板照旧在 `template/` 里手写。
 - 模板只展开独占一行的 `{{include: 片段名}}`（缩进、递归与片段说明块的处理同安装器），其它 `{{…}}`（安装时才替换的占位，如 `{{PR_BASE}}`）原样保留，不做变量展开。模板与安装器共用 `fragments/`；给模板 include 的片段（含它再 include 的）不得含 `{{变量}}`。
 - 安装器的 `agents/openai.yaml` 与没有源文件的 `template/` 手工维护，不由构建生成。
 

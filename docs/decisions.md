@@ -23,7 +23,7 @@ Codex 文档只列出这一处用户级 skill 位置，安装器就固定写它�
 
 ### 应用 skill 与子代理模板里不写宿主差异
 
-装出去的 skill、子代理模板正文不出现「Claude Code 下…，Codex 下…」的分支；宿主差异只写在安装器里，由安装器按宿主装出对应内容（必要时由 `plugins/setup-agent/scripts/` 的渲染脚本生成）。
+装出去的 skill、子代理模板正文不出现「Claude Code 下…，Codex 下…」的分支；宿主差异只写在安装器里，由安装器按宿主装出对应内容（必要时由 `plugins/bjj-setup-agent/scripts/` 的渲染脚本生成）。
 
 为什么：装出的文件只在一个宿主里被读，写进另一宿主的说明是噪音，还会随宿主变化各自过期。
 校验：无，靠复核。
@@ -35,7 +35,7 @@ Codex 文档只列出这一处用户级 skill 位置，安装器就固定写它�
 - 重装先只读地比对内容、不判断版本：全部一致就汇报「无需更新」并结束，不写任何文件；有差异、判不了、拿不准一律无条件重装。定制值位置的差异不算，缺文件算有差异。
 - 比对的范围是本安装器写出的那部分：独占的文件整份比，写进共享文件（指令文件、`.gitignore`、`package.json` / `Makefile` 等）的只比它写的那一段、那一行、那几个键。
 - 无变更早退只对「只来更新安装」的调用成立：用户这次还要改定制值里的内容时照安装步骤填写，不走早退；产物要用户另外执行命令才在机器上生效的，早退时把那一步告知用户。
-- 批量重装 skill（`batch-setup:project-reinstall`、`batch-setup:user-reinstall`）在确认清单前用同一套比对，标出每格「需更新」或「无需更新」，只重装前者；被选中的格里，安装器自己再比一次，结论不会变。
+- 批量重装 skill（`bjj-batch-setup:project-reinstall`、`bjj-batch-setup:user-reinstall`）在确认清单前用同一套比对，标出每格「需更新」或「无需更新」，只重装前者；被选中的格里，安装器自己再比一次，结论不会变。
 - 流程固定为：比对（无变更就结束）→ 查软链 → 查冲突，有冲突问用户「完全覆盖」还是「融入现有内容」→ 查手改，会被覆盖的写入前就问用户 → 读定制值 → 只清理本安装器装出的 → 装新的 → 填回定制值。
 - 重装后定制值以外的（含手改）与模板一致，手改在写入前问用户；定制值保留旧值，其中由现状推导的重新推导，与旧值不同的算冲突、写入前问用户沿用还是换新，确定不了才沿用旧值；融入只落进含义相符的定制值位置，没有就按定制值为「无」处理。一旦写进产物就必须保持稳定的值（换了会让已生效的东西失效、或在机器与远端留下无人认领的残留，如 crontab 标记、LaunchAgent 标签前缀）按由用户填写处理。规则原文在片段 `reinstall` 的「重装后留下什么」。
 - 要写入、替换或删除的路径是软链时，一律停下来问用户，不自行处理。
@@ -45,8 +45,8 @@ Codex 文档只列出这一处用户级 skill 位置，安装器就固定写它�
 
 ### 指令文件内容用成对标记界定
 
-安装器往 `CLAUDE.md` / `AGENTS.md` 写的内容包在成对的 HTML 注释标记 `<!-- setup-<领域>:<skill>:begin|end -->` 里，重装只替换本安装器的标记范围；
-用什么命令写进去不限，以写完的结果为准。落在指令文件之外的冲突（脚本、配置文件、机器上的状态）在它本来的位置处理，不搬进标记范围。只有写指令文件的 6 个安装器用标记：`setup-agent:subagents`、`setup-agent:report-style`、`setup-agent:workflow`、`setup-git:worktree`、`setup-tools:cron`、`setup-tools:launchd`。
+安装器往 `CLAUDE.md` / `AGENTS.md` 写的内容包在成对的 HTML 注释标记 `<!-- setup-<领域>:<skill>:begin|end -->` 里，标记身份独立于 plugin 名、固定为 `setup-<领域>:<skill>`，重装只替换本安装器的标记范围；
+用什么命令写进去不限，以写完的结果为准。落在指令文件之外的冲突（脚本、配置文件、机器上的状态）在它本来的位置处理，不搬进标记范围。只有写指令文件的 6 个安装器用标记：`bjj-setup-agent:subagents`、`bjj-setup-agent:report-style`、`bjj-setup-agent:workflow`、`bjj-setup-git:worktree`、`bjj-setup-tools:cron`、`bjj-setup-tools:launchd`。
 
 为什么：按标题找会误伤用户自己写的同名节；不写指令文件的安装器带上标记只会制造无主的标记。
 校验：`build.py`「标记」项（格式、名字、成对，以及写指令文件与 include `markers` 互为充要）。
@@ -56,7 +56,7 @@ Codex 文档只列出这一处用户级 skill 位置，安装器就固定写它�
 安装器往指令文件写的内容带节标题时，标记范围里最浅的节标题是 `#`；目标文件把 `#` 只用作全文的文档标题、用 `##` 分节时，
 写入后整块降一级对齐。整块是无标题段落的不补标题——它的归属由标记界定，不靠标题。
 规则原文在 `tools/installer/fragments/markers.md`「标题层级」，各安装器不另行陈述。
-`setup-agent:subagents` 的用户级安装是后一种情形的实例：指令文件里已有「# 全局规则」时按 `--no-header` 渲染，
+`bjj-setup-agent:subagents` 的用户级安装是后一种情形的实例：指令文件里已有「# 全局规则」时按 `--no-header` 渲染，
 顶层留在 `##` 挂到它底下。
 
 为什么：几个安装器各按自己的假设定层级时，顶层写 `##` 的那几节会挂到上一节底下成为它的子节，而文件本身不报错、
@@ -67,8 +67,8 @@ Codex 文档只列出这一处用户级 skill 位置，安装器就固定写它�
 ### 专职 skill 不自挂触发点
 
 - 装出的专职 skill（`agent-docs`、`agent-unit-test`、`agent-change-check` 等）不往指令文件里挂触发说明，只靠自己的 `description` 被自动触发。
-- 开工前与交付前的工作流只由 `setup-agent:workflow` 写入指令文件的「工作流」一节；规范如何改这一节的 `agent-workflow-edit` 只在 workflow 安装器自己的源文件、生成物与模板里出现，其它安装器、装出的 skill 与 README 都不提它的名字。
-- 例外：同一安装器既写指令文件、又装出配套的操作 skill 时，可以在**自己的标记范围内**点名那份 skill 作为操作入口（目前只有 `setup-git:worktree` 指向 `git-worktree`）。标记范围由该安装器独占、只有一处、重装时整份覆盖，不会散落也无需别人统筹，所以不算自挂触发点。指令文件里只写无条件生效的约定与这个入口，操作细节只写在 skill 里，两边不复述。
+- 开工前与交付前的工作流只由 `bjj-setup-agent:workflow` 写入指令文件的「工作流」一节；规范如何改这一节的 `agent-workflow-edit` 只在 workflow 安装器自己的源文件、生成物与模板里出现，其它安装器、装出的 skill 与 README 都不提它的名字。
+- 例外：同一安装器既写指令文件、又装出配套的操作 skill 时，可以在**自己的标记范围内**点名那份 skill 作为操作入口（目前只有 `bjj-setup-git:worktree` 指向 `git-worktree`）。标记范围由该安装器独占、只有一处、重装时整份覆盖，不会散落也无需别人统筹，所以不算自挂触发点。指令文件里只写无条件生效的约定与这个入口，操作细节只写在 skill 里，两边不复述。
 
 为什么：各 skill 各挂一段会让工作流散落在指令文件多处、顺序无人统筹，增删 skill 时也没人收拾。
 校验：AGENTS.md「硬规则」里关于工作流的那条是规则本身；`build.py`「标记」项会拦下不 include `markers` 却写指令文件的安装器。`agent-workflow-edit` 的出现范围不校验，可用 `grep -rn agent-workflow-edit` 核对；例外那条也不校验，可用 ``grep -rn '`git-worktree` skill'`` 核对点名只出现在 worktree 安装器自己的源文件、生成物、模板与 `README.md` 的说明列里。
@@ -112,15 +112,15 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 为什么：步骤重排后旧引用、模板改字后替换原文都会悄悄失效，装出的结果错了也不报错，多次整改都在补这类遗漏。
 校验：`build.py`「步骤引用」「替换表」项；约定写法见 `docs/installers.md`「源文件契约」。前者只是最大步号检查，不保证指向正确的步骤。
 
-## `setup-git` 的回退闸门
+## `bjj-setup-git` 的回退闸门
 
 ### 谁拥有什么
 
-- 闸门自成一个安装器 `setup-git:revert-gate`：闸门脚本（`revert-gate.py`、`hook.sh`、`install.sh`）放它自己的 `template/githooks/`，连同 `.githooks/branches`（常驻守护分支，主分支在第一行）与各 clone 的 hook 入口只归它装。
+- 闸门自成一个安装器 `bjj-setup-git:revert-gate`：闸门脚本（`revert-gate.py`、`hook.sh`、`install.sh`）放它自己的 `template/githooks/`，连同 `.githooks/branches`（常驻守护分支，主分支在第一行）与各 clone 的 hook 入口只归它装。
 - `pr` 与 `worktree` 只装操作步骤与流程脚本，装出的 `git-pr`、`git-worktree` 不提闸门：不跑预检、不补装 hook、没有闸门时也不人工核对；被 hook 拦下时一律「照输出里的提示复原、处理，拿不准就汇报」，怎么复原（`git reset --merge`、`git rebase --abort` 等）、怎么改、怎么声明有意撤销写在闸门的拒绝信息里。
 - 两边之间的契约只有三样，都由流程那边写、闸门只读：`branch.<分支>.targetBranch`（目标分支）与 `forkPoint`（切出点），由 `flow-record.sh` 记录；提交信息里的 `Reverts: <sha>` 有意撤销声明，`flow-squash.sh` 压平时核对没丢。闸门只认这一套键，记了它的分支的目标分支即受守护，该分支自己被推送时走 PR 内容检查，两者都跑、不是二选一。改键名的代价：这两个键在各 clone 自己的 `.git/` 里、不随仓库走，换了名字等于让已有记录静默失效，各 clone 都要重记一遍。
 - 新 clone 不会自带 hook：`flow-record.sh` 发现自己所在目录有闸门脚本、本 clone 却没装 hook 或没写常驻守护分支配置时，记完打一行提示（退出码仍是 0），skill 只写「退出码 0 时输出里以「注意：」起头的提示告知用户、不自行照做」。这是流程脚本唯一认得闸门的地方，只提示、不替人安装。
-- 流程脚本（`flow-*.sh`）放 plugin 级 `plugins/setup-git/scripts/flow/`，由 `pr` 与 `worktree` 共同拥有、无条件覆盖复制到 `.githooks/`；`.githooks/` 里两边的文件各管各的。
+- 流程脚本（`flow-*.sh`）放 plugin 级 `plugins/bjj-setup-git/scripts/flow/`，由 `pr` 与 `worktree` 共同拥有、无条件覆盖复制到 `.githooks/`；`.githooks/` 里两边的文件各管各的。
 
 为什么：闸门原先由 `pr` 与 `worktree` 共同拥有，两个 skill 里各写一套预检、补装与「没有闸门就人工核对」的支路，`worktree` 还要按 python3 与 git 版本把 skill 改写成写法 B / C；只装 `pr` 的仓库没有常驻守护分支，两次 PR 之间目标分支无人守护。拆开后 skill 只管操作规范、单装 skill 或单装闸门都成立，闸门总带常驻守护分支。代价是推送、合并前不再预检，问题要到 hook 拦下时才发现（拦下时 merge 已写了工作副本、要按提示复原）；没装闸门的仓库也不再有人工核对兜底。git 的每个 hooks 目录只能有一个 `pre-push`，检测逻辑与它的回归测试也只能有一份，所以闸门只归一个安装器。
 校验：`tools/tests/gate/` 的 `install_*` 用例与 `block_prepush_pr_only_clone`；提示由 `tools/tests/flow/` 的 `record_gate_*` 与 `record_no_gate_quiet` 钉住；共用流程脚本的引用由 `build.py` 的 `extra_env` 声明与守卫校验兜底。
@@ -149,7 +149,7 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 - hook 入口装进各 clone 后不随仓库更新：入口本身改了（如多筛一条触发路径）要各 clone 重跑 `install.sh` 才生效，否则那部分检查在该 clone 上不存在。
 
 为什么：边界都是为了不误拦正常操作（删掉做完的计划文档、去掉临时代码、还没 rebase 的 WIP 推送、闸门故障不能卡死所有 ref 更新）而有意留下的，把它们写成「保证」会让人依赖闸门而不自己遵守规则。
-校验：闸门行为的测试放在 `tools/tests/gate/`，每条判据另有 `tools/tests/mutation/` 的 `teeth_*` 钉住「这段逻辑确实有用例压着」；规则原文见 `plugins/setup-git/skills/revert-gate/template/githooks/revert-gate.py` 的模块 docstring。
+校验：闸门行为的测试放在 `tools/tests/gate/`，每条判据另有 `tools/tests/mutation/` 的 `teeth_*` 钉住「这段逻辑确实有用例压着」；规则原文见 `plugins/bjj-setup-git/skills/revert-gate/template/githooks/revert-gate.py` 的模块 docstring。
 
 ### 团队工作方式
 
@@ -158,9 +158,9 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 - 不强推目标分支。
 
 为什么：目标分支上的本地提交会被 rebase 改写，从它切出的分支直接 rebase 会把改写前的提交再搬一遍；强推会覆盖队友的提交，闸门也会拒绝。
-校验：操作步骤原文在 `plugins/setup-git/skills/worktree/template/git-worktree/SKILL.template.md`（写进指令文件的那几条约定在 `template/INJECT.md`），搬分支由 `plugins/setup-git/scripts/flow/flow-restack.sh` 完成、测试在 `tools/tests/flow/`，闸门测试见上。
+校验：操作步骤原文在 `plugins/bjj-setup-git/skills/worktree/template/git-worktree/SKILL.template.md`（写进指令文件的那几条约定在 `template/INJECT.md`），搬分支由 `plugins/bjj-setup-git/scripts/flow/flow-restack.sh` 完成、测试在 `tools/tests/flow/`，闸门测试见上。
 
-## `setup-git` 的流程脚本
+## `bjj-setup-git` 的流程脚本
 
 - 只把两个 skill 里步骤固定、做错了又不报错的机械操作写成脚本：记录目标分支与切出点、在原基点压平并核对、推送前识别远端别人的提交、对齐后搬分支、清理前的前提核对。判断（提交信息、保留几个提交、解冲突、验证、撤销是否有意、问用户）留在 skill 的提示词里。
 - 只用 POSIX sh 与 git，不依赖 python3；平台操作（查已有 PR、建 PR）不进脚本，照旧由提示词让 agent 用手边的工具完成，不限定平台。
@@ -168,9 +168,9 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 - skill 调用主工作副本里的那份：`.githooks/` 可能还没提交，从目标分支新切出的 worktree 里没有它。
 
 为什么：全量脚本化（连远端推断、PR 平台都收进脚本）要么把 python3 变成安装前提、要么维护文字与脚本两套流程，还会把平台限定成 GitHub，兼容性代价大于收益；只收机械操作，换来的是最容易出错的几步（换基点压平、强推盖掉别人的提交、清理时丢掉没推上去的改写）由脚本保证，而兼容性不变。闸门脚本仍是 Python：按内容判断撤销要解析 diff、比对行与改名，用 sh 重写代码量成倍、在每次 ref 更新都跑的 hook 上更慢，而它本来就是单独装的可选项（没有 python3 时 hook 放行）。
-校验：`tools/tests/flow/`，每条用例在系统里有的 sh、dash、bash 下各跑一次；规则原文见各脚本开头的注释与 `plugins/setup-git/scripts/flow/flow-lib.sh`。
+校验：`tools/tests/flow/`，每条用例在系统里有的 sh、dash、bash 下各跑一次；规则原文见各脚本开头的注释与 `plugins/bjj-setup-git/scripts/flow/flow-lib.sh`。
 
-## `setup-git:pr` 的 PR 流程
+## `bjj-setup-git:pr` 的 PR 流程
 
 - 压平与 rebase 的基准一律取 `<远端>/<目标分支>`，不取本地目标分支：合并发生在远端，GitHub 算 diff 用的 merge base 就是远端尖端。（流程仍会动本地目标分支：当前就在它上面时要 `git branch -f` 退回远端位置，收尾时要切回它。）worktree 流程反过来必须 rebase 到本地目标分支——它的合并是本地 `merge --ff-only`，所以要先把本地目标分支对齐到远端。
 - 压平仍在原基点（`git merge-base HEAD <远端>/<目标分支>`）上做，压平之后才 rebase，两步不合并成一步。
@@ -180,28 +180,28 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 
 为什么：基点换了而内容没合就会悄悄撤销目标分支上的改动，这是闸门要拦的同一类错误；本地目标分支领先远端时
 （worktree 流程常见），rebase 到它会把还没推送的本地提交垫进 PR 底下。fork 工作流里两个远端不是同一个，混用会在别的仓库新建分支、已有 PR 悄悄停在旧内容上；远端那些提交（网页上采纳的建议、维护者推的修复）`--force-with-lease` 拦不住。
-校验：操作步骤原文在 `plugins/setup-git/skills/pr/template/git-pr/SKILL.template.md`，闸门的 PR 路径见上一节。
+校验：操作步骤原文在 `plugins/bjj-setup-git/skills/pr/template/git-pr/SKILL.template.md`，闸门的 PR 路径见上一节。
 
 ## 检查的时机
 
 - 检查命令以项目写明的为准，跑哪些按改动范围定：只改了构建、类型检查与测试都不读的文件只跑覆盖它们的格式检查与 Lint，改动只在一个写明了自己检查命令的包内只跑该包的，其余（共享层、跨包、判断不了）跑项目写明的整套；项目没写明整套的以配置里现有的格式检查、类型检查、Lint、构建、测试命令为整套，并提醒用户写明。规则原文只在片段 `check-scope`，交付前的「格式化与检查」与两个 git skill 的验证都 include 它。交付前先执行格式化命令；走项目的合并流程、且它会把分支对齐到最新目标分支的，检查放到它对齐之后跑一次（它在对齐后本就验证的，覆盖到的不另跑，没覆盖到的同一时机补跑；在那里为通过检查改了行为的，合并前停下按工作流重走），不走合并流程或它不对齐的在格式化后跑；自检里其它步骤改了代码不另跑，只跑确认自己改动的相关测试。
 - 压平、没带进新代码的 rebase、快进合并、提 PR 都不改变内容，不重跑；之后又改了内容的，合并或推送前重跑；rebase 或 merge 带进了目标分支的新代码的同样重跑，只有分支改动全是构建、类型检查与测试都不读的文件、这些文件与本次会话里覆盖它们的检查通过时相同、此后带进来的代码也没动覆盖它们的格式检查与 Lint 的配置、写明的命令或工具版本时例外（例外原文在片段 `check-scope`）。git skill 里「已检查过」以文件树比对为准：rebase 之后当前的 `HEAD^{tree}` 与本次会话里检查通过的那份内容所在提交的相同，或属于上面的例外，拿不准就重跑；比的是最终要交出去的内容，压平后任何时候的补改与带进的新代码都会让它不同，不必另在 rebase 前查会不会带进新代码（曾比压平前的文件树加 rebase 前查 `is-ancestor`，漏了压平之后的补改）：跳过错了没人会发现，而被别的会话搬过分支这类变化只靠记忆看不出来。
-- 「检查放在对齐之后、交付之前」与「自检过的内容之后推送、发 PR 或合并不重做自检」只写在 `setup-agent:workflow` 的工作流里；`git-worktree`、`git-pr` 只写自己那步何时要验证、何时沿用已有结果，不提工作流，也不互相点名（走 PR 时写成「按项目的 PR 流程」），不靠对方的步骤成立。
+- 「检查放在对齐之后、交付之前」与「自检过的内容之后推送、发 PR 或合并不重做自检」只写在 `bjj-setup-agent:workflow` 的工作流里；`git-worktree`、`git-pr` 只写自己那步何时要验证、何时沿用已有结果，不提工作流，也不互相点名（走 PR 时写成「按项目的 PR 流程」），不靠对方的步骤成立。
 - 范围只算分支自己的改动：rebase、merge 从目标分支带进来的代码不算进范围，目标分支上的代码视为已检查过；解冲突改过的地方算进去。各档的归类（文件有没有被构建或测试读到、包有没有被依赖）仍按 rebase、merge 之后的代码判断：目标分支检查时还没有本分支的改动。
 
 为什么：检查放在合并流程对齐之后，目标分支的新代码已经在里面，只跑一次；先在对齐前查一遍、带进新代码后又查一遍是浪费（实际出现过）；工作流不自己压平、rebase，切出点记录、强推确认、共享分支由用户定这些规则只在 git skill 里，不会被绕过；同一份内容跑两遍是浪费，而分支改动与带进的新代码的组合没验过，不重跑会把没验过的组合合进去；但把带进来的代码算进范围，会让只改了几份文档的分支因为 rebase 带进大量代码而跑整套（实际出现过），目标分支上的代码已在它自己的分支上检查过，重跑时只查分支自己的改动就够了，只改了文档这类文件的连这份组合也影响不到。不论改了什么都跑整套，会让每次交付（worktree 流程里每次合并都算）都付全量构建与测试的代价，而项目很少写明「约定的检查」有哪些，agent 就把列出的几类全当成要跑的；按范围裁剪、拿不准跑整套，只在改动碰不到的检查上省时间。编排只放在工作流里，git skill 单独装也能自足，两边不会因为互相引用而一处改了另一处过期。
-校验：无，范围规则原文在片段 `check-scope`，时机规则在 `plugins/setup-agent/skills/workflow/template/INJECT.md` 与两个 git skill 模板的「## 合并」、第 3 步。
+校验：无，范围规则原文在片段 `check-scope`，时机规则在 `plugins/bjj-setup-agent/skills/workflow/template/INJECT.md` 与两个 git skill 模板的「## 合并」、第 3 步。
 
-## `setup-agent:subagents`
+## `bjj-setup-agent:subagents`
 
 - 要结果才能往下走的派发必须阻塞等结果，派出去再自己等接不住：后台派出的子任务，报告既回不到派它的那一层、也不回到顶层，那一轮白跑；回合在停止调用工具时就结束，定时等待与查看状态都挡不住它结束。
 - 「不交回空手结果」写成边界：空手交回会让上一层以为这一步做过了。
 - 并发只拦两件事——同时改同一处、并发做同一件事，不规定并发数。
 
 为什么：实测里子代理把评审子任务后台派出去后二十秒就交回「已派出、在等它」，续它一次又照做一遍；那两个后台子任务跑完没有任何报告去处。并发三个同样的评审则互相抢资源、二十多分钟不收敛。这一条写在通用的分派规则里而不是子代理模板里，因为子代理同样会读到指令文件这一节，而顶层自己也会踩同一个坑；禁止子代理再派子代理则会拆掉改动检查等本来就由执行者派发的链路。
-校验：无，规则原文在 `plugins/setup-agent/skills/subagents/template/INJECT.md`。
+校验：无，规则原文在 `plugins/bjj-setup-agent/skills/subagents/template/INJECT.md`。
 
-## `setup-agent:plan`
+## `bjj-setup-agent:plan`
 
 `agent-plan-exec` 只写处理原则与必须守住的边界，细节交给执行的 agent 判断，拿不准就汇报；不为每种情形补细则。
 
@@ -213,22 +213,22 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 - 编号、插入与最终确认里程碑的规则以 `agent-plan-exec` 为准，`agent-plan-write` 不涉及：write 只负责写初始计划，之后的执行与维护都在 exec，两个 skill 之间不互相引用。
 
 为什么：逐条规定每种情形时，每补一条规则就多出几个新的边界情形，复核一轮接一轮不收敛；原则加边界让 agent 在规则没覆盖到的地方也有判断依据，越不过的只留真正不可逆或难发现的几条。日期早的主题可能是搁置的，日期说明不了优先级。遗留记录留在已完成的文档里，接手的人既不知道该读哪里，也没人负责了结；清单留一行才不会让后来的里程碑复用编号，留着简述看得出前面做过什么（链接去掉，因为文档已删）；「交接」节只写上下文、不写出处，因为文档已删，提它没有意义。
-校验：无，规则原文在 `plugins/setup-agent/skills/plan/template/` 下的两个模板。
+校验：无，规则原文在 `plugins/bjj-setup-agent/skills/plan/template/` 下的两个模板。
 
-## `setup-agent:bug`
+## `bjj-setup-agent:bug`
 
 - 只有全部验收判据逐条验证通过、且改在了根因上才删工单；删单与修复放在同一份改动里。有判据验不了、只做了临时绕过、验证没通过的都不删，汇报，由用户决定。
 
 为什么：工单删了就恢复不了，验不了的判据、绕过留下的根因问题会随之从待修清单里消失。
-校验：无，规则原文在 `plugins/setup-agent/skills/bug/template/agent-bug-fix/SKILL.template.md`。
+校验：无，规则原文在 `plugins/bjj-setup-agent/skills/bug/template/agent-bug-fix/SKILL.template.md`。
 
-## `setup-tools:codex-bridge`
+## `bjj-setup-tools:codex-bridge`
 
 - Claude 侧的限制——拦截类 hook、`permissions.deny`、`permissions.ask`——按意图在 Codex 里同等生效，覆盖所有等价操作。
 - `deny` 与拦截类 hook 不因对话里的同意而放行：停下说明被哪条拦了，要做就请用户改配置或亲手执行；`ask` 管到的操作，用户在请求里点名要做不算确认，执行前仍单独确认。用户指令与这些限制冲突时按限制处理。
 
 为什么：与 Claude Code 的行为一致；这些限制本来就是用户不想被随口绕过的，推送、读密钥这类操作做了就收不回。
-校验：无，规则原文在 `plugins/setup-tools/skills/codex-bridge/template/claude/SKILL.template.md`。
+校验：无，规则原文在 `plugins/bjj-setup-tools/skills/codex-bridge/template/claude/SKILL.template.md`。
 
 ## 文案
 

@@ -1,6 +1,6 @@
 <!--
 一句话：单元测试默认只跑受影响的测试，波及全局或依赖面查不清时跑全量。
-给 setup-agent:unit-test 的运行时模板用（tools/installer/templates/ 下的模板源文件 include），不给安装器源文件用：agent-unit-test 与 test-writer 都 include，主代理自己跑与子代理跑按同一范围。
+给 bjj-setup-agent:unit-test 的运行时模板用（tools/installer/templates/ 下的模板源文件 include），不给安装器源文件用：agent-unit-test 与 test-writer 都 include，主代理自己跑与子代理跑按同一范围。
 不得含 {{变量}}，build.py 会拦下。是两个段落，放在讲运行范围的那节里；「在最终回复 / 报告里写清跑了哪个范围」各自另写。
 -->
 

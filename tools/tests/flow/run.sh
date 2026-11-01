@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 流程脚本（plugins/setup-git/scripts/flow/）的回归测试。
+# 流程脚本（plugins/bjj-setup-git/scripts/flow/）的回归测试。
 #   bash tools/tests/flow/run.sh [-v] [<用例名>...]
 # 环境变量 FLOW_TEMPLATE_DIR 可指向另一份 flow 目录（如故意改坏的副本），默认测仓库里的那份。
 #
@@ -10,7 +10,7 @@
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)/lib/common.sh"
 
-FLOW_SRC=${FLOW_TEMPLATE_DIR:-$REPO_ROOT/plugins/setup-git/scripts/flow}
+FLOW_SRC=${FLOW_TEMPLATE_DIR:-$REPO_ROOT/plugins/bjj-setup-git/scripts/flow}
 FLOW_SRC=$(cd "$FLOW_SRC" && pwd -P)
 [ -f "$FLOW_SRC/flow-lib.sh" ] || die "找不到流程脚本：$FLOW_SRC"
 

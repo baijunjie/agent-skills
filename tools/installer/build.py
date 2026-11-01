@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""把安装器源文件展开成 plugins/setup-<领域>/skills/<skill>/SKILL.md，把模板源文件展开成安装器 template/ 下的模板。
+"""把安装器源文件展开成 plugins/bjj-setup-<领域>/skills/<skill>/SKILL.md，把模板源文件展开成安装器 template/ 下的模板。
 
 源文件是 sources/<领域>-<skill>.md，公共片段是 fragments/<片段名>.md。语法只有两样，不支持条件与循环：
   {{include: 片段名}}   独占一行，替换为该片段内容；行首有缩进时片段每一行都补上同样的缩进，
@@ -40,7 +40,7 @@ plugins/<plugin>/skills/<skill>/template/<同一相对路径>；只有存在源�
 #
 # 登记与命名
 #   - sources/ 下有没在 INSTALLERS 登记的源文件，或登记的源文件不存在
-#   - plugins/setup-*/skills/ 下有不对应登记源文件的目录（含只剩 template/ 的残留目录），
+#   - plugins/bjj-setup-*/skills/ 下有不对应登记源文件的目录（含只剩 template/ 的残留目录），
 #     或散落的普通文件（名为 .DS_Store 的跳过）
 #   - 源文件名不是 <领域>-<skill>
 #   - fragments/ 下有没被任何源文件或模板源文件 include、也没经 fragment() 引用的片段（全部安装器渲染完后查）
@@ -87,7 +87,7 @@ plugins/<plugin>/skills/<skill>/template/<同一相对路径>；只有存在源�
 #   - host-conventions、pre-write、reinstall、state-mismatch 没有在源文件顶层（不缩进）各直接 include 恰好一次
 #   - 除 REPEATABLE 外，任一片段在一个安装器的展开结果里出现不止一次（直接、缩进、经别的片段，
 #     还是经 fragment() 注入都算）
-#   - setup-tools 的源文件（tools-*）include 了 skill-targets
+#   - bjj-setup-tools 的源文件（tools-*）include 了 skill-targets
 #   - host-conventions 所在的节（其前最近的代码块之外的「## 」标题）不是「## 跨宿主约定」
 #   - 顶层直接 include 的 markers 在 pre-write 之后
 #   - pre-write / reinstall 之后的第一个非空行不以 FOLLOWED_BY 规定的开头起头
@@ -227,7 +227,7 @@ def fragment(name: str, lead: str = "") -> Fragment:
 RENDER_AGENT = '\nRENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"'
 RENDER_RULES = '\nRENDER_RULES="$SETUP_ROOT/scripts/render-subagent-rules.py"'
 RENDER_STYLE = '\nRENDER_STYLE="$SETUP_ROOT/scripts/render-report-style.py"'
-# setup-git 的 pr 与 worktree 装出的 skill 调用的流程脚本（flow-*.sh）由这两个安装器共用，放在 plugin 级 scripts/ 下。
+# bjj-setup-git 的 pr 与 worktree 装出的 skill 调用的流程脚本（flow-*.sh）由这两个安装器共用，放在 plugin 级 scripts/ 下。
 FLOW_DIR = '\nFLOW_DIR="$SETUP_ROOT/scripts/flow"'
 
 # 各安装器没声明时取这里的值。
@@ -323,9 +323,9 @@ INSTALLERS = {
     "git-find-issues": ("project-user", {}),
     # 模板里的占位符本身就是 {{PR_BASE}}，经变量输出以绕开语法检查。
     "git-pr": ("project", {"pr_base_token": "{{PR_BASE}}", "extra_env": FLOW_DIR,
-                           "flow_peer": "setup-git:worktree"}),
+                           "flow_peer": "bjj-setup-git:worktree"}),
     "git-revert-gate": ("project", {"template_sub": "/githooks"}),
-    "git-worktree": ("project", {"extra_env": FLOW_DIR, "flow_peer": "setup-git:pr"}),
+    "git-worktree": ("project", {"extra_env": FLOW_DIR, "flow_peer": "bjj-setup-git:pr"}),
     "knowledge-i18n-copy": ("project-user", {}),
     "tools-cron": ("project", {"template_sub": "/cron"}),
     "tools-launchd": ("project", {"template_sub": "/launchd"}),
@@ -378,7 +378,7 @@ def locate(name: str) -> tuple[str, str]:
     domain, sep, skill = name.partition("-")
     if not sep or not skill:
         sys.exit(f"{name}: 源文件名须为 <领域>-<skill>")
-    return f"setup-{domain}", skill
+    return f"bjj-setup-{domain}", skill
 
 
 def target_of(name: str) -> Path:
@@ -780,7 +780,7 @@ def check_appended_templates(name: str, text: str, template_dir: Path) -> None:
     """被 `cat "$TEMPLATE_DIR/<文件>" >> <指令文件>` 整块追加的模板，首行必须是空行。
 
     文件名固定 INJECT.md：这个目录下别的模板装的是 skill、子代理、输出风格，看名字就得分得出哪份会被
-    写进 CLAUDE.md / AGENTS.md。经渲染脚本写进去的（如 setup-agent:subagents）同名，但不走这条命令，
+    写进 CLAUDE.md / AGENTS.md。经渲染脚本写进去的（如 bjj-setup-agent:subagents）同名，但不走这条命令，
     这里查不到，靠约定。
     markers 片段约定这种模板「以空行开头」：没有它，追加时 begin 标记会贴在指令文件原有的最后一行下面，
     粘连前面的段落、列表与表格，而重装时按「新建的文件删掉开头的空行」又找不到那一行。两头都不报错。
@@ -991,7 +991,7 @@ def render(name: str, scope: str, declared: dict) -> str:
     if scope != "project-user" and includes["scope-select"]:
         sys.exit(f"{name}: 作用域为 {scope}，不得 include scope-select")
     if name.startswith("tools-") and includes["skill-targets"]:
-        sys.exit(f"{name}: setup-tools 装出的 skill 不带领域前缀，不能 include skill-targets")
+        sys.exit(f"{name}: bjj-setup-tools 装出的 skill 不带领域前缀，不能 include skill-targets")
 
     for key, value in injected.items():
         for lineno, line in enumerate(value.split("\n"), 1 + value.offset):
@@ -1010,7 +1010,7 @@ def render(name: str, scope: str, declared: dict) -> str:
             sys.exit(f"{name}: INSTALLERS 声明的变量 {key} 在展开后的正文里没有被引用")
 
     plugin, skill = locate(name)
-    marker = f"{plugin}:{skill}"
+    marker = f"{plugin.removeprefix('bjj-')}:{skill}"
     variables = {**DEFAULTS, "skill": skill, "name": name, "marker": marker, **dict(zip(SCOPE_VARS, SCOPES[scope])), **declared}
 
     # 注入的片段只能引用普通变量，不能再引用另一个注入的片段
@@ -1071,7 +1071,7 @@ def check_registry() -> None:
     for stem in sorted(INSTALLERS.keys() - sources):
         sys.exit(f"INSTALLERS 登记的 {stem} 没有源文件 sources/{stem}.md")
     dirs = {target_of(n).parent for n in INSTALLERS}
-    for path in sorted(REPO.glob("plugins/setup-*/skills/*")):
+    for path in sorted(REPO.glob("plugins/bjj-setup-*/skills/*")):
         # .DS_Store 由 Finder 自动生成、不进版本库，不算散落文件
         if path.name == ".DS_Store":
             continue

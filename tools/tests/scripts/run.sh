@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 安装器用到的脚本的测试：plugins/setup-agent/scripts/ 下的三个渲染脚本（标题层级平移在共享模块
+# 安装器用到的脚本的测试：plugins/bjj-setup-agent/scripts/ 下的三个渲染脚本（标题层级平移在共享模块
 # markdown_headings.py 里，由用它的 rules_*、style_* 用例覆盖），
 # 以及片段 tools/installer/fragments/project-root.md 里那行切到仓库根目录的 shell。
 #   bash tools/tests/scripts/run.sh [-v] [<用例名>...]
@@ -11,13 +11,13 @@
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)/lib/common.sh"
 
-SCRIPTS=${SCRIPTS_DIR:-$REPO_ROOT/plugins/setup-agent/scripts}
+SCRIPTS=${SCRIPTS_DIR:-$REPO_ROOT/plugins/bjj-setup-agent/scripts}
 SCRIPTS=$(cd "$SCRIPTS" && pwd -P)
 RCA=$SCRIPTS/render-codex-agent.py
 RSR=$SCRIPTS/render-subagent-rules.py
 RRS=$SCRIPTS/render-report-style.py
 for f in "$RCA" "$RSR" "$RRS" "$SCRIPTS/markdown_headings.py"; do [ -f "$f" ] || die "找不到脚本：$f"; done
-AGENT_SKILLS=$REPO_ROOT/plugins/setup-agent/skills
+AGENT_SKILLS=$REPO_ROOT/plugins/bjj-setup-agent/skills
 RULES_TPL=$AGENT_SKILLS/subagents/template/INJECT.md
 STYLE_TPL=$AGENT_SKILLS/report-style/template/output-styles/concise-plus.md
 # 片段开头可以有只给维护者看的说明块（首行恰为 <!--，到恰为 --> 的行为止，其后的一个空行一并去掉），

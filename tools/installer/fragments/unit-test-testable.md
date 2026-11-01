@@ -1,6 +1,6 @@
 <!--
 一句话：单元测试的可测判据：有自己的逻辑就可测，不可测的只有三类。
-给 setup-agent:unit-test 的运行时模板用（tools/installer/templates/ 下的模板源文件 include），不给安装器源文件用：agent-unit-test 据此决定派不派 test-writer，test-writer 据此判断写不写，两边都 include。
+给 bjj-setup-agent:unit-test 的运行时模板用（tools/installer/templates/ 下的模板源文件 include），不给安装器源文件用：agent-unit-test 据此决定派不派 test-writer，test-writer 据此判断写不写，两边都 include。
 不得含 {{变量}}，build.py 会拦下。是一段话加一个列表，放在讲可不可测的那处；「可测的都要测」「难测不等于不可测」这类各自的结论另写。
 -->
 

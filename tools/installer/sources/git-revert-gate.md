@@ -11,7 +11,7 @@ disable-model-invocation: true
 与 push 都会被检查，拒绝改写已发布的历史、以及撤销该分支已有改动的更新；记了 `targetBranch` 的分支自己被推送时，
 按内容核对它相对目标分支远端尖端有没有撤销已有改动。
 
-目标分支与切出点（`branch.<分支>.forkPoint`）由 `setup-git:pr`、`setup-git:worktree` 装出的流程脚本记录，本安装器只读不写；
+目标分支与切出点（`branch.<分支>.forkPoint`）由 `bjj-setup-git:pr`、`bjj-setup-git:worktree` 装出的流程脚本记录，本安装器只读不写；
 没装那两个的仓库只守常驻守护分支，靠切出点的那条判据（撤销纯新增的提交、删掉只追加过的文件）不生效。
 本安装器不写指令文件、不装 skill：被拦下时怎么复原、怎么处理写在闸门的拒绝信息里。当前目录不是 git 仓库时汇报并停下。
 
@@ -32,7 +32,7 @@ disable-model-invocation: true
   改全局或系统配置会影响本机所有仓库；询问时说明融入的调用会写进本机所有仓库共用的 hook 文件。入口里已调用 `.githooks/hook.sh` 的，按第 5 步「融入」那一行处理，不算冲突；
   融入写在对方体系自己的文件里，本安装器重装时不碰，以后一直保留，不适用「写入前检查」里「融入只对这一次有效」的说法。
 - `.githooks/` 下的 `revert-gate.py`、`hook.sh`、`install.sh`、`branches` 是本安装器装出的，已有的按装过处理；
-  `.githooks/` 里别的文件（如 `setup-git:pr`、`setup-git:worktree` 装的 `flow-*.sh`）不碰。
+  `.githooks/` 里别的文件（如 `bjj-setup-git:pr`、`bjj-setup-git:worktree` 装的 `flow-*.sh`）不碰。
 
 ## 项目级安装
 
@@ -75,7 +75,7 @@ disable-model-invocation: true
      （常驻守护分支优先），提交并合进主分支之后才开始检查。
    - hook 与常驻守护分支配置在各 clone 的 `.git/` 里，不随仓库生效：其它 clone 各自执行一次 `sh .githooks/install.sh`
      （hook 由 husky 等体系接管的改为按第 5 步接进那套体系，再执行 `sh .githooks/install.sh --branches-only`），
-     同一 clone 的所有 worktree 共用；`setup-git:pr`、`setup-git:worktree` 的流程脚本记录目标分支时，发现本 clone 没装会提示。
+     同一 clone 的所有 worktree 共用；`bjj-setup-git:pr`、`bjj-setup-git:worktree` 的流程脚本记录目标分支时，发现本 clone 没装会提示。
      改常驻守护分支时改 `.githooks/branches` 并提交，各 clone 重新执行一次同样的命令才生效。
    - 被拦下时的复原与处理写在拒绝信息里；确属有意撤销的，用 `git revert`，或在撤销它的提交信息里为每个被撤销的提交加一行 `Reverts: <sha>`。
      `git push --no-verify` 跳过 pre-push 一层，`REVERT_GATE_SKIP=1` 整体跳过，只供人确认过的场合使用。

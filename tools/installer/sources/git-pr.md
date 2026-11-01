@@ -7,10 +7,10 @@ disable-model-invocation: true
 # 安装 git-pr skill
 
 装两样东西：提 PR 的操作步骤 `git-pr` skill（压平、rebase、推送、提 PR、清理），以及它调用的流程脚本。
-装出的 skill 靠 description 自动触发，本安装器不写指令文件。要回退闸门的另装 `setup-git:revert-gate`。
+装出的 skill 靠 description 自动触发，本安装器不写指令文件。要回退闸门的另装 `bjj-setup-git:revert-gate`。
 
 只做项目级安装：默认的 PR 目标分支因项目而异，要在安装时写进 skill。当前目录不是 git 仓库时汇报并停下。
-流程脚本由 `setup-git` 下的 `pr` 与 `worktree` 两个安装器共用，装到项目的同一个 `.githooks/`。
+流程脚本由 `bjj-setup-git` 下的 `pr` 与 `worktree` 两个安装器共用，装到项目的同一个 `.githooks/`。
 
 ## 跨宿主约定
 
@@ -59,7 +59,7 @@ mkdir -p .githooks && cp -p "$FLOW_DIR/"* .githooks/
 
 写入时把模板里的 `{{pr_base_token}}` 替换为确定的分支名：先设 `BASE=<分支名>`，分支名含 `&` 或 `|` 时先转义；
 命令块开头断言 `BASE` 非空（为空会把占位符替换成空串、查不出残留），写完确认已无残留占位符。
-告知用户时，除各安装节列的外，说明 `.githooks/` 要提交进版本库才随仓库生效，要在推送时拦下撤销目标分支已有改动的另装 `setup-git:revert-gate`，重装时只有默认目标分支会按项目现状重新确定（确定不了才沿用旧值），其余按模板覆盖。
+告知用户时，除各安装节列的外，说明 `.githooks/` 要提交进版本库才随仓库生效，要在推送时拦下撤销目标分支已有改动的另装 `bjj-setup-git:revert-gate`，重装时只有默认目标分支会按项目现状重新确定（确定不了才沿用旧值），其余按模板覆盖。
 
 ## Claude Code 项目级安装
 

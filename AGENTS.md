@@ -25,7 +25,7 @@ plugins/<plugin>/                    # 每个 plugin 都同时分发到 Claude C
 ├── .claude-plugin/plugin.json        # Claude Code plugin 元信息
 ├── scripts/                          # 同一 plugin 内多个 skill 共用的资源（可选）
 └── skills/<skill>/
-    ├── SKILL.md                      # skill 本体；setup-* 下的由 tools/installer 生成
+    ├── SKILL.md                      # skill 本体；bjj-setup-* 下的由 tools/installer 生成
     ├── agents/openai.yaml            # Codex 的调用策略与 UI（可选）
     └── template/                     # 安装器要装出去的模板，按装出后的目录形态放（可选）；有源文件的由 tools/installer 生成
 ```
@@ -38,8 +38,8 @@ Plugin 名即调用前缀：`plugins/dev/skills/discuss/SKILL.md` 在 Claude Cod
 
 - 不在真实仓库里做 git 实验、不动真实 crontab 与真实 LaunchAgent（`~/Library/LaunchAgents`）；具体约束见 `tools/tests/README.md`「安全设计」的「实验与危险命令」。
 - 已推送的提交不 amend、不强推，对它的整改另起提交：改写已推送的历史会让别处的 clone 与 marketplace 快照对不上。
-- `setup-*` 下的安装器 `SKILL.md` 由 `tools/installer/build.py` 从源文件 `sources/<领域>-<skill>.md` 与公共片段 `fragments/*.md` 生成，`tools/installer/templates/` 下有源文件的模板也由它生成到对应安装器的 `template/`，生成物提交进仓库，**不得手改**。怎么生成与校验见 `docs/installers.md`「生成」。
-- 指令文件（`CLAUDE.md` / `AGENTS.md`）里开工前与交付前的工作流只写在「工作流」一节，只由 `setup-agent:workflow` 写入；其它安装器与装出的 skill 不得自己往指令文件里写工作流内容。
+- `bjj-setup-*` 下的安装器 `SKILL.md` 由 `tools/installer/build.py` 从源文件 `sources/<领域>-<skill>.md` 与公共片段 `fragments/*.md` 生成，`tools/installer/templates/` 下有源文件的模板也由它生成到对应安装器的 `template/`，生成物提交进仓库，**不得手改**。怎么生成与校验见 `docs/installers.md`「生成」。
+- 指令文件（`CLAUDE.md` / `AGENTS.md`）里开工前与交付前的工作流只写在「工作流」一节，只由 `bjj-setup-agent:workflow` 写入；其它安装器与装出的 skill 不得自己往指令文件里写工作流内容。
 
 ## 什么时候读什么
 
@@ -55,11 +55,11 @@ Plugin 名即调用前缀：`plugins/dev/skills/discuss/SKILL.md` 在 Claude Cod
 | 改 `README.md` 的 skill 索引表、`.claude/settings.json` 的 `permissions.allow` | `docs/authoring.md`「新增 skill」 |
 | 写或改 SKILL.md 的 frontmatter | `docs/authoring.md`「Frontmatter」 |
 | skill 要接收调用参数 | `docs/authoring.md`「参数传递」 |
-| skill 引用自己附带的脚本、模板；多个 skill 共用资源；改 Agent / 子代理模板、输出风格模板，或新增、改 `plugins/setup-agent/scripts/` 下的渲染脚本 | `docs/authoring.md`「附带资源与共享模板」 |
+| skill 引用自己附带的脚本、模板；多个 skill 共用资源；改 Agent / 子代理模板、输出风格模板，或新增、改 `plugins/bjj-setup-agent/scripts/` 下的渲染脚本 | `docs/authoring.md`「附带资源与共享模板」 |
 | 给安装器或装出的 skill 定名、定归属的 plugin、定作用域 | `docs/installers.md`「命名与归属」 |
 | 写或改安装器源文件（`tools/installer/sources/`）、片段（`tools/installer/fragments/`）、`build.py` 的 `INSTALLERS`、安装器的 `template/` 或 `agents/openai.yaml` | `docs/installers.md`「生成」「源文件契约」 |
 | 改 `build.py` 的校验 | `docs/installers.md`「源文件契约」、`docs/checklist.md`「改动后」、`tools/tests/README.md` |
-| 改闸门（`plugins/setup-git/skills/revert-gate/template/githooks/`）、流程脚本（`plugins/setup-git/scripts/flow/`）、cron 或 launchd 模板、渲染脚本或 `project-root` 片段；新增、选跑测试用例或套件 | `tools/tests/README.md`、`docs/checklist.md`「改动后」 |
+| 改闸门（`plugins/bjj-setup-git/skills/revert-gate/template/githooks/`）、流程脚本（`plugins/bjj-setup-git/scripts/flow/`）、cron 或 launchd 模板、渲染脚本或 `project-root` 片段；新增、选跑测试用例或套件 | `tools/tests/README.md`、`docs/checklist.md`「改动后」 |
 | 升 manifest 的 `version`、发布、推送，或推送后更新已装的 plugin | `docs/release.md`「发布」 |
 | 安装或调试本仓库的 plugin、改 marketplace 名 | `docs/release.md`「分发」 |
 | 复核本仓库的改动 | 整份 `docs/checklist.md` |

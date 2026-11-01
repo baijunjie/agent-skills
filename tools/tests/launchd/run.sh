@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup-tools:launchd 装出的 LaunchAgent 安装脚本（plugins/setup-tools/skills/launchd/template/launchd/）的测试。
+# bjj-setup-tools:launchd 装出的 LaunchAgent 安装脚本（plugins/bjj-setup-tools/skills/launchd/template/launchd/）的测试。
 #   bash tools/tests/launchd/run.sh [-v] [<用例名>...]
 # 环境变量 LAUNCHD_TEMPLATE_DIR 可指向另一份 launchd 模板目录（如故意改坏的副本），默认测仓库里的那份。
 #
@@ -19,7 +19,7 @@ if [ "$(uname -s)" != Darwin ]; then
   exit 0
 fi
 
-LAUNCHD_SRC=${LAUNCHD_TEMPLATE_DIR:-$REPO_ROOT/plugins/setup-tools/skills/launchd/template/launchd}
+LAUNCHD_SRC=${LAUNCHD_TEMPLATE_DIR:-$REPO_ROOT/plugins/bjj-setup-tools/skills/launchd/template/launchd}
 LAUNCHD_SRC=$(cd "$LAUNCHD_SRC" && pwd -P)
 for f in common.sh install.sh uninstall.sh status.sh tasks.conf; do
   [ -f "$LAUNCHD_SRC/$f" ] || die "找不到 launchd 模板文件：$LAUNCHD_SRC/$f"
