@@ -36,7 +36,7 @@
     },
     {
       "name": "setup-git",
-      "description": "为 Claude Code 或 Codex 安装 Git 相关规范与流程：提交规范、Issue/PR 检索、提交 PR 流程与 worktree 流程（两者都带回退闸门）；提交 PR 流程与 worktree 流程只装进项目，其余默认装进项目、可选用户级",
+      "description": "为 Claude Code 或 Codex 安装 Git 相关规范与流程：提交规范、Issue/PR 检索、提交 PR 流程、worktree 流程与回退闸门；后三者只装进项目，其余默认装进项目、可选用户级",
       "author": {
         "name": "BaiJunjie"
       },
@@ -63,7 +63,7 @@
     },
     {
       "name": "batch-setup",
-      "description": "批量维护配置：一次装好新项目的默认开发配置（八个安装器，只装进项目），更新 Claude Code 与 Codex 里的 bjj-agent-skills plugin，并在 plugin 更新后按最新模板重装用户级与项目级已装的 skill、子代理与指令文件内容",
+      "description": "批量维护配置：一次装好新项目的默认开发配置（九个安装器，只装进项目），更新 Claude Code 与 Codex 里的 bjj-agent-skills plugin，并在 plugin 更新后按最新模板重装用户级与项目级已装的 skill、子代理与指令文件内容",
       "author": {
         "name": "BaiJunjie"
       },

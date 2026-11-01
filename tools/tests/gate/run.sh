@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 回退闸门（plugins/setup-git/scripts/githooks/）的回归测试。
+# 回退闸门（plugins/setup-git/skills/revert-gate/template/githooks/）的回归测试。
 #   bash tools/tests/gate/run.sh [-v] [<用例名>...]
 # 环境变量 GATE_TEMPLATE_DIR 可指向另一份 githooks 目录（如故意改坏的副本），默认测仓库里的那份。
 #
@@ -12,7 +12,7 @@
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)/lib/common.sh"
 
-GATE_SRC=${GATE_TEMPLATE_DIR:-$REPO_ROOT/plugins/setup-git/scripts/githooks}
+GATE_SRC=${GATE_TEMPLATE_DIR:-$REPO_ROOT/plugins/setup-git/skills/revert-gate/template/githooks}
 GATE_SRC=$(cd "$GATE_SRC" && pwd -P)
 [ -f "$GATE_SRC/revert-gate.py" ] || die "找不到闸门脚本：$GATE_SRC"
 
@@ -113,7 +113,7 @@ b_push() {
   git -C "$B" push -q origin main
 }
 
-# 闸门预检，与规则里的命令等价：从第一个常驻守护分支上取已提交的脚本执行。
+# 手动预检：从第一个常驻守护分支上取已提交的脚本执行。
 precheck() { # precheck <clone> <目标分支> <分支>
   local dir=$1 b s
   b=$(git -C "$dir" config --get-all revert-gate.branch | head -n1) || true
@@ -124,7 +124,7 @@ precheck() { # precheck <clone> <目标分支> <分支>
   run_at "$dir" python3 -I -c "$s" check "$2" "$3"
 }
 
-# PR 推送前的预检，与 git-pr skill 里的命令等价：脚本取自目标分支的远端跟踪分支。
+# PR 推送前的手动预检：脚本取自目标分支的远端跟踪分支。
 precheck_pr() { # precheck_pr <clone> <远端跟踪 ref> <分支>
   local dir=$1 s
   s=$(git -C "$dir" show "$2:.githooks/revert-gate.py" 2>/dev/null) || {
@@ -396,7 +396,7 @@ case_block_prepush_pr_revert() {
 register block_prepush_pr_only_clone
 case_block_prepush_pr_only_clone() {
   fresh_clone
-  # 只装了 PR 流程的仓库：没有常驻守护分支，闸门脚本从 PR 目标分支上已提交的那份读。
+  # 没有常驻守护分支的 clone（--pr-only）：闸门脚本从 PR 目标分支上已提交的那份读。
   rm "$C/.githooks/branches"
   run_at "$C" sh .githooks/install.sh --pr-only >/dev/null
   git -C "$C" switch -q -c feat/pr main
@@ -1371,7 +1371,7 @@ case_edge_prepush_pr_no_remote_target() {
 register edge_prepush_pr_unguarded_target
 case_edge_prepush_pr_unguarded_target() {
   fresh_clone
-  # 只装了 PR 流程、还没有任何分支记过 targetBranch：没有受守护分支，直推目标分支不查（已知边界）。
+  # 没有常驻守护分支、还没有任何分支记过 targetBranch：没有受守护分支，直推目标分支不查（已知边界）。
   rm "$C/.githooks/branches"
   run_at "$C" sh .githooks/install.sh --pr-only >/dev/null
   put "$C/f2" $(lines gamma 6)
@@ -1655,7 +1655,7 @@ case_install_branches_only() {
 register install_pr_only
 case_install_pr_only() {
   fresh_clone
-  # 只装了 PR 流程的仓库：没有 branches，照样装上 hook 入口，不写常驻守护分支。
+  # 没有 branches 的仓库：照样装上 hook 入口，不写常驻守护分支。
   rm "$C/.githooks/branches"
   try run_at "$C" sh .githooks/install.sh --pr-only
   expect_rc 0 "--pr-only"

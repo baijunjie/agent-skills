@@ -1,13 +1,13 @@
 ---
 name: project-init
-description: 给当前项目一次装上（或更新）一套默认的开发配置：setup-agent 的 subagents、docs、change-check、bug、plan、workflow 与 setup-git 的 worktree、pr 共八个安装器，不含输出风格、单元测试与 UI gallery，全部只装进当前项目、随仓库提交。用于"初始化项目""给新项目装默认的 agent 配置""一次装好项目的开发流程""项目 init"等场景。
+description: 给当前项目一次装上（或更新）一套默认的开发配置：setup-agent 的 subagents、docs、change-check、bug、plan、workflow 与 setup-git 的 worktree、pr、revert-gate 共九个安装器，不含输出风格、单元测试与 UI gallery，全部只装进当前项目、随仓库提交。用于"初始化项目""给新项目装默认的 agent 配置""一次装好项目的开发流程""项目 init"等场景。
 disable-model-invocation: true
 ---
 
 # 初始化项目的默认开发配置
 
-本 skill 自己不写任何文件：按下面的顺序读取八个安装器的 `SKILL.md`，照其中的步骤逐个装进**当前项目**。
-那八个安装器禁止模型调用，只能读文件照做；它们的写入前检查、冲突处理、重装与定制值都照它们自己的 `SKILL.md` 执行；除下面「项目级安装」第 3 步列出的几点外，本 skill 不替它们做、也不改它们的做法。拿不准就汇报。
+本 skill 自己不写任何文件：按下面的顺序读取九个安装器的 `SKILL.md`，照其中的步骤逐个装进**当前项目**。
+那九个安装器禁止模型调用，只能读文件照做；它们的写入前检查、冲突处理、重装与定制值都照它们自己的 `SKILL.md` 执行；除下面「项目级安装」第 3 步列出的几点外，本 skill 不替它们做、也不改它们的做法。拿不准就汇报。
 
 ## 要装的安装器
 
@@ -20,7 +20,8 @@ disable-model-invocation: true
 5. `setup-agent:plan`
 6. `setup-git:worktree`
 7. `setup-git:pr`
-8. `setup-agent:workflow`
+8. `setup-git:revert-gate`
+9. `setup-agent:workflow`
 
 **不装**：`setup-agent:report-style`（回答风格是个人偏好，要用单独装）、`setup-agent:unit-test`
 （项目初始化时还没有可沿用的测试框架，等有了再单独装）与 `setup-agent:gallery`（只适用于有 UI 的项目、安装时要选型，有了界面再单独装）；
@@ -37,7 +38,7 @@ disable-model-invocation: true
    ```
 
 3. **按顺序读取并执行**：对每个安装器，读 `<plugin 目录>/skills/<skill>/SKILL.md`，执行当前宿主对应的**项目级安装**分支，同时遵守：
-   - 安装节之外的节该做的照样做（如 `setup-git:pr` 的「装回退闸门」）：漏了不报错，装出来的东西却不全。
+   - 安装节之外的节该做的照样做（如 `setup-git:pr` 的「确定默认的 PR 目标分支」与「通用步骤」）：漏了不报错，装出来的东西却不全。
    - 带「选作用域」的安装器直接按项目级走，不再问用户。
    - 它的 shell 会先按 `$PLUGIN_ROOT`、`$CLAUDE_PLUGIN_ROOT` 定位模板，而它们此时指向本 plugin：
      执行该安装器里任何用到这两个变量的 shell，每次都先 `unset PLUGIN_ROOT CLAUDE_PLUGIN_ROOT`，并把 `SKILL_DIR` 设为**该安装器所在的目录**（`<plugin 目录>/skills/<skill>`）。

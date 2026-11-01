@@ -136,14 +136,15 @@ codex plugin add batch-setup@bjj-agent-skills
 
 ### `setup-git` — 安装 Git 规范与流程
 
-把 Git 相关的规范与流程装进项目或用户级配置，四个安装器各自独立。
+把 Git 相关的规范与流程装进项目或用户级配置，五个安装器各自独立。
 
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
 | `setup-git:commit` | 按 Conventional Commits 规范生成提交 | 项目级（默认）+ 用户级 | 手动 |
 | `setup-git:find-issues` | 在指定仓库中搜索与问题相关的 Issue 和 PR | 项目级（默认）+ 用户级 | 手动 |
-| `setup-git:pr` | 压平本地提交、rebase 到最新目标分支、推送并提 PR，建好后清理本地分支与 worktree，机械步骤交给装进 `.githooks/` 的 sh 脚本，并装上推送时拦下撤销目标分支改动的回退闸门 | 项目级 | 手动 |
-| `setup-git:worktree` | 把「开发在独立 worktree 加独立分支上完成」写成项目规则，合并回目标分支的操作步骤装成 `git-worktree` skill（机械步骤交给装进 `.githooks/` 的 sh 脚本），并装上拦截改写已发布历史、撤销已有改动的回退闸门 | 项目级 | 手动 |
+| `setup-git:pr` | 压平本地提交、rebase 到最新目标分支、推送并提 PR，建好后清理本地分支与 worktree，机械步骤交给装进 `.githooks/` 的 sh 脚本 | 项目级 | 手动 |
+| `setup-git:worktree` | 把「开发在独立 worktree 加独立分支上完成」写成项目规则，合并回目标分支的操作步骤装成 `git-worktree` skill（机械步骤交给装进 `.githooks/` 的 sh 脚本） | 项目级 | 手动 |
+| `setup-git:revert-gate` | 装上回退闸门：主分支与各分支记下的目标分支移动或推送时按内容检查，拦下改写已发布历史、撤销已有改动的更新 | 项目级 | 手动 |
 
 ### `setup-tools` — 安装开发辅助工具
 
@@ -171,7 +172,7 @@ plugin 更新后的典型链路：`batch-setup:plugin-update` → 重启会话 �
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
 | `batch-setup:plugin-update` | 刷新 marketplace，把 Claude Code 与 Codex 里已装的 bjj-agent-skills plugin 更新到最新版 | — | 自动 |
-| `batch-setup:project-init` | 初始化项目：按序读取并执行 `setup-agent` 的 `subagents`、`docs`、`change-check`、`bug`、`plan`，`setup-git` 的 `worktree`、`pr`，最后 `setup-agent` 的 `workflow`，不含 `report-style`、`unit-test` 与 `gallery` | 项目级 | 手动 |
+| `batch-setup:project-init` | 初始化项目：按序读取并执行 `setup-agent` 的 `subagents`、`docs`、`change-check`、`bug`、`plan`，`setup-git` 的 `worktree`、`pr`、`revert-gate`，最后 `setup-agent` 的 `workflow`，不含 `report-style`、`unit-test` 与 `gallery` | 项目级 | 手动 |
 | `batch-setup:project-reinstall` | 查出当前项目在两个宿主上各装过哪些安装器，标出需更新与无需更新，确认一次后只重装需更新的 | 项目级 | 自动 |
 | `batch-setup:user-reinstall` | 查出用户级配置在两个宿主上各装过哪些安装器，标出需更新与无需更新，确认一次后只重装需更新的 | 用户级 | 自动 |
 

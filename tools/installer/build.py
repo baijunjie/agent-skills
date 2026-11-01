@@ -227,15 +227,13 @@ def fragment(name: str, lead: str = "") -> Fragment:
 RENDER_AGENT = '\nRENDER_AGENT="$SETUP_ROOT/scripts/render-codex-agent.py"'
 RENDER_RULES = '\nRENDER_RULES="$SETUP_ROOT/scripts/render-subagent-rules.py"'
 RENDER_STYLE = '\nRENDER_STYLE="$SETUP_ROOT/scripts/render-report-style.py"'
-# 回退闸门的脚本由 setup-git 的 pr 与 worktree 两个安装器共用，放在 plugin 级 scripts/ 下。
-GATE_DIR = '\nGATE_DIR="$SETUP_ROOT/scripts/githooks"'
-# 两个 skill 调用的流程脚本（flow-*.sh）同样由这两个安装器共用；与闸门分开放，不要闸门时照样要装。
+# setup-git 的 pr 与 worktree 装出的 skill 调用的流程脚本（flow-*.sh）由这两个安装器共用，放在 plugin 级 scripts/ 下。
 FLOW_DIR = '\nFLOW_DIR="$SETUP_ROOT/scripts/flow"'
 
 # 各安装器没声明时取这里的值。
 DEFAULTS = {
     "template_sub": "",  # TEMPLATE_DIR 在 skills/<skill>/template 下的子目录，带前导 /
-    "extra_env": "",  # host-conventions 末尾追加的变量定义：渲染脚本的 RENDER_*、共用资源的 GATE_DIR 等
+    "extra_env": "",  # host-conventions 末尾追加的变量定义：渲染脚本的 RENDER_*、共用资源的 FLOW_DIR 等
     "subagent_rule": "",  # skill-priority 里接在 skill 优先级后的子代理优先级说明
 }
 
@@ -275,7 +273,7 @@ ATX_HEADING = re.compile(r"^ {0,3}(#{1,6})[ \t]")
 FENCE = re.compile(r"^[ \t]*(`{3,}|~{3,})(.*)$")
 # 每一段都不能是 . 或 ..：TEMPLATE_DIR 不得跳出 template/。
 TEMPLATE_SUB = re.compile(r"^(/(?!\.\.?(/|$))[\w.-]+)+$")
-# extra_env 里每一行都是一条变量定义，值写成双引号字符串；正文用 $GATE_DIR 或 ${RENDER_X…} 这样引用。
+# extra_env 里每一行都是一条变量定义，值写成双引号字符串；正文用 $FLOW_DIR 或 ${RENDER_X…} 这样引用。
 ENV_DEFINITION = re.compile(r'^(\w+)="[^"\n]*"$')
 # 指向 plugin 内资源的变量：RENDER_* 与以 _DIR / _ROOT 结尾的大写名。正文用到这类变量，
 # 要么在 BASE_VARS 里，要么正文自己赋了值，否则必须在 extra_env 里声明——不然生成物里它是空的。
@@ -324,10 +322,10 @@ INSTALLERS = {
     "git-commit": ("project-user", {}),
     "git-find-issues": ("project-user", {}),
     # 模板里的占位符本身就是 {{PR_BASE}}，经变量输出以绕开语法检查。
-    "git-pr": ("project", {"pr_base_token": "{{PR_BASE}}", "extra_env": GATE_DIR + FLOW_DIR,
-                           "gate_peer": "setup-git:worktree", "gate_entry_ref": "「装回退闸门」里"}),
-    "git-worktree": ("project", {"extra_env": GATE_DIR + FLOW_DIR,
-                                 "gate_peer": "setup-git:pr", "gate_entry_ref": "第 7 步"}),
+    "git-pr": ("project", {"pr_base_token": "{{PR_BASE}}", "extra_env": FLOW_DIR,
+                           "flow_peer": "setup-git:worktree"}),
+    "git-revert-gate": ("project", {"template_sub": "/githooks"}),
+    "git-worktree": ("project", {"extra_env": FLOW_DIR, "flow_peer": "setup-git:pr"}),
     "knowledge-i18n-copy": ("project-user", {}),
     "tools-cron": ("project", {"template_sub": "/cron"}),
     "tools-launchd": ("project", {"template_sub": "/launchd"}),

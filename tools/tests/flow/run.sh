@@ -146,6 +146,99 @@ case_record_rejects_non_ancestor() {
   expect_rc 1 "报错时也不应写入 targetBranch"
 }
 
+# 仓库装了回退闸门时的提示：flow-record.sh 只看自己目录里有没有闸门脚本，用占位文件即可。
+# gate_flow [--branches]：本用例的流程脚本副本放进占位的闸门脚本，路径写入 FLOW。
+gate_flow() {
+  FLOW=$CASE_DIR/flow
+  cp -R "$T/flow" "$FLOW"
+  : >"$FLOW/revert-gate.py"
+  : >"$FLOW/install.sh"
+  [ "${1:-}" != --branches ] || printf '%s\n' main >"$FLOW/branches"
+}
+
+case_record_no_gate_quiet() {
+  fixture
+  git -C "$A" branch feat/x
+  flow "$A" record feat/x main main
+  expect_rc 0
+  expect_not_out "回退闸门"
+}
+
+case_record_gate_hint() {
+  fixture
+  gate_flow --branches
+  git -C "$A" branch feat/x
+  flow "$A" record feat/x main main
+  expect_rc 0
+  expect_out "在主工作副本根目录执行 sh .githooks/install.sh"
+  expect_eq "$(git -C "$A" config branch.feat/x.targetBranch)" main "提示不应妨碍记录"
+}
+
+# 没有 branches 文件时不要求常驻守护分支配置，只看 hook 装没装。
+case_record_gate_hint_no_branches_file() {
+  fixture
+  gate_flow
+  git -C "$A" branch feat/x
+  flow "$A" record feat/x main main
+  expect_rc 0
+  expect_out "在主工作副本根目录执行 sh .githooks/install.sh"
+  mkdir -p "$A/.git/hooks"
+  printf '%s\n' '#!/bin/sh' '# revert-gate hook entry' >"$A/.git/hooks/pre-push"
+  git -C "$A" branch feat/y
+  flow "$A" record feat/y main main
+  expect_not_out "回退闸门"
+}
+
+case_record_gate_installed_quiet() {
+  fixture
+  gate_flow --branches
+  mkdir -p "$A/.git/hooks"
+  printf '%s\n' '#!/bin/sh' '# revert-gate hook entry' >"$A/.git/hooks/pre-push"
+  git -C "$A" config revert-gate.branch main
+  git -C "$A" branch feat/x
+  flow "$A" record feat/x main main
+  expect_rc 0
+  expect_not_out "回退闸门"
+}
+
+case_record_gate_branches_missing() {
+  fixture
+  gate_flow --branches
+  mkdir -p "$A/.git/hooks"
+  printf '%s\n' '#!/bin/sh' '# revert-gate hook entry' >"$A/.git/hooks/pre-push"
+  git -C "$A" branch feat/x
+  flow "$A" record feat/x main main
+  expect_rc 0
+  expect_out "在主工作副本根目录执行 sh .githooks/install.sh"
+}
+
+# 上层工具经 GIT_CONFIG_PARAMETERS 临时注入的 core.hooksPath 不算 hook 被别的体系接管。
+case_record_gate_injected_hookspath() {
+  fixture
+  gate_flow --branches
+  git -C "$A" branch feat/x
+  export GIT_CONFIG_PARAMETERS="'core.hookspath'='/elsewhere'"
+  flow "$A" record feat/x main main
+  unset GIT_CONFIG_PARAMETERS
+  expect_rc 0
+  expect_out "在主工作副本根目录执行 sh .githooks/install.sh"
+  expect_not_out "--branches-only"
+}
+
+case_record_gate_hookspath() {
+  fixture
+  gate_flow --branches
+  git -C "$A" config core.hooksPath .husky
+  git -C "$A" branch feat/x
+  flow "$A" record feat/x main main
+  expect_rc 0
+  expect_out "sh .githooks/install.sh --branches-only"
+  git -C "$A" config revert-gate.branch main
+  git -C "$A" branch feat/y
+  flow "$A" record feat/y main main
+  expect_not_out "回退闸门"
+}
+
 # ---------------------------------------------------------------------------
 # flow-squash.sh
 

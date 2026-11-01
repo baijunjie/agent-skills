@@ -851,11 +851,11 @@ register bad_prose_assignment_not_exempt
 case_bad_prose_assignment_not_exempt() {
   fixture
   # 散文里顶格写一行 X= 不算赋值，豁免不掉声明校验
-  mut sub "$BPY" '"extra_env": GATE_DIR + FLOW_DIR,
-                           "gate_peer"' '"extra_env": FLOW_DIR,
-                           "gate_peer"'
-  mut append "$S/git-pr.md" $'\nGATE_DIR=这是散文里顶格的一行，不是 shell\n'
-  expect_build_fails "正文用到了 \$GATE_DIR"
+  mut sub "$BPY" '"extra_env": FLOW_DIR,
+                           "flow_peer"' '"extra_env": "",
+                           "flow_peer"'
+  mut append "$S/git-pr.md" $'\nFLOW_DIR=这是散文里顶格的一行，不是 shell\n'
+  expect_build_fails "正文用到了 \$FLOW_DIR"
 }
 
 register allow_locally_assigned_resource_var
@@ -869,17 +869,17 @@ case_allow_locally_assigned_resource_var() {
 register bad_extra_env_var_unguarded
 case_bad_extra_env_var_unguarded() {
   fixture
-  # extra_env 定义的变量（这里是 setup-git 共用闸门的 GATE_DIR）同样要守卫
-  mut sub "$S/git-pr.md" $': "${GATE_DIR:?}"\nmkdir' 'mkdir'
-  expect_build_fails "bash 代码块在第" "用到 \$GATE_DIR 之前没有"
+  # extra_env 定义的变量（这里是 setup-git 共用流程脚本的 FLOW_DIR）同样要守卫
+  mut sub "$S/git-pr.md" $': "${FLOW_DIR:?}"\nmkdir' 'mkdir'
+  expect_build_fails "bash 代码块在第" "用到 \$FLOW_DIR 之前没有"
 }
 
 register allow_extra_env_var_guard_shared_line
 case_allow_extra_env_var_guard_shared_line() {
   fixture
   # 与 TEMPLATE_DIR 合写一行守卫：两个变量都算守住了
-  mut sub "$S/git-pr.md" $': "${GATE_DIR:?}"\nmkdir -p .githooks && cp -p "$GATE_DIR/"* .githooks/' \
-    $': "${TEMPLATE_DIR:?}" "${GATE_DIR:?}"\nmkdir -p .githooks && cp -p "$GATE_DIR/"* "$TEMPLATE_DIR/" '
+  mut sub "$S/git-pr.md" $': "${FLOW_DIR:?}"\nmkdir -p .githooks && cp -p "$FLOW_DIR/"* .githooks/' \
+    $': "${TEMPLATE_DIR:?}" "${FLOW_DIR:?}"\nmkdir -p .githooks && cp -p "$FLOW_DIR/"* "$TEMPLATE_DIR/" '
   expect_build_ok
 }
 
@@ -918,33 +918,52 @@ bad bad_banned_word_template_source 'mut append "'"$GL_SRC"'" $'"'"'\n预览好�
   expect_build_fails "templates/setup-agent/gallery/agent-gallery/SKILL.template.md 第" "用了「告诉用户」"'
 
 # ---------------------------------------------------------------------------
-# 替换表（git-worktree 的写法 B / C）
+# 替换表：现有安装器都不用它，往 git-worktree 的源文件里追加一张指向其模板的表来测
 
-bad bad_replacement_original_changed "mut sub \"$WT_TPL\" '与 push 都会被自动检查' '与 push 都会被检查'
-  expect_build_fails '原文「移动时，本地 merge / commit / reset 与 push 都会被自动检查」' '出现了 0 次'"
-bad bad_replacement_original_duplicated "mut append \"$WT_TPL\" \$'\\n移动时，本地 merge / commit / reset 与 push 都会被自动检查\\n'
-  expect_build_fails '原文「移动时，本地 merge / commit / reset 与 push 都会被自动检查」' '出现了 2 次'"
-bad bad_replacement_anchor_changed "mut sub \"$WT_TPL\" '- reset 被拦时，' '- 若 reset 被拦时，'
-  expect_build_fails '位置「reset 被拦时」' '有 0 个列表项以它开头'"
-bad bad_replacement_anchor_duplicated "mut append \"$WT_TPL\" \$'\\n- reset 被拦时的另一条\\n'
-  expect_build_fails '位置「reset 被拦时」' '有 2 个列表项以它开头'"
-bad bad_replacement_range_anchor_changed "mut sub \"$WT_TPL\" '- 确要撤销某个提交' '- 要撤销某个提交'
-  expect_build_fails '位置「确要撤销某个提交」' '有 0 个列表项以它开头'"
-bad bad_replacement_range_count "mut sub \"$WT_TPL\" '- reset 被拦时，' \$'- 插进来的一条\\n- reset 被拦时，'
-  expect_build_fails '写的是「共四条」' '却有 5 条同级列表项'"
-bad bad_replacement_order_line_not_item "mut sub \"$WT_TPL\" '- 顺序：对齐远程' '顺序：对齐远程'
+# wt_table：追加一张合法的替换表，四行分别是单条改原文、整条删掉、三条的区间、与另一项的原文
+wt_table() {
+  mut append "$S/git-worktree.md" '
+| 位置 | 原文 | 改成 |
+|---|---|---|
+| 以「只为验证而临时注入代码时」开头的那条 | 「里面的改动不提交、验完即删」 | 「改」 |
+| 以「分支名按变更类型取」开头的那条 | 整条 | 删掉 |
+| 从以「目标分支是创建 worktree 时」开头的那条起，到以「只为验证而临时注入代码时」开头的那条为止（共三条） | 这三条整体 | 「改」 |
+| 以「顺序：」开头的那条 | 「向用户确认 → `merge --ff-only`」 | 「改」 |
+'
+}
+
+register allow_replacement_table
+case_allow_replacement_table() {
+  fixture
+  wt_table
+  expect_build_ok
+}
+
+bad bad_replacement_original_changed "wt_table; mut sub \"$WT_TPL\" '验完即删' '验完就删'
+  expect_build_fails '原文「里面的改动不提交、验完即删」' '出现了 0 次'"
+bad bad_replacement_original_duplicated "wt_table; mut append \"$WT_TPL\" \$'\\n里面的改动不提交、验完即删\\n'
+  expect_build_fails '原文「里面的改动不提交、验完即删」' '出现了 2 次'"
+bad bad_replacement_anchor_changed "wt_table; mut sub \"$WT_TPL\" '- 分支名按变更类型取' '- 若分支名按变更类型取'
+  expect_build_fails '位置「分支名按变更类型取」' '有 0 个列表项以它开头'"
+bad bad_replacement_anchor_duplicated "wt_table; mut append \"$WT_TPL\" \$'\\n- 分支名按变更类型取的另一条\\n'
+  expect_build_fails '位置「分支名按变更类型取」' '有 2 个列表项以它开头'"
+bad bad_replacement_range_anchor_changed "wt_table; mut sub \"$WT_TPL\" '- 目标分支是创建 worktree 时' '- 目标分支是在创建 worktree 时'
+  expect_build_fails '位置「目标分支是创建 worktree 时」' '有 0 个列表项以它开头'"
+bad bad_replacement_range_count "wt_table; mut sub \"$WT_TPL\" '- 分支名按变更类型取' \$'- 插进来的一条\\n- 分支名按变更类型取'
+  expect_build_fails '写的是「共三条」' '却有 4 条同级列表项'"
+bad bad_replacement_order_line_not_item "wt_table; mut sub \"$WT_TPL\" '- 顺序：对齐远程' '顺序：对齐远程'
   expect_build_fails '位置「顺序：」' '有 0 个列表项以它开头'"
-bad bad_replacement_rerun_check_changed "mut sub \"$WT_TPL\" '再重跑预检、合并。' '再重跑预检，然后合并。'
-  expect_build_fails '原文「再重跑预检、合并」' '出现了 0 次'"
-bad bad_replacement_range_reversed 'mut sub "$S/git-worktree.md" "从以「仓库装有回退闸门」开头的那条起，到以「确要撤销某个提交」开头的那条为止" "从以「确要撤销某个提交」开头的那条起，到以「仓库装有回退闸门」开头的那条为止"
-  expect_build_fails "位置「仓库装有回退闸门」" "不在「确要撤销某个提交」那一条之后"'
-bad bad_replacement_original_outside_item 'mut sub "$S/git-worktree.md" "| 以「reset 被拦时」开头的那条 | 整条 | 删掉 |" "| 以「reset 被拦时」开头的那条 | 「移动时，本地 merge / commit / reset 与 push 都会被自动检查」 | 删掉 |"
-  expect_build_fails "不在以「reset 被拦时」开头的那一项里"'
-bad bad_replacement_row_columns 'mut sub "$S/git-worktree.md" "| 以「reset 被拦时」开头的那条 | 整条 | 删掉 |" "| 以「reset 被拦时」开头的那条 | 整条 | 删掉 | 多一列 |"
+bad bad_replacement_order_original_changed "wt_table; mut sub \"$WT_TPL\" '向用户确认 → \`merge --ff-only\`' '向用户确认后 → \`merge --ff-only\`'
+  expect_build_fails '原文「向用户确认 → \`merge --ff-only\`」' '出现了 0 次'"
+bad bad_replacement_range_reversed 'wt_table; mut sub "$S/git-worktree.md" "从以「目标分支是创建 worktree 时」开头的那条起，到以「只为验证而临时注入代码时」开头的那条为止" "从以「只为验证而临时注入代码时」开头的那条起，到以「目标分支是创建 worktree 时」开头的那条为止"
+  expect_build_fails "位置「目标分支是创建 worktree 时」" "不在「只为验证而临时注入代码时」那一条之后"'
+bad bad_replacement_original_outside_item 'wt_table; mut sub "$S/git-worktree.md" "| 以「分支名按变更类型取」开头的那条 | 整条 | 删掉 |" "| 以「分支名按变更类型取」开头的那条 | 「里面的改动不提交、验完即删」 | 删掉 |"
+  expect_build_fails "不在以「分支名按变更类型取」开头的那一项里"'
+bad bad_replacement_row_columns 'wt_table; mut sub "$S/git-worktree.md" "| 以「分支名按变更类型取」开头的那条 | 整条 | 删掉 |" "| 以「分支名按变更类型取」开头的那条 | 整条 | 删掉 | 多一列 |"
   expect_build_fails "替换表行须有 位置 / 原文 / 改成 三列"'
-bad bad_replacement_position_unquoted 'mut sub "$S/git-worktree.md" "| 以「reset 被拦时」开头的那条 | 整条 | 删掉 |" "| reset 被拦时那条 | 整条 | 删掉 |"
+bad bad_replacement_position_unquoted 'wt_table; mut sub "$S/git-worktree.md" "| 以「分支名按变更类型取」开头的那条 | 整条 | 删掉 |" "| 分支名按变更类型取那条 | 整条 | 删掉 |"
   expect_build_fails "替换表的「位置」须用「」写出所在列表项的开头"'
-bad bad_replacement_template_missing "rm \"$WT_TPL\" \"$WT_OUT\"
+bad bad_replacement_template_missing "wt_table; rm \"$WT_TPL\" \"$WT_OUT\"
   expect_build_fails '正文有替换表，替换的模板 plugins/setup-git/skills/worktree/template/git-worktree/SKILL.template.md 却不存在'"
 
 register allow_replacement_table_in_fence

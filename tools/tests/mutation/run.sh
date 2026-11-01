@@ -12,7 +12,7 @@
 
 source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)/lib/common.sh"
 
-GATE_SRC=$REPO_ROOT/plugins/setup-git/scripts/githooks
+GATE_SRC=$REPO_ROOT/plugins/setup-git/skills/revert-gate/template/githooks
 GATE_SRC=$(cd "$GATE_SRC" && pwd -P)
 [ -f "$GATE_SRC/revert-gate.py" ] || die "找不到闸门脚本：$GATE_SRC"
 GATE_RUN=$REPO_ROOT/tools/tests/gate/run.sh

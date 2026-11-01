@@ -33,6 +33,7 @@
       "Skill(setup-git:commit)",
       "Skill(setup-git:find-issues)",
       "Skill(setup-git:pr)",
+      "Skill(setup-git:revert-gate)",
       "Skill(setup-git:worktree)",
       "Skill(setup-tools:codex-bridge)",
       "Skill(setup-tools:cron)",

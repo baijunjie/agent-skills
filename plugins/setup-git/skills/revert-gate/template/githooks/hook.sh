@@ -6,7 +6,7 @@
 #
 # 执行的是受守护分支上已提交的那份闸门脚本，而不是工作树里的文件：merge 先写工作树、最后才移动 ref，
 # 读工作树就等于让待合并的分支自己决定闸门怎么判。常驻守护分支（通常是主分支）优先，
-# 免得哪个旧分支上的旧脚本或改过的脚本成了所有分支的规则。没有常驻守护分支的仓库（只装了 PR 流程）
+# 免得哪个旧分支上的旧脚本或改过的脚本成了所有分支的规则。没有常驻守护分支的 clone（用 --pr-only 装的）
 # 以被推分支记的目标分支为锚点：先取它的本地分支，没有再取它的远端跟踪分支，都是已发布的那份。
 # reference-transaction 在每个 ref 事务的每个阶段都会调用，rebase、fetch、每次提交都会触发，
 # 所以先在 shell 里筛到「动了受守护分支」才启动 Python。受守护分支 = 所有 branch.*.targetBranch
@@ -59,7 +59,7 @@ EOF_CONFIG
 command -v python3 >/dev/null 2>&1 || exit 0
 script=
 for name in ${fixed} ${hit} ${pr}; do
-  # 本地没有这个分支（如新 clone、只装了 PR 流程）时取它的远端跟踪分支，同样是已发布的那份。
+  # 本地没有这个分支（如新 clone、没有常驻守护分支）时取它的远端跟踪分支，同样是已发布的那份。
   # 只认它配置的远端与 origin：按字母序挑「唯一一个同名的」会让别人的 fork 决定闸门脚本。
   remote=$(git config "branch.${name}.remote" 2>/dev/null)
   [ -n "${remote}" ] || remote=origin

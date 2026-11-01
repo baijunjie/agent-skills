@@ -6,7 +6,7 @@
 # 工作区里的文件会被待合并的分支改掉，不能让它影响闸门判定。
 # --branches-only：只写常驻守护分支配置、不装 hook，用于 hook 由 husky 等体系接管
 # （配置文件里设了 core.hooksPath、在那套体系里调用 .githooks/hook.sh）的 clone。
-# --pr-only：只装 hook，不读 .githooks/branches、不碰 revert-gate.branch，用于只装了 PR 流程的仓库
+# --pr-only：只装 hook，不读 .githooks/branches、不碰 revert-gate.branch，用于不要常驻守护分支的 clone
 # （那里没有常驻守护分支，闸门靠各分支记的 PR 目标分支触发）；与 --branches-only 互斥，不接分支参数。
 # 每个 clone 执行一次，可重复执行；所有 worktree 共用公共 hooks 目录。
 set -eu
@@ -39,7 +39,7 @@ list="${root}/.githooks/branches"
 # 照它判会只写常驻守护分支、不装 hook，闸门静默不生效。
 hookspath=$(env -u GIT_CONFIG_COUNT -u GIT_CONFIG_PARAMETERS git config core.hooksPath || true)
 if [ "${hooks_too}" = 1 ] && [ -n "${hookspath}" ]; then
-  echo "core.hooksPath 已设置为 ${hookspath}，公共 hooks 目录不会生效；请在那套 hook 体系里调用 sh .githooks/hook.sh <reference-transaction|pre-push> \"\$@\"。要写常驻守护分支的再执行 sh .githooks/install.sh --branches-only；只装 PR 流程的不用再执行什么。" >&2
+  echo "core.hooksPath 已设置为 ${hookspath}，公共 hooks 目录不会生效；请在那套 hook 体系里调用 sh .githooks/hook.sh <reference-transaction|pre-push> \"\$@\"。要写常驻守护分支的再执行 sh .githooks/install.sh --branches-only；不要常驻守护分支的不用再执行什么。" >&2
   exit 1
 fi
 
@@ -48,7 +48,7 @@ if [ "${branches_too}" = 1 ]; then
     from="参数"
   else
     [ -f "${list}" ] || {
-      echo "没有 ${list}，什么都没装；用 sh .githooks/install.sh <主分支> 指定常驻守护分支，只装 PR 流程的仓库用 sh .githooks/install.sh --pr-only。" >&2
+      echo "没有 ${list}，什么都没装；用 sh .githooks/install.sh <主分支> 指定常驻守护分支，不要常驻守护分支的用 sh .githooks/install.sh --pr-only。" >&2
       exit 1
     }
     branches=$(sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e '/^#/d' -e '/^$/d' "${list}")
@@ -92,7 +92,7 @@ if [ "${hooks_too}" = 1 ]; then
 fi
 
 if [ "${branches_too}" = 0 ]; then
-  # --pr-only 不碰 revert-gate.branch：同一仓库里 worktree 流程可能已经写过它。
+  # --pr-only 不碰 revert-gate.branch：本 clone 可能已经写过它。
   echo "回退闸门已启用（只装 hook，没写常驻守护分支，原有的也不动）。"
   echo "推送记了目标分支的分支时按内容检查；闸门脚本取自目标分支上已提交的那份（本地没有该分支就取它的远端跟踪分支，都没有就不检查）。"
   # 刚复制进工作树、还没提交时闸门取不到脚本、静默放行，所以实查一次 HEAD。
@@ -111,12 +111,12 @@ if [ "${hooks_too}" = 1 ]; then
 else
   echo "已写入常驻守护分支：$*（未装 hook，由现有 hook 体系调用 .githooks/hook.sh）。"
 fi
-# 闸门预检只从第一个常驻守护分支的本地分支读脚本，新 clone 里它可能只在远端。
+# 手动预检（revert-gate.py check）只从第一个常驻守护分支的本地分支读脚本，新 clone 里它可能只在远端。
 first=$1
 for branch in "$@"; do
   if ! git rev-parse --verify -q "refs/heads/${branch}" >/dev/null; then
     [ "${branch}" != "${first}" ] ||
-      echo "注意：本 clone 没有本地分支 ${branch}，闸门预检要从它读脚本；先 git branch ${branch} <远端>/${branch} 建本地分支。" >&2
+      echo "注意：本 clone 没有本地分支 ${branch}，手动预检要从它读脚本；先 git branch ${branch} <远端>/${branch} 建本地分支。" >&2
     continue
   fi
   git cat-file -e "refs/heads/${branch}:.githooks/revert-gate.py" 2>/dev/null ||

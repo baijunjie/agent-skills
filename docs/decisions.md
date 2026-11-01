@@ -116,16 +116,14 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 
 ### 谁拥有什么
 
-- 闸门脚本（`revert-gate.py`、`hook.sh`、`install.sh`）放 plugin 级 `plugins/setup-git/scripts/githooks/`，由 `pr` 与 `worktree` 两个安装器共同拥有，都无条件覆盖复制到项目的 `.githooks/`，装出的那三个文件互不算冲突。
-- `branch.<分支>.targetBranch`（目标分支）与 `forkPoint`（切出点）两个键由两个流程共用，装出的两个 skill 都写、都读；闸门只认这一套键，记了它的分支的目标分支即受守护，该分支自己被推送时走 PR 内容检查，两者都跑、不是二选一。
+- 闸门自成一个安装器 `setup-git:revert-gate`：闸门脚本（`revert-gate.py`、`hook.sh`、`install.sh`）放它自己的 `template/githooks/`，连同 `.githooks/branches`（常驻守护分支，主分支在第一行）与各 clone 的 hook 入口只归它装。
+- `pr` 与 `worktree` 只装操作步骤与流程脚本，装出的 `git-pr`、`git-worktree` 不提闸门：不跑预检、不补装 hook、没有闸门时也不人工核对；被 hook 拦下时一律「照输出里的提示复原、处理，拿不准就汇报」，怎么复原（`git reset --merge`、`git rebase --abort` 等）、怎么改、怎么声明有意撤销写在闸门的拒绝信息里。
+- 两边之间的契约只有三样，都由流程那边写、闸门只读：`branch.<分支>.targetBranch`（目标分支）与 `forkPoint`（切出点），由 `flow-record.sh` 记录；提交信息里的 `Reverts: <sha>` 有意撤销声明，`flow-squash.sh` 压平时核对没丢。闸门只认这一套键，记了它的分支的目标分支即受守护，该分支自己被推送时走 PR 内容检查，两者都跑、不是二选一。改键名的代价：这两个键在各 clone 自己的 `.git/` 里、不随仓库走，换了名字等于让已有记录静默失效，各 clone 都要重记一遍。
+- 新 clone 不会自带 hook：`flow-record.sh` 发现自己所在目录有闸门脚本、本 clone 却没装 hook 或没写常驻守护分支配置时，记完打一行提示（退出码仍是 0），skill 只写「退出码 0 时输出里以「注意：」起头的提示告知用户、不自行照做」。这是流程脚本唯一认得闸门的地方，只提示、不替人安装。
+- 流程脚本（`flow-*.sh`）放 plugin 级 `plugins/setup-git/scripts/flow/`，由 `pr` 与 `worktree` 共同拥有、无条件覆盖复制到 `.githooks/`；`.githooks/` 里两边的文件各管各的。
 
-  为什么共用一套键：两个流程的目标分支本来就是同一个分支，各记一套的后果是只有 worktree 流程能让目标分支受守护——只装 `pr` 的仓库连「不许改写已发布历史」都没有。改键名的代价也记在这里：这两个键在各 clone 自己的 `.git/` 里、不随仓库走，换了名字等于让已有记录静默失效，各 clone 都要重记一遍。
-- `.githooks/branches` 与 `revert-gate.branch`（常驻守护分支）、合并前预检只归 `worktree`；`check-pr` 预检只归 `pr`；pre-push 的 PR 路径由共用脚本提供，两个流程里记了 `targetBranch` 的分支都会走。`pr` 用 `install.sh --pr-only` 只装 hook 入口，不碰常驻守护分支。
-- 单装任一个都完整可用：只装 `pr` 的仓库没有常驻守护分支，闸门脚本从目标分支的本地分支或远端跟踪分支读。
-- 流程脚本（`flow-*.sh`）放 plugin 级 `plugins/setup-git/scripts/flow/`，同样由两个安装器共同拥有、无条件覆盖复制到 `.githooks/`；与闸门脚本分开放，因为用户选了「不要闸门」时它们照样要装。
-
-为什么：git 的每个 hooks 目录只能有一个 `pre-push`，两套入口必然互相去链；检测逻辑与它的回归测试也不能有两份。
-校验：`tools/tests/gate/` 的 `install_pr_only*` 四条（`--pr-only` 只装入口、不碰常驻守护分支、参数互斥、遇 `core.hooksPath` 原子失败）与 `block_prepush_pr_only_clone`；共用资源的引用由 `build.py` 的 `extra_env` 声明与守卫校验兜底。
+为什么：闸门原先由 `pr` 与 `worktree` 共同拥有，两个 skill 里各写一套预检、补装与「没有闸门就人工核对」的支路，`worktree` 还要按 python3 与 git 版本把 skill 改写成写法 B / C；只装 `pr` 的仓库没有常驻守护分支，两次 PR 之间目标分支无人守护。拆开后 skill 只管操作规范、单装 skill 或单装闸门都成立，闸门总带常驻守护分支。代价是推送、合并前不再预检，问题要到 hook 拦下时才发现（拦下时 merge 已写了工作副本、要按提示复原）；没装闸门的仓库也不再有人工核对兜底。git 的每个 hooks 目录只能有一个 `pre-push`，检测逻辑与它的回归测试也只能有一份，所以闸门只归一个安装器。
+校验：`tools/tests/gate/` 的 `install_*` 用例与 `block_prepush_pr_only_clone`；提示由 `tools/tests/flow/` 的 `record_gate_*` 与 `record_no_gate_quiet` 钉住；共用流程脚本的引用由 `build.py` 的 `extra_env` 声明与守卫校验兜底。
 
 ### 保证什么
 
@@ -140,18 +138,18 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 
 - 切出点就有的文件被删掉不查：分支自己的改动里就有它，那是正常清理。改名且同时大改写（相似度低于 git 的改名阈值）的「切出点之后新增的文件」会被当成删掉而误拦，要 `Reverts:` 过闸。
 - 先 `git switch --detach` 再 `git branch -f` 退回、而特性分支仍持有那些提交，之后再删掉特性分支：与合法流程形态相同，放行。
-- 内容判据看不出「只增行、从不删行的改动被整段抹掉」（撤销纯新增的提交、删掉只追加过的文件）；这类要靠切出点判据，所以**没有 `forkPoint` 记录的分支**（没走两个 skill 建的）拦不住。丢掉自己还没推送的纯新增提交是正常操作，由非快进那条管。
+- 内容判据看不出「只增行、从不删行的改动被整段抹掉」（撤销纯新增的提交、删掉只追加过的文件）；这类要靠切出点判据，所以**没有 `forkPoint` 记录的分支**（没走 `git-pr`、`git-worktree` 建的，以及只装闸门、没装这两个流程的仓库）拦不住。丢掉自己还没推送的纯新增提交是正常操作，由非快进那条管。
 - `git push --no-verify` 跳过 pre-push 一层；`REVERT_GATE_SKIP=1` 整体跳过；闸门自身出错时 hook 模式放行（两个预检模式改为退出码 2）。
 - PR 路径只查记了 `targetBranch`、且已 rebase 到目标分支远端跟踪尖端之上的推送；目标分支的远端状态以最近一次 fetch 为准（pre-push 只拿得到被推 ref 的远端实时值）。记了 `targetBranch` 的分支自己压平后强推不受「不许改写已发布历史」那条限制——除非它同时又是别的分支记着的目标分支，那时照受守护分支拦。两个 skill 不处理这种用法：正常不会把一个开发分支当另一个的目标分支，写进去只会让文本复杂；闸门里对应的用例当作边界检查保留。
 - 目标分支有多个同名远端跟踪分支却没设上游、或上游指向本地分支时，PR 路径定不下参照点，只打一行「没查」就放行，不改退出码；目标分支一个远端跟踪分支都没有的（如只在本地的目标分支）直接放行、不打提示，那种分支本来就不是往远端提的目标。
-- 本地没有任何记着 `targetBranch` 的分支、又没有常驻守护分支时，受守护集合是空的：那时直推、强推、本地改写目标分支都不查，「保证什么」整节都不成立。只装 `pr` 的仓库这是常态——`git branch -D` 会带走该分支的 `branch.<分支>.*`，而 PR 收尾就要删分支，所以两次 PR 之间没有受守护分支。要常态守住目标分支就装 `worktree`（它把主分支写成常驻守护分支）。
+- 本地没有任何记着 `targetBranch` 的分支、又没有常驻守护分支时，受守护集合是空的：那时直推、强推、本地改写目标分支都不查，「保证什么」整节都不成立。装了闸门、却没在本 clone 执行 `install.sh` 写常驻守护分支配置的就是这样（`git branch -D` 会带走该分支的 `branch.<分支>.*`，PR 收尾就要删分支）；PR 目标分支不是主分支的，要常态守住它就把它加进 `.githooks/branches`。
 - `git push origin HEAD:refs/heads/<别的名字>` 两头都对不上被推分支的本地 ref 名，PR 路径筛不中（`git push origin HEAD` 与 `push <本地>:<别的名字>` 都筛得中）。
 - 切出点判据要拿到被合并 / 被推分支记的 `forkPoint`：合并后按约定删掉分支，推送那一层就拿不到参照了，这类错误压平只能靠本地那一层在合并时拦（git 2.28+ 才有那一层）。
 - 判断 hook 是否由别的体系接管只看配置文件（含 include）里的 `core.hooksPath`，`-c` 与 `GIT_CONFIG_*` 给的一律当作临时条目不算（查询时去掉 `GIT_CONFIG_COUNT`、`GIT_CONFIG_PARAMETERS`；不用 `--show-scope` 加文本过滤，Claude Code 的 shell 把 `grep` 换成了 ugrep，`grep -qv` 的结果与 GNU / BSD grep 不同）：启动 agent 会话的上层工具（如 Octoboard）会这样给会话注入指向 dispatcher 的 `core.hooksPath`，dispatcher 再转调公共 hooks 目录，算进去就只写常驻守护分支、不装 hook，闸门静默缺席。代价是用户自己在 shell 里常驻导出 `GIT_CONFIG_*` 把 hook 交给别的体系时，入口照样装进公共 hooks 目录、在用户自己的终端里不生效。
 - hook 入口装进各 clone 后不随仓库更新：入口本身改了（如多筛一条触发路径）要各 clone 重跑 `install.sh` 才生效，否则那部分检查在该 clone 上不存在。
 
 为什么：边界都是为了不误拦正常操作（删掉做完的计划文档、去掉临时代码、还没 rebase 的 WIP 推送、闸门故障不能卡死所有 ref 更新）而有意留下的，把它们写成「保证」会让人依赖闸门而不自己遵守规则。
-校验：闸门行为的测试放在 `tools/tests/gate/`，每条判据另有 `tools/tests/mutation/` 的 `teeth_*` 钉住「这段逻辑确实有用例压着」；规则原文见 `plugins/setup-git/scripts/githooks/revert-gate.py` 的模块 docstring。
+校验：闸门行为的测试放在 `tools/tests/gate/`，每条判据另有 `tools/tests/mutation/` 的 `teeth_*` 钉住「这段逻辑确实有用例压着」；规则原文见 `plugins/setup-git/skills/revert-gate/template/githooks/revert-gate.py` 的模块 docstring。
 
 ### 团队工作方式
 
@@ -169,15 +167,14 @@ skill、安装器、模板、README 里不得出现针对旧版本的迁移步�
 - 退出码：0 做完；1 停下交给 agent，现场与下一步见输出；2 用法或环境错误。skill 只写什么时候调用、它保证什么、按输出怎么处理，不复述脚本内部怎么做。
 - skill 调用主工作副本里的那份：`.githooks/` 可能还没提交，从目标分支新切出的 worktree 里没有它。
 
-为什么：全量脚本化（连远端推断、PR 平台都收进脚本）要么把 python3 变成安装前提、要么维护文字与脚本两套流程，还会把平台限定成 GitHub，兼容性代价大于收益；只收机械操作，换来的是最容易出错的几步（换基点压平、强推盖掉别人的提交、清理时丢掉没推上去的改写）由脚本保证，而兼容性不变。闸门脚本仍是 Python：按内容判断撤销要解析 diff、比对行与改名，用 sh 重写代码量成倍、在每次 ref 更新都跑的 hook 上更慢，而它本来就可选（没有 python3 时 hook 放行、skill 走人工核对）。
+为什么：全量脚本化（连远端推断、PR 平台都收进脚本）要么把 python3 变成安装前提、要么维护文字与脚本两套流程，还会把平台限定成 GitHub，兼容性代价大于收益；只收机械操作，换来的是最容易出错的几步（换基点压平、强推盖掉别人的提交、清理时丢掉没推上去的改写）由脚本保证，而兼容性不变。闸门脚本仍是 Python：按内容判断撤销要解析 diff、比对行与改名，用 sh 重写代码量成倍、在每次 ref 更新都跑的 hook 上更慢，而它本来就是单独装的可选项（没有 python3 时 hook 放行）。
 校验：`tools/tests/flow/`，每条用例在系统里有的 sh、dash、bash 下各跑一次；规则原文见各脚本开头的注释与 `plugins/setup-git/scripts/flow/flow-lib.sh`。
 
 ## `setup-git:pr` 的 PR 流程
 
 - 压平与 rebase 的基准一律取 `<远端>/<目标分支>`，不取本地目标分支：合并发生在远端，GitHub 算 diff 用的 merge base 就是远端尖端。（流程仍会动本地目标分支：当前就在它上面时要 `git branch -f` 退回远端位置，收尾时要切回它。）worktree 流程反过来必须 rebase 到本地目标分支——它的合并是本地 `merge --ff-only`，所以要先把本地目标分支对齐到远端。
 - 压平仍在原基点（`git merge-base HEAD <远端>/<目标分支>`）上做，压平之后才 rebase，两步不合并成一步。
-- 提 PR 前就要通过推送前预检（`check-pr`，没有闸门脚本时人工核对），不把「漏合了目标分支的改动」留到 PR 建好之后。
-- `pr` 不按环境改写装出的 skill（`worktree` 有写法 B / C）：装出的 `git-pr` 自带「有闸门就跑预检、没有就人工核对」两条支路，对本地那一层不作任何断言，没有要改写的句子。
+- 推送在提 PR 之前：装了闸门的仓库，pre-push 的 PR 路径拦下「漏合了目标分支的改动」时推送就失败、PR 不会建出来，不留到 PR 建好之后。
 - 基准远端（`<远端>`，只用于基准与比较）与推送远端分开：判断是否推过、推送、PR 的 head 都用推送远端，PR 建在 `<远端>` 对应的仓库；当前分支已有开放 PR 时，两个远端与推送目标分支一律以这个 PR 为准，推断不出就问用户。
 - 已推送的分支，远端有本地没有的提交时先汇报，不强推覆盖。
 
