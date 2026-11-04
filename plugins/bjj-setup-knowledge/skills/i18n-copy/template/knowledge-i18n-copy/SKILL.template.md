@@ -35,7 +35,7 @@ description: 多语言 App 界面文案规范。用于撰写、翻译、审查�
 | de | du，动词句 | 名词化起句（Bei Aktivierung → Wenn du das einschaltest） |
 | es | tú | 同一产品里 tú / usted 混用 |
 | it | tu | 同一产品里 tu / Lei 混用 |
-| pt-BR | você | o senhor 这类过度敬称 |
+| pt | 默认巴西用法，人称用 você | o senhor 这类过度敬称 |
 | th | 省人称 | ท่าน、句句加 ครับ / ค่ะ |
 | vi | 无代词祈使；表示 you can 的 bạn có thể 留着 | 为了客气而加的 bạn có thể、quý khách |
 
@@ -43,7 +43,7 @@ description: 多语言 App 界面文案规范。用于撰写、翻译、审查�
 
 | 语言 | 按钮形态 | 例 |
 |---|---|---|
-| de、fr、es、pt-BR、ru | 不定式 | Löschen、Supprimer、Eliminar、Apagar、Удалить |
+| de、fr、es、pt、ru | 不定式 | Löschen、Supprimer、Eliminar、Apagar、Удалить |
 | it | 第二人称单数命令式 | Elimina、Annulla |
 | ja | 名词或短名 | 削除、キャンセル；不写「削除してください」 |
 | ko | 名词 | 삭제、취소 |
@@ -142,7 +142,7 @@ description: 多语言 App 界面文案规范。用于撰写、翻译、审查�
   | de | z. B.（中间为不换行空格） | z. B. Außen |
   | es | p. ej. | p. ej. exterior |
   | it | Es.: | Es.: Esterno |
-  | pt-BR | Ex.: | Ex.: Área externa |
+  | pt | Ex.: | Ex.: Área externa |
   | ru | Например: | Например: снаружи |
   | ar | مثال: | مثال: بالخارج |
   | id | Misalnya: | Misalnya: Di luar |
@@ -168,7 +168,7 @@ description: 多语言 App 界面文案规范。用于撰写、翻译、审查�
   | fr | « »，内侧加窄不换行空格 |
   | de | „“ |
   | ru | «» |
-  | es、it、pt-BR | 按项目约定，默认 “” |
+  | es、it、pt | 按项目约定，默认 “” |
 
 ### 破坏性操作
 
@@ -323,12 +323,12 @@ Title Case 按语言取词：
 |---|---|---|---|
 | en | 冠词、并列连词（and、but、or、nor），四个字母以内的介词（to、at、by、for、in、of、off、on、out、up、via、from、into、onto、over、with、per）及 as | 五个字母以上的介词（About、Between、Through）、从属连词（If、When、Because）、动词短语的小品词（Turn Off、Sign In） | 大写 |
 | id | dan、atau、di、ke、dari、untuk、yang、dengan、dalam、pada、secara、hingga、sampai、tentang、per、oleh | tanpa、antara | 大写 |
-| pt-BR | a、o、os、as、de、da、do、das、dos、e、em、no、na、nos、nas、ou、para、com、ao、à、um、uma、por、pelo、pela、pelos、pelas、até、sem、sobre、que，以及 desta / nesta / deste / neste 类缩合 | entre、contra、após | 大写 |
+| pt | a、o、os、as、de、da、do、das、dos、e、em、no、na、nos、nas、ou、para、com、ao、à、um、uma、por、pelo、pela、pelos、pelas、até、sem、sobre、que，以及 desta / nesta / deste / neste 类缩合 | entre、contra、após | 大写 |
 | tr | 只有 ve、ile、veya、yahut，以及分写的附着词与疑问小品词 de、da、ki、ya（含 ya da）、mı、mi、mu、mü；连写的 -de、-da、-ki 是词的一部分，不拆 | 其余后置词：için、kadar、gibi | 分写的附着词与疑问小品词在首尾也小写 |
 
 - de、fr、es、it、vi、ru 等其余有大小写的语言：跟 Apple 一样用句首大写，不套 Title Case。
-- 表外的词一律大写。例外：id、pt-BR 表外的介词在 Apple 本地化里找不到样本时按小写，但「容易误判、实际大写」列里的词始终大写；tr 没有这个例外，只认上表清单（TDK Yazım Kılavuzu「Büyük harflerin kullanıldığı yerler」）。
-- en 连字符复合词第二段大写（Add-On、Follow-Up、%lld-Day），Built-in、Plug-in 除外；id、pt-BR 两段各自判断。
+- 表外的词一律大写。例外：id、pt 表外的介词在 Apple 本地化里找不到样本时按小写，但「容易误判、实际大写」列里的词始终大写；tr 没有这个例外，只认上表清单（TDK Yazım Kılavuzu「Büyük harflerin kullanıldığı yerler」）。
+- en 连字符复合词第二段大写（Add-On、Follow-Up、%lld-Day），Built-in、Plug-in 除外；id、pt 两段各自判断。
 
 ### 通用
 
