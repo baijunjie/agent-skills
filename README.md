@@ -172,7 +172,7 @@ plugin 更新后的典型链路：`bjj-batch-setup:plugin-update` → 重启会�
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
 | `bjj-batch-setup:plugin-update` | 刷新 marketplace，把 Claude Code 与 Codex 里已装的 bjj-agent-skills plugin 更新到最新版 | — | 自动 |
-| `bjj-batch-setup:project-init` | 初始化项目：按序读取并执行 `bjj-setup-agent` 的 `subagents`、`docs`、`change-check`、`bug`、`plan`，`bjj-setup-git` 的 `pr`、`revert-gate`，最后 `bjj-setup-agent` 的 `workflow`，不含 `report-style`、`unit-test` 与 `gallery` | 项目级 | 手动 |
+| `bjj-batch-setup:project-init` | 初始化项目：按序读取并执行 `bjj-setup-agent` 的 `subagents`、`docs`、`change-check`、`bug`、`plan`，`bjj-setup-git` 的 `pr`，最后 `bjj-setup-agent` 的 `workflow`，不含 `report-style`、`unit-test` 与 `gallery` | 项目级 | 手动 |
 | `bjj-batch-setup:project-reinstall` | 查出当前项目在两个宿主上各装过哪些安装器，标出需更新与无需更新，确认一次后只重装需更新的 | 项目级 | 自动 |
 | `bjj-batch-setup:user-reinstall` | 查出用户级配置在两个宿主上各装过哪些安装器，标出需更新与无需更新，确认一次后只重装需更新的 | 用户级 | 自动 |
 
