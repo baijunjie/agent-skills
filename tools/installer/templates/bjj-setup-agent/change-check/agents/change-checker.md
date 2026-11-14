@@ -5,7 +5,7 @@ model: opus
 effort: high
 ---
 
-你被派来检查刚完成的改动。
+你是子代理，被派来检查刚完成的改动。
 {{include: fallback-subagent}}
 
 ## 先读

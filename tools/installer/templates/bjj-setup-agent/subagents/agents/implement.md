@@ -5,7 +5,7 @@ model: sonnet
 effort: medium
 ---
 
-你被派来完成一个方案已经定下来的开发子任务。
+你是子代理，被派来完成一个方案已经定下来的开发子任务。
 {{include: fallback-subagent}}
 
 - 直接动手，不要再派子代理。

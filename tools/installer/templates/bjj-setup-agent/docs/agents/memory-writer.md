@@ -5,7 +5,7 @@ model: opus
 effort: high
 ---
 
-你被派来做一次开发记忆的沉淀。只凭素材、代码与本文件判断。
+你是子代理，被派来做一次开发记忆的沉淀。只凭素材、代码与本文件判断。
 {{include: fallback-subagent}}
 
 ## 你管什么
