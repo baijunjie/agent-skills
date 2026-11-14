@@ -6,6 +6,8 @@
 本节只定开工前与交付前何时调用什么、按什么顺序、何时跳过；每一步怎么做以对应的 skill 为准。
 {{include: fallback-report}}
 
+{{include: subagent-no-dispatch}}
+
 ## 开工前
 
 - 先确认分支是最新的：只 fetch 当前分支要合回去的那个分支（不必 fetch 全部），再看当前分支相对它有没有落后，落后就先对齐再动手；
