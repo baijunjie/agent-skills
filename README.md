@@ -125,7 +125,7 @@ codex plugin add bjj-batch-setup@bjj-agent-skills
 | Skill | 说明 | 作用域 | 触发方式 |
 |-------|------|--------|----------|
 | `bjj-setup-agent:bug` | 把缺陷记成只写事实的一次性工单，修复时先复现、定位根因再改 | 项目级（默认）+ 用户级 | 手动 |
-| `bjj-setup-agent:change-check` | 交付前派子代理审查本次改动、只给意见不改文件；装 `change-checker` 子代理 | 项目级（默认）+ 用户级 | 手动 |
+| `bjj-setup-agent:change-check` | 交付前派子代理审查本次改动、只给意见不改文件，并为项目梳理编码规范、审查中发现的规范缺口经用户同意后补进去；装 `change-checker` 子代理，项目有界面代码时另装专审界面的 `ui-checker` | 项目级（默认）+ 用户级 | 手动 |
 | `bjj-setup-agent:docs` | 开工前读、收尾时维护项目地图、产品文档与开发记忆，并规范代码注释；装三个文档写作子代理 | 项目级（默认）+ 用户级 | 手动 |
 | `bjj-setup-agent:gallery` | 按项目技术栈选型并搭起 UI 状态 gallery 与快速检查，交付时从开发分支预览给用户确认、确认后清理；装 `gallery-writer` 子代理 | 项目级 | 手动 |
 | `bjj-setup-agent:plan` | 把方案按里程碑写成开发计划文档并按序执行 | 项目级（默认）+ 用户级 | 手动 |

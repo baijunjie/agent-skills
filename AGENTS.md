@@ -53,6 +53,7 @@ Plugin 名即调用前缀：`plugins/dev/skills/discuss/SKILL.md` 在 Claude Cod
 | 新增 plugin，或改 plugin 的 `description`、`.codex-plugin/plugin.json` 的 `interface` 文案、两个 marketplace 的 `plugins` 数组 | `docs/authoring.md`「新增 plugin」 |
 | 新增安装器或改它在 `INSTALLERS` 里的 `scope`（要同步 manifest 与 marketplace 的作用域摘要、`README.md` 的作用域列与安装器个数） | `docs/authoring.md`「新增 skill」「新增 plugin」、`docs/installers.md`「命名与归属」 |
 | 改 `README.md` 的 skill 索引表、`.claude/settings.json` 的 `permissions.allow` | `docs/authoring.md`「新增 skill」 |
+| 写或改 skill、安装器源文件、模板源文件、子代理定义或写进指令文件的规则的文本 | 先加载 `create:skill-authoring`，按它写（写什么、不写什么、怎么写以它为准） |
 | 写或改 SKILL.md 的 frontmatter | `docs/authoring.md`「Frontmatter」 |
 | skill 要接收调用参数 | `docs/authoring.md`「参数传递」 |
 | skill 引用自己附带的脚本、模板；多个 skill 共用资源；改 Agent / 子代理模板、输出风格模板，或新增、改 `plugins/bjj-setup-agent/scripts/` 下的渲染脚本 | `docs/authoring.md`「附带资源与共享模板」 |

@@ -21,20 +21,25 @@ from pathlib import Path
 
 CODEX_AGENT_CONFIGURATION = {
     "mechanical": {
-        "model": "gpt-5.6-luna",
+        "model": "gpt-6-luna",
         "model_reasoning_effort": "low",
     },
     "implement": {
-        "model": "gpt-5.6-terra",
+        "model": "gpt-6.1-terra",
         "model_reasoning_effort": "medium",
     },
     "change-checker": {
-        "model": "gpt-5.6-sol",
+        "model": "gpt-6.1-sol",
+        "model_reasoning_effort": "high",
+        "sandbox_mode": "read-only",
+    },
+    "ui-checker": {
+        "model": "gpt-6.1-sol",
         "model_reasoning_effort": "high",
         "sandbox_mode": "read-only",
     },
     "investigate": {
-        "model": "gpt-5.6-sol",
+        "model": "gpt-6.1-sol",
         "model_reasoning_effort": "high",
     },
     "architect": {
@@ -42,23 +47,23 @@ CODEX_AGENT_CONFIGURATION = {
         "model_reasoning_effort": "xhigh",
     },
     "product-writer": {
-        "model": "gpt-5.6-sol",
+        "model": "gpt-6.1-sol",
         "model_reasoning_effort": "high",
     },
     "map-writer": {
-        "model": "gpt-5.6-terra",
+        "model": "gpt-6.1-terra",
         "model_reasoning_effort": "high",
     },
     "memory-writer": {
-        "model": "gpt-5.6-sol",
+        "model": "gpt-6.1-sol",
         "model_reasoning_effort": "high",
     },
     "test-writer": {
-        "model": "gpt-5.6-terra",
+        "model": "gpt-6.1-terra",
         "model_reasoning_effort": "high",
     },
     "gallery-writer": {
-        "model": "gpt-5.6-terra",
+        "model": "gpt-6.1-terra",
         "model_reasoning_effort": "high",
     },
 }
